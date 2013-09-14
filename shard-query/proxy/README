@@ -1,0 +1,10 @@
+The LUA proxy script transmits complex data structures like arrays via JSON.
+You need to install:
+http://luaforge.net/projects/json/
+
+
+You also need the MySQL Gearman UDFs:
+http://launchpad.net/gearman-mysql-udf/trunk/0.5/+download/gearman-mysql-udf-0.5.tar.gz
+
+
+

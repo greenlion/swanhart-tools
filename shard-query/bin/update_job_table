@@ -1,0 +1,12 @@
+#!/usr/bin/php
+<?php
+set_include_path(get_include_path() . PATH_SEPARATOR . '../include');
+require_once 'shard-query.php';
+$SQ = new ShardQuery();
+$SQ->state->mapper->sweep_jobs();
+
+$sql = "select * from jobs where completion_percent < 100.00";
+$stmt = $SQ->state->mapper->conn->my_query($sql);
+while($row=$SQ->state->mapper->conn->my_fetch_assoc($stmt)) {
+print_r($row);
+}

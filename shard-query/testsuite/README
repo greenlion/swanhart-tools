@@ -1,0 +1,23 @@
+This is the test suite for Shard-Query.
+
+Currently, the test suite will test whatever default schema you have configured
+for this installation of Shard-Query.  Thus the mapper tested will be the mapper
+selected in the configuration, the options tested will be the options in the
+configuration, etc.
+
+Running the test suite
+--------------------------------
+run "php run_tests" to execute all the tests.  The results of the tests will
+be compared with pre-generated result files that are shipped with the test
+suite.  
+
+Recording Results
+--------------------------------
+If you want to record your own result files (for example, if you change
+the test cases) you will need to record new result files:
+php run_tests --record
+
+IMPORTANT: edit run_tests and change the host/username/password/db name in SQ_stub
+if you want to record your own test results.  
+The default credentials used are 127.0.0.1/root/toor/test
+

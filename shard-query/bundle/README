@@ -1,0 +1,8 @@
+
+dooframework/ 
+  - This is the MVC framework that the UI uses.  There is a bug in
+  - the released version, so this version includes a patch.  
+
+  - To install:
+  sudo cp dooframework /usr/share
+  sudo chmod -R a+r /usr/share/dooframework

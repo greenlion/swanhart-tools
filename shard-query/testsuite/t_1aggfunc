@@ -1,0 +1,24 @@
+<?php
+$fact = "ts\$fact";
+$sql = "drop table if exists $fact;";
+ok($SQ->query($sql), 'drop fact table');
+$sql = "create table $fact ( i1 int, c1 varchar(10), d1 decimal(10,3), f1 double, shard_key int ) ";
+ok($SQ->query($sql), 'create fact table');
+
+$sql = "insert into $fact 
+values 
+(1, 'a', 1.0, 1.0, 1),
+(2, 'b', 2.0, 2.0, 2),
+(3, 'c', 3.0, 3.0, 3),
+(4, 'a', 1.0, 1.0, 1),
+(5, 'b', 2.0, 2.0, 2),
+(6, 'c', 3.0, 3.0, 3),
+(NULL, NULL, NULL, NULL, 4);";
+ok($SQ->query($sql), 'insert test rows');
+
+sql_ok("select count(*) from $fact;", 'count star');
+sql_ok("select count(distinct shard_key) from $fact;", 'count distinct');
+sql_ok("select count(distinct shard_key) from $fact;", 'count distinct');
+sql_ok("select count(i1) from $fact;", 'count colref with nulls');
+sql_ok("select count(distinct i1) from $fact;", 'count distinct colref with nulls');
+sql_ok("select count(i1), sum(i1), sum(i1)/count(i1) avg_expr from $fact;", 'complex aggregate expression (issue #35)');

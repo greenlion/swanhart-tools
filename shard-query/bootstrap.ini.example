@@ -1,0 +1,85 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Place default settings for all shards (user, host, password)
+;;  here.  These are the only settings that make sense here.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[default]
+user=shard_query
+password=shard_query
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  GENERAL SHARD-QUERY SETTINGS ARE SET HERE
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[config]
+;this settings point to the database location where 
+;shard-query will store its configuration.  ([default] settings are inherited)
+db=shard_query
+host=shard1
+
+;the name of the virtual schema which all the shards represent
+schema_name=default
+
+;You must also specify the mapper type here. Your choices are directory,hash, or none.
+mapper=directory
+
+;Finally, you must specify the column and column_datatype 
+;of the shard key, and its datatype, respectively
+column=date_id
+column_datatype=integer
+
+;will specify if this is the default scheama [1 or 0] default is 0
+;NOTE: THE FIRST SCHEMA YOU INSTALL IS ALWAYS MARKED AS DEFAULT
+is_default_schema=1
+
+;these options enable SQL expansion for all columns
+;these are usually good defaults
+;if you have partitions, you might want to disable this
+inlist=*
+between=*
+
+;an IN list which contains more than this many items
+inlist_merge_threshold=128
+
+;will get split into many lists of this many items
+inlist_merge_size=64
+
+;Shard-Query supports star schema optimization
+;make sure you turn this on if you have a star
+;schema! (defaults to false!)
+star_schema=true
+
+;storage engine to use for the coordinator table
+;myisam has lower concurrency but it is guaranteed
+;to be available, so it is a sensible default.
+
+;It is not a good idea to use the memory storage 
+;engine here, even though it is tempting.  The
+;memory engine has the same concurrency limits as MyISAM
+;and if the table 'fills up' then shard-query will 
+;get an error.  
+
+;InnoDB is an ok choice if you have InnoDB engine enabled
+;but deadlocks and row locks are possible while inserting/updating the
+;table.  In general, stick with MyISAM unless you have a specific
+;reason to change.
+coord_engine=MYISAM
+
+;gearmand binary path
+gearmand_path=/usr/sbin
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; LIST OF SHARDS FOLLOWS THIS POINT
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; only sensible shard level options are user, host, db and password
+;; these values inherit from [default], except for db
+;; which inherits from the shard name [shard1], [shard2], etc.
+[shard1]
+db=stats
+host=shard1
+
+[shard2]
+host=shard2
+db=stats
+
+[shard3]
+host=shard3
+db=stats

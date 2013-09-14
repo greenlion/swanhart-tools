@@ -1,0 +1,54 @@
+BASIC INSTALLATION
+---------------------------
+1) Install gearmand
+
+2) Install MySQL on each storage node (one or more databases)
+
+3) Install apache/php/php-mysql/php-pear
+
+4) Download shard-query and extract it into /usr/share/ (so you have /usr/share/shard-query/include, etc..)
+
+5) Install the config repo
+   php install_config_repo.php
+ 
+6) copy bootstrap.ini.example to bootstrap.ini and edit it appropriately
+
+7) php setup_virtual_schema.php --ini=bootstrap.ini
+
+8) start gearman: 
+   gearmand -d -p 7001 -L 127.0.0.1
+
+9) test a worker:
+   cd bin/
+   ./worker  
+
+
+   If no errors in 10 to 15 seconds hit ctrl-c.
+
+10) start workers
+   ./start_workers 6  (where 6 = number of workers you want to start)
+
+
+UI installation (CentOS 6.4)
+---------------------------
+Copy /usr/share/tools/shard-query.conf into /etc/http/conf.d
+Restart apache
+Copy bundle/dooframework into /usr/share
+chmod -R a+r /usr/share/dooframework
+
+Test:
+http://localhost/shard-query
+Default username: user
+Default password: mpp
+
+Proxy installation
+--------------------------
+Make sure boost-devel, libevent-devel and mysql-devel and openssl-devel are installed
+Download the latest version of gearman-mysql-udf
+Compile and install the UDF
+Configure the UDF:
+select gman_set_servers('127.0.0.1:7001');
+
+Download and install MySQL proxy in /usr/local/mysql-proxy.
+Start the proxy and use the -s option to point the proxy to the Shard-Query LUA script:
+mysql-proxy -P 127.0.0.1:4042 -b 127.0.0.1:3306 -s /usr/share/shard-query/proxy/mysqlproxy.lua --admin-username=root --admin-password=admin --admin-lua-script=/usr/local/lib/mysql-proxy/lua/admin.lua --daemon --log-file=/usr/share/shard-query/log/proxy.log

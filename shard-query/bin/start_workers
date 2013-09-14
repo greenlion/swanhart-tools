@@ -1,0 +1,31 @@
+#!/bin/bash
+if [ "$1" = "" ]
+then
+  workers=1
+else
+  workers=$1
+fi
+#wait for the config file to show up before trying to
+#actually start any workers
+while [ ! -f ../include/config.inc ]
+do
+  echo "waiting for config..."
+  sleep 2
+done
+
+./run_loader_worker >> ../log/worker.log &
+./run_loader_worker >> ../log/worker.log &
+
+./run_shard_query_worker >> ../log/worker.log &
+./run_shard_query_worker >> ../log/worker.log &
+./run_shard_query_worker >> ../log/worker.log &
+./run_shard_query_worker >> ../log/worker.log &
+./run_shard_query_worker >> ../log/worker.log &
+
+echo "Launching $workers store workers"
+for i in `seq 1 $workers`
+do
+  echo "Launching store worker #$i"
+  ./run_store_resultset_worker >> ../log/worker.log &
+done
+echo "done.."
