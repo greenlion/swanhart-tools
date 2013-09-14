@@ -1,0 +1,16 @@
+#summary This is a feature roadmap for Flexviews
+
+= Performance Optimization =
+  <ul>
+  <li>Add gearman worker support for parallel work
+  <li>Improve propagation algorithm performance using rolling propagation.</li>
+  <li>Add support to run the propagation queries for each base table in parallel</li>
+  
+= Operational / Usability =
+
+== purge operation ==  
+    <ol>
+    <li>Add SP to identify oldest uow_id that any view requires for refresh
+    <li>Add stored procedure to remove rows from a changelog on a given table before a given uow.
+    <li>Add another SP to call that SP either serially or in parallel, via gearman workers
+    <li>After the SP in step 4 completes, delete uow_id rows that are no longer needed

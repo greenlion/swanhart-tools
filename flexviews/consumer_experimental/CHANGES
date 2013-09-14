@@ -1,0 +1,21 @@
+-- 1.6.1 GA --
+Detect when the server_id is not set on the master and exit with error.  FlexCDC would silently fail previously.
+Add options to change the names of the tables which FlexCDC uses to store metadata information.  
+Add FlexSBR, which is a statement based replicator - this is an experimental feature and is not considered GA quality yet, so YMMV.
+Added a script (add_table.php) which will allow you to add a changelog to a table
+
+
+
+-- 1.6.0 RC3 --
+NEW FEATURES:
+added add_table.php which is used to add a table changelog to a table.  It simply calls FlexCDC::create_mvlog
+table names are now configurable
+the replication directory contains FlexSBR, which is a FlexCDC extension which executes SBR statements.
+
+BUG FIXES:
+SET statements are now executed
+When changing log files, the delimiter was not reset to ;.  This has been fixed.
+FlexCDC could ignore some errors from mysqlbinlog if a version 5.0 mysqlbinlog was in the path.  This would result in a loop with an error message continually being displayed.  All mysqlbinlog errors are now detected.
+
+-- PREVIOUS --
+For changes prior to 1.6.0 RC3 see SVN changelogs

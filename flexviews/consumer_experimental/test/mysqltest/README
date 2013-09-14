@@ -1,0 +1,8 @@
+This is the Flexviews test suite (not the FlexCDC test suite).
+
+It uses the mysqltest binary included with MySQL.  
+
+It creates and populates a fact table w/ 100 rows and dimension with 2 rows.
+It then creates test materialized views, changes the base tables and refreshes.
+
+This test expects that the database already has flexviews installed, and that it is okay to create the 'test' database if it does not exist.  The binary log consumer must be running.

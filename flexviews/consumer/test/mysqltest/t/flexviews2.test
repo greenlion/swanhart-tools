@@ -1,0 +1,169 @@
+-- disable-warnings
+
+delete from flexviews.mview;
+drop database if exists test;
+
+create database if not exists test;
+
+use test;
+
+drop table if exists t1;
+
+create table test.t1(
+c1 int auto_increment primary key,
+c2 int default null)
+engine=innodb;
+
+create table test.t2 like test.t1;
+
+call flexviews.create_mvlog('test','t1');
+call flexviews.create_mvlog('test','t2');
+
+alter table test.t2 add c3 char(1) default null;
+
+call flexviews.create('test','mv1','INCREMENTAL');
+set @mvid := last_insert_id();
+
+call flexviews.add_table(@mvid, 'test','t1','t1', null);
+call flexviews.add_table(@mvid, 'test','t2','t2', 'on t1.c1 = t2.c2');
+call flexviews.add_expr(@mvid,'GROUP','t2.c3','t2_c3');
+call flexviews.add_expr(@mvid,'COUNT','*','the_count');
+
+call flexviews.enable(@mvid);
+
+select * from test.mv1;
+
+select t2.c1, count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+
+insert into test.t1 values (1,1);
+insert into test.t2 values (1,1,'a');
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select  * from test.mv1;
+
+select t2.c3,count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+
+delete from test.t1;
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select  * from test.mv1;
+
+select t2.c3,count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+
+insert into test.t1 values (1,1);
+insert into test.t2 values (10,1,'a');
+insert into test.t2 values (11,1,'b');
+insert into test.t2 values (12,1,'b');
+insert into test.t2 values (13,1,'c');
+
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select  * from test.mv1;
+
+select t2.c3,count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+
+delete from test.t1;
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select  * from test.mv1;
+
+select t2.c3,count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+
+call flexviews.disable(@mvid);
+
+-- -- --
+-- disable-warnings
+delete from flexviews.mview;
+drop database if exists test;
+
+create database if not exists test;
+
+use test;
+
+drop table if exists t1;
+
+create table test.t1(
+c1 int auto_increment primary key,
+c2 int default null)
+engine=innodb;
+
+create table test.t2 like test.t1;
+
+call flexviews.create_mvlog('test','t1');
+call flexviews.create_mvlog('test','t2');
+
+alter table test.t2 add c3 char(1) default null;
+
+call flexviews.create('test','mv1','INCREMENTAL');
+set @mvid := last_insert_id();
+
+call flexviews.add_table(@mvid, 'test','t1','t1', null);
+call flexviews.add_table(@mvid, 'test','t2','t2', 'on t1.c1 = t2.c2');
+call flexviews.add_expr(@mvid,'GROUP','t2.c3','t2_c3');
+call flexviews.add_expr(@mvid,'MIN','t2.c1','the_min');
+call flexviews.add_expr(@mvid,'COUNT','*','the_count');
+
+call flexviews.enable(@mvid);
+
+select * from test.mv1;
+
+select t2.c3, min(t2.c1) the_min, count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+
+insert into test.t1 values (1,1);
+insert into test.t2 values (1,1,'a');
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select  * from test.mv1;
+
+select t2.c3, min(t2.c1) the_min, count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+
+delete from test.t1;
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select  * from test.mv1;
+
+select t2.c3, min(t2.c1) the_min, count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+
+insert into test.t1 values (1,1);
+insert into test.t2 values (10,1,'a');
+insert into test.t2 values (11,1,'b');
+insert into test.t2 values (12,1,'b');
+insert into test.t2 values (13,1,'c');
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+
+select t2.c3, min(t2.c1) the_min, count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+select * from test.mv1;
+
+delete from test.t1;
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select  * from test.mv1;
+
+select t2.c3,count(*) the_count from test.t1 join test.t2 on t1.c1 = t2.c2 group by 1;
+
+call flexviews.disable(@mvid);

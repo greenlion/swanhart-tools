@@ -1,0 +1,60 @@
+    This file is part of FlexViews. (c) 2008-2010
+
+    FlexViews is free software: you can redistribute it and/or modify
+    it under the terms of the Lesser GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FlexViews is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FlexViews in the file COPYING, and the Lesser extension to
+    the GPL (the LGPL) in COPYING.LESSER.  
+    If not, see <http://www.gnu.org/licenses/>.
+
+/****** 1/README
+ * NAME
+ * |html <pre>
+ * Welcome to Flexviews!
+ * 
+ *  SYNOPSIS
+ * 
+ * Flexviews is a unique toolkit for the creation and upkeep of MATERIALIZED VIEWS for MySQL.  You may freely use this project in your own projects.
+ * Simply keep the above copyright notice intact.
+ * 
+ * A NOTE ABOUT DATABASES
+ * Flexviews must be installed into the `flexviews` schema.  FlexCDC must be configured to use the `flexviews` schema as well.
+ * This is because the stored procedures must know where to find the Flexviews metadata.  This is a shortcoming of MySQL
+ * stored procedures.  Some day in the future, there will be a 'make' step that allows a global search/replace to switch the name
+ * `flexviews` to another name, but for now, you MUST install the tables and stored procedures in the `flexviews` schema.
+ *
+ *
+ * COMING SOON
+ * * Flexviews test suite!
+ * * Autocleanup of changelog records which are no longer needed.  The old mvlog_autocleanup script has not worked since the introduction of the external consumer.
+ * * Examples!
+ *
+ * Quick Overview
+ * -------------------
+ * directories:
+ *   * consumer - This directory contains FlexCDC which reads binary logs using mysqlbinlog and inserts entries into table change logs
+ *   * procs - contains the source to the stored procedures.  usually invoked by install.sql - If you want to modify Flexviews this is probably the place to start.
+ *   * php - contains misc scripts of no particular use to a wide audience, but that I want to keep under source control
+ *   * schema - contains the CREATE DATABASE and CREATE TABLE statements for the flexviews schema.  usually invoked by install.sql
+ *   * events - contains two events (compute.sql, apply.sql) which compute view changes every 5 minutes, and apply them every 10.  these values may need to be adjusted based on your number of views and volume of changes.  All of the views are computed/applied to the same transactional point.
+ * 
+ * Credit where credit is due: 
+ * Flexviews currently uses a version of the algorithm described in: 'How to roll a join': http://pages.cs.wisc.edu/~beyer/papers/matview_sigmod00.pdf (2000)
+ * Flexviews extends this algorithm to distributive aggregate functions with 'summary delta tables': http://portal.acm.org/citation.cfm?id=253277&dl= (google scholar has PDF version too)
+ * My ideas:
+ * Flexviews supports non-distributable aggregate functions such as MIN/MAX/COUNT(DISTINCT) by trading space-for-time using a secondary materialized view called a "sub_view".
+ * 
+ * Many thanks to the authors of those papers.
+ * 
+ * Justin Swanhart
+ *  |html </pre>
+******
+*/

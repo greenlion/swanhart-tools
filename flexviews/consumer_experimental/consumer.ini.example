@@ -1,0 +1,72 @@
+[flexcdc]
+;location of mysqlbinlog.  path will be searched if this path is not provided
+mysqlbinlog=/usr/bin/mysqlbinlog
+
+;The database in which to write changelogs and in which to store the state tables (see the next section).  If you are using Flexviews, then you MUST NOT change this value.
+database=flexviews
+
+;where to write error messages (default is the current directory) 
+;must be full path and filename otherwise
+error_log=flexcdc.err
+
+;the following three tables store the metadata information for FlexCDC including at which binary log file/position to which binary logs have been processed. You MUST NOT include database names on these tables.  They will all be placed into the database specified above.  If you are using flexcdc for something OTHER THAN FLEXVIEWS then you can remap the table names which FlexCDC uses to alternative names.  DO NOT CHANGE THESE VALUES IF YOU ARE USING FLEXVIEWS or if you don't have a very good reason to change them.
+
+binlog_consumer_status=binlog_consumer_status
+mvlogs=mvlogs
+mview_uow=mview_uow
+
+;The following variable sets how long FlexCDC will allow change history to accumulate in the database.  Entries older than 
+;the given interval will be purged from the system.  Setting log_retention_interval="10 DAY" (the default) will retain 10 days of change data.  
+;The interval must be specified as N DAY or N HOUR (any MySQL INTERVAL will work, without the INTERVAL keyword)
+;NOTE: you must run the seperate cleanup_history.php script 
+log_retention_interval="10 DAY"
+
+;comma separated list of databases to collect changelogs from, all other databases will be ignored
+;since flexcdc uses row-based replication, you don't have to worry about cross database changes 
+
+;only_databases=flexviews,db1,db2,db3
+
+;Automatically create changelog tables and enable changelogging for ALL tables.
+;You might not want to use this option if any of the following is true:
+;  you have lots of tables
+;  you drop and create tables with the same name
+;  you are using flexviews
+;  you have tables which you do not need to capture changes from
+
+;If you choose not to use the auto_changelog feature, then you can use add_table.php to create changelogs
+;or you can use the flexviews.create_mvlog function in ../proc/create_mvlog.sql
+auto_changelog=false
+
+;If you set raise_warnings=true then when Flexviews sees an unsupported command (like DROP) it raises a warning to
+;stdout.  You might want to use the 'logger' utility to capture the output if you turn this on
+raise_warnings=false
+
+;Bulk insertion inserts all changes in a transaction as one big INSERT statement.
+bulk_insert=true
+
+;The next two variables control the amount of time that FlexCDC spends sleeping between invocations of mysqlbinlog.
+;In order to avoid putting excessive load on the master, FlexCDC progressively backs off when it detects no changes
+;from the master.  By default it will back off in increments of .25 seconds up to five seconds, at which point it
+;will no longer increase the wait time any more.  The downside of this setting is that it can make incremental 
+;refresh slower because the refresh process may have to wait for FlexCDC to wake and and process the changes that it
+;recently committed.
+sleep_increment=.25
+sleep_maximum=5
+
+;The SOURCE is where the change logs are read from.  This does not have to be the same as the local machine.
+;this user requires "grant replication client,replication slave"
+[source]
+user=root
+host=127.0.0.1
+port=3306
+password=
+
+;The DEST is the place where logs are written to.  You should be able to collect from more than one source into a single
+;dest, but this is experimental at best
+;this user requires SUPER privs
+[dest]
+user=root
+host=127.0.0.1
+port=3306
+password=
+

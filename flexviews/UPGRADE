@@ -1,0 +1,12 @@
+== Upgrading changelogs ==
+FlexCDC now logs timestamps differently. TIMESTAMP columns are now
+represented as a TIMESTAMP column in the log (instead of DATETIME).
+
+If you have tables with TIMESTAMP columns, you should drop the changelog
+and recreate it, or ALTER the changelog table to convert the DATETIME to TIMESTAMP.  TIMESTAMP values will not be correctly logged otherwise.
+
+If you are running 1.6.0+,then execute upgrade.sql
+
+Upgrade from versions earlier than 1.6.0.RC1 is not supported.
+
+Report any problems to the bug tracker.

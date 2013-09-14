@@ -1,0 +1,46 @@
+Step 0
+Install FlexCDC (see ../consumer)
+Make sure FlexCDC is set up and running 
+
+Step 1
+--------------------------------
+Import the demo.sql file to get the 'demo' database with
+a few sample tables.  This data is based on the Microsoft
+'Northwind' database.
+
+Step 2
+Run the following four commands inside the 'demo' database (only required if you don't use FlexCDC in autochangelog mode):
+
+call flexviews.create_mvlog('demo', 'orders');
+call flexviews.create_mvlog('demo', 'customers');
+call flexviews.create_mvlog('demo','order_details');
+call flexviews.create_mvlog('demo','products');
+
+
+Step 3.
+source views.sql file to create the actual materialized views
+
+Step 4
+select some sample data from a materialized view
+
+SELECT * from demo.mv_company_sales_total
+WHERE CustomerName like 'Ranch%';
+
+Step 5
+change some data, for instance:
+update demo.order_details set CustomerId = 'XXX' 
+where customer_id = 'RANCH';
+
+Step 6
+refresh the materialized view (compute the changes and apply them, including up to the most recent committed changes which have been captured by FlexCDC:
+CALL flexviews.refresh(flexviews.get_id('mv_company_sales_total', 'demo'), 'BOTH', NULL);
+
+Step 7
+verify the data was removed from the view
+
+SELECT * from demo.mv_company_sales_total
+WHERE CustomerName like 'Ranch%';
+
+Step 8
+Play!
+

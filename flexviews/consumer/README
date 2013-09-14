@@ -1,0 +1,108 @@
+/*  FlexCDC is part of Flexviews for MySQL
+    Copyright 2008-2010 Justin Swanhart
+
+    FlexViews is free software: you can redistribute it and/or modify
+    it under the terms of the Lesser GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FlexViews is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FlexViews in the file COPYING, and the Lesser extension to
+    the GPL (the LGPL) in COPYING.LESSER.
+    If not, see <http://www.gnu.org/licenses/>.
+*/
+
+FlexCDC reads MySQL row-based binary logs and produces a list of changes in "changelog" tables.  
+
+By default, FlexCDC reads a configuration file (consumer.ini) located in the working directory.
+There are three required .ini sections: [flexcdc], [source], [dest]
+Please see the example included file: consumer.ini.example which contains all of the settings.
+
+REQUIREMENTS:
+Your database must be logging changes in 'ROW' mode.  Make sure binlog_format=ROW is set in your my.cnf
+YOU MUST RESTART* YOUR DATABASE IF YOU CHANGE THIS SETTING
+
+* I know the manual says you can change the format at runtime, but if the format is STATEMENT in the binary log
+  then it will not work.  Dynamically changing the format only works if binlog_format=MIXED or binlog_format=ROW 
+  IN THE CONFIG FILE FROM SERVER STARTUP
+
+DO NOT CHANGE THE MODE WHILE THE DATABASE IS RUNNING.  Always use ROW mode.  If you have MIXED in your config file then
+MySQL may choose to write DML statements as statements in the binary log.  THOSE CHANGES CAN NOT BE LOGGED BY THE TOOL!  FlexCDC will raise a warning if this situation is encountered.
+
+Upgrading from consumer.php from Flexviews 1.5
+-------------------------
+Stop the old binary log consumer script.
+Update the new configuration file.  Be sure to set database= and to rename [flexviews] to [flexcdc] if you use your old file.
+DO NOT enable auto_changelog=true
+Please note: Flexviews 1.5.0 will not work with autochangelogging yet!  I will release Flexviews 1.5.1 shortly.
+FlexCDC 1.5.1 should work with any tables that you manually log with flexviews.create_mvlog() as long as autochangelog=false.
+I still have to test this.  I'm working on a Flexviews test suite.
+
+
+Setup 
+-------------------------
+Run setup_flexcdc.php - this will execute FLUSH TABLES WITH READLOCK to ascertain the master position!
+
+Running the consumer:
+php run_consumer.php  (will excute in a loop with a 250ms wait which increases to up to 5 seconds in 250ms increments during periods of inactivity) 
+
+Logging the output:
+I recommend using the 'logger' script to log FlexCDC output to the syslog.  FlexCDC will output warnings when it encounters conditions which appear to violate the intergrity of changelogs, such as statement DML like INSERT.
+
+Auto Changelogging
+-------------------------
+FlexCDC can now operate in 'auto_changelog' mode.  In this mode a changelog table is automatically created 
+the first time a row change is encountered for any table.  The table will be named {database}.{schema}_{table}
+where {database} is the value of the database key in the consumer.ini file, and {schema} and {table} are the name
+of the schema and table that the change was made to.
+
+For example, given the configuration values:
+[flexcdc]
+database=cdc
+auto_changelog=true
+...
+
+An insert into a table:
+mysql> insert into test.t1 values (1);
+           {schema}---^ ^---{table}
+
+Automatically creates the following changelog table:
+mysql> show create table cdc.test_t1 <--------|
+             {database}--^   ^-{schema}=test  {table}=t1
+*************************** 1. row ***************************
+       Table: test_t1
+Create Table: CREATE TABLE `test_t1` (
+  `dml_type` int(11) DEFAULT '0',
+  `uow_id` bigint(20) DEFAULT NULL,
+  `fv$server_id` int(10) unsigned DEFAULT NULL,
+  `c1` int(11) DEFAULT NULL,
+  KEY `uow_id` (`uow_id`,`dml_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+1 row in set (0.00 sec)
+
+And a row similar to the following:
+mysql> select * from test_t1;
++----------+--------+--------------+------+
+| dml_type | uow_id | fv$server_id | c1   |
++----------+--------+--------------+------+
+|        1 |      1 |        12345 |    1 |
++----------+--------+--------------+------+
+1 row in set (0.00 sec)
+
+Each row is called an image. dml_type may only be -1 (deletion) or 1 (insertion).  All DML operations can be 
+decomposed into these two operations for the purposes of logging.
+INSERT statements produce one image with dml_type=1
+DELETE statements produce one image with dml_type=-1
+UPDATE statements produce two images, one DELETE and one INSERT
+REPLACE statements may act like DELETE + INSERT (two images) or just INSERT (one image)
+INSERT .. ON DUPLICATE KEY UPDATE may act like INSERT or UPDATE (two images)
+
+If you operate on changelog tables (for example to purge them) MAKE SURE YOU SET SQL_LOG_BIN=0!  Otherwise you will get
+changelogs on your changelogs, which is probably not what you intended.
+
+

@@ -1,0 +1,23 @@
+This directory contains the Flexviews test suite.
+
+Tests for FlexCDC require:
+ PHPunit  
+ MySQLsandbox 3
+
+Tests for the Flexviews SQL API and materialized view refresh require:
+A sandbox server
+
+
+To run the FlexCDC tests:
+1) Create and start a MySQL sandbox
+  * make_sandbox must be in the path
+  * A MySQL 5.1 binary distribution must be located in the MySQLsandbox repository
+
+  See the MySQL sandbox cookbook: http://search.cpan.org/~gmax/MySQL-Sandbox-3.0.06/lib/MySQL/Sandbox/Recipes.pm
+
+1) sh create_sandbox.sh (or start an existing sandbox on port 54321, or modify the .ini file to point to a real MySQL server)
+2) php_unit test_file.php 
+
+THE TESTS DESTROY THE 'test' database!  Use on a running MySQL database at your peril!
+
+

@@ -1,0 +1,9 @@
+You can use this PHP daemon to rebuild your views periodically according to mview_compute_schedule and mview_apply_schedule tables.  Default schedules are created when views are created.  You can update the schedules with normal SQL DML.
+
+Coming soon API calls to manipulate the schedules.
+
+Requirements:
+You'll need the mysqli and pcntl extensions enabled. 
+
+An alternative is to use the EVENT SCHEDULER to refresh your views.  
+

@@ -1,0 +1,692 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+                      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html  xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<meta http-equiv="Content-type" content="text/html; charset=ISO-8859-1" />
+<link rel="stylesheet" href="./manual.css" type="text/css" />
+<title>./manual</title>
+<!-- Source: ./procs/ -->
+<!-- Generated with ROBODoc Version 4.99.41 (Aug 13 2011) -->
+</head>
+<body>
+<div id="logo">
+<a name="robo_top_of_doc"></a>
+</div> <!-- logo -->
+<h3>TABLE OF CONTENTS</h3>
+<ul>
+<li>1. <a href="#robo0">CDC_API/create_mvlog</a></li>
+<li>2. <a href="#robo1">CDC_API/get_mvlog</a></li>
+<li>3. <a href="#robo2">SQL_API/add_expr</a></li>
+<li>4. <a href="#robo3">SQL_API/add_table</a></li>
+<li>5. <a href="#robo4">SQL_API/create</a></li>
+<li>6. <a href="#robo5">SQL_API/disable</a></li>
+<li>7. <a href="#robo6">SQL_API/enable</a></li>
+<li>8. <a href="#robo7">SQL_API/remove_expr</a></li>
+<li>9. <a href="#robo8">SQL_API/remove_table</a></li>
+<li>10. <a href="#robo9">SQL_API/set_definition</a></li>
+<li>11. <a href="#robo10">UTIL_API/get_id</a></li>
+<li>12. <a href="#robo11">UTIL_API/get_sql</a></li>
+<li>13. <a href="#robo12">UTIL_API/refresh</a></li>
+<li>14. <a href="#robo13">UTIL_API/refresh_all</a></li>
+<li>15. <a href="#robo14">UTIL_API/rename</a></li>
+</ul>
+<a name="robo0"></a>
+<a name="CDC5fAPI2fcreate5fmvlog"></a>
+<h1>1.  CDC_API/create_mvlog [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>create_mvlog</strong> - Create a table changelog for a MySQL table
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>create_mvlog</strong>(v_schema, v_mview_name)
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function creates a table change log (aka materialized view log)
+   on a particular table in the database. Any data changes made to the table
+   will be recorded in the table change log by the Flexviews binary log consumer (FlexCDC).
+</p>
+
+<p>   You do not need to use this function if you use the auto-changelog mode of FlexCDC.
+   When this mode is used, change logs are made automatically when a change for a table is 
+   detected and the log has not yet been created.
+</p>
+
+<p>   If you use temporary tables, or you have only a small number of tables to log, then you might
+   consider not using auto-changelogging and instead only log certain tables.  Use this function
+   to add a table to the list of tables to log.  Once added a table may not be removed.
+</p>
+<p class="item_name">INPUTS</p>
+<ul><li>   v_schema       - The schema (aka database) in which the table resides
+</li>
+<li>   v_table_name   - The name of the table you want to log changes on
+</li>
+</ul>
+<p></p>
+<p class="item_name">RESULT</p>
+<p>   An error will be generated in the MySQL client if the changelog could not be created.
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>     mysql&gt;
+</p>
+<pre>       call flexviews.<strong>create_mvlog</strong>('test', 'my_table');
+</pre>
+<p></p>
+<a name="robo1"></a>
+<a name="CDC5fAPI2fget5fmvlog"></a>
+<h1>2.  CDC_API/get_mvlog [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>get_mvlog</strong> - Get the materialized view log name for the given table in the given schema
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>get_mvlog</strong>(v_mview_schema, v_mview_name)
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function returns the materialied view log name for the table.
+</p>
+<p class="item_name">INPUTS</p>
+<ul><li>   v_table_schema - The schema which contains the materialized view
+</li>
+<li>   v_table_name   - The name of the table which contains the rows for the view
+</li>
+</ul>
+<p></p>
+<p class="item_name">RESULT</p>
+<ul><li>   NULL will be returned if the table does not exist or is not logged
+</li>
+<li>   EMPTY STRING is returned if logging on the table is disabled
+</li>
+<li>   The name of the table will be returned otherwise
+</li>
+</ul>
+<p></p>
+<p class="item_name">EXAMPLE</p>
+<p>  mysql&gt;
+</p>
+<pre>    select flexviews.<strong>get_mvlog</strong>('test','mv_example');
+</pre>
+<p></p>
+<a name="robo2"></a>
+<a name="SQL5fAPI2fadd5fexpr"></a>
+<h1>3.  SQL_API/add_expr [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>add_expr</strong> - Add an expression or indexes to a materialized view.
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>add_expr</strong>(v_mview_id, v_expr_type, v_expression, v_alias) 
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function adds an expression or indexes to the materialized view 
+   definition.  This function may normally be called only on disabled materialized views.
+   The exception are KEY and UNIQUE index expressions, which may be added at any time.
+</p>
+
+<p>   The expression specified in v_expression is added to the materialized view.
+   If your view will be using aggregate functions, then you should specify the 'GROUP' type for the  non-agg columns.
+   If your view does not use aggregation, then each expression should be of type 'COLUMN'.
+   In the expression, any references to table columns must be fully qualified with the TABLE_ALIAS that you
+   specified in the flexviews.ADD_TABLE() call.  For example, if you added a table with alias 'T', then when you reference
+   a column in that table, you must prefix the alias:
+   call flexviews.<strong>add_expr</strong>(flexviews.<a href="#robo10">get_id</a>('test','mv1'),'GROUP','t.c1', 'group_on_t_c1');
+</p>
+
+<p>   WHERE expressions are added to the WHERE clause of the view.
+</p>
+
+<p>   The UNIQUE and KEY expressions represent indexes on the materialized view table. Note that UNIQUE and KEY expressions do not reference base table columns, but instead you must specify one or more expression aliases.  This is similar to the use of table aliases in expressions (see above).  See the examples below for more info.
+</p>
+<p class="item_name">INPUTS</p>
+<ul><li>   v_mview_id -- The materialized view id (see flexviews.<a href="#robo10">get_id</a>)
+</li>
+<li>   v_expr_type -- GROUP|BIT_AND|BIT_OR|BIT_XOR|COLUMN|SUM|COUNT|MIN|MAX|AVG|COUNT_DISTINCT|UNIQUE|KEY|PERCENTILE|STDDEV_POP|STDDEV_SAMP|VAR_SAMP|VAR_POP
+</li>
+<li>   v_expr -- The expression to add.  
+      Any columns in the expression must be prefixed with a table alias created with flexviews.<a href="#robo3">add_table</a>.  
+      When the UNIQUE or KEY expression types are used, the user must specify one more more aliases to
+      index.  These are normally aliases to GROUP expressions.
+</li>
+<li>   v_alias -- Every expression must be given a unique alias in the view, which becomes the
+      name of the column in the materialized view. For UNIQUE and KEY expressions, this will be
+      the name of the index in the view.  You must NOT use any reserved words in this name. 
+</li>
+</ul>
+<p></p>
+<p class="item_name">NOTES</p>
+<p>  Possible values of v_expr_type (a string value):
+<table border=1 align=center><tr><th bgcolor=#cccccc >EXPR_TYPE</th><th bgcolor=#cccccc>Explanation</th></tr>
+<tr><td>GROUP</td><td>GROUP BY this expression.
+<tr><td>COLUMN</td><td>Simply project this expression.  Only works for views without aggregation.    
+</tr><tr><td>COUNT<td>Count rows or expressions
+</tr><tr><td>SUM<td>SUM adds the value of each expression.  SUM(distinct) is not yet supported.
+</tr><tr><td>MIN<td>MIN (uses auxilliary view)
+</tr><tr><td>MAX<td>MAX (uses auxilliary view)
+</tr><tr><td>AVG<td>AVG (adds SUM and COUNT expressions automatically)
+</tr><tr><td>COUNT_DISTINCT<td>COUNT(DISTINCT) (uses auxilliary view)
+</tr><tr><td>STDDEV_POP<td>Standard deviation population(uses auxilliary view)
+</tr><tr><td>STDDEV_SAMP<td>Standard deviation sample(uses auxilliary view)
+</tr><tr><td>VAR_POP<td>Variance population (uses auxilliary view)
+</tr><tr><td>VAR_SAMP<td>Variance sample (uses auxilliary view)
+</tr><tr><td>GROUP_CONCAT<td>Group concatenation - NOT YET SUPPORTED (uses auxilliary view)
+</tr><tr><td>BIT_AND<td>BIT_AND(uses auxilliary view)
+</tr><tr><td>BIT_OR<td>BIT_OR(uses auxilliary view)
+</tr><tr><td>BIT_XOR<td>BIT_XOR(uses auxilliary view)
+</tr><tr><td>KEY<td>Adds an index to the view.  Specify column aliases in v_expr.
+</tr><tr><td>PERCENTILE_##<td>Adds a percentile calculation to the view. 
+</tr></table>
+</p>
+<p class="item_name">SEE ALSO</p>
+<p>   flexviews.<a href="#robo6">enable</a>, flexviews.<a href="#robo3">add_table</a>, flexviews.<a href="#robo5">disable</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   mysql&gt;
+</p>
+<pre>     set @mv_id = flexviews.<a href="#robo10">get_id</a>('test', 'mv_example');
+     call flexviews.<a href="#robo3">add_table</a>(@mv_id, 'schema', 'table', 'an_alias', NULL);
+</pre>
+<p>
+</p>
+<pre>     #add a GROUP BY 
+     call flexviews.<strong>add_expr</strong>(@mv_id, 'GROUP', 'an_alias.c1', 'c1');
+</pre>
+<p>
+</p>
+<pre>     #add a SUM
+     call flexviews.<strong>add_expr</strong>(@mv_id, 'SUM', 'an_alias.c2', 'sum_c2');
+</pre>
+<p>
+</p>
+<pre>     # add indexes 
+     call flexviews.<strong>add_expr</strong>(@mv_id, 'KEY', 'c1,sum_c2', 'key2');
+     call flexviews.<strong>add_expr</strong>(@mv_id, 'UNIQUE', 'alias1,alias2,alias3', 'index_name');
+</pre>
+<p>
+</p>
+<pre>     # calculate the 95th percentile of an expression
+     call flexviews.<strong>add_expr</strong>(@mv_id, 'PERCENTILE_95', 'c1', 'pct_95');
+</pre>
+<p></p>
+<a name="robo3"></a>
+<a name="SQL5fAPI2fadd5ftable"></a>
+<h1>4.  SQL_API/add_table [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>add_table</strong> - Add a table to the FROM clause of the materialized view.
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>add_table</strong>(v_mview_id, v_table_schema, v_table_name, v_table_alias, v_join_clause);
+</p>
+<p class="item_name">FUNCTION</p>
+<p> This function adds a table to the FROM clause of the materialized view.  
+</p>
+<p class="item_name">INPUTS</p>
+<ul><li>   v_mview_id     - The materialized view id (see flexviews.<a href="#robo10">get_id</a>)
+</li>
+<li>   v_table_schema - The schema which contains the table to add
+</li>
+<li>   v_table_name   - The name of the table to add
+</li>
+<li>   v_table_alias  - The table alias to use in the view.  All tables MUST have an alias.
+</li>
+<li>   v_join_clause  - Every table after the first must have a NOT-NULL join clause
+</li>
+</ul>
+<p></p>
+<p class="item_name">NOTES</p>
+<ul><li>   For views with a single table, or for the first table on a view with joins, the last paramter of the function will be NULL.
+</li>
+<li>   Additional tables MUST provide a valid ON or USING clause.  CROSS JOIN/cartesian products ARE NOT SUPPORTED.  
+</li>
+<li>   All expressions used in an ON clause must be prefixed with a valid table alias!  
+</li>
+</ul>
+<p></p>
+<p class="item_name">RESULT</p>
+<p> An error will be generated in the MySQL client if:
+</p>
+<ul><li> The table does not exist
+</li>
+<li> There is no materialized view log on the table 
+</li>
+</ul>
+<p></p>
+<p class="item_name">SEE ALSO</p>
+<p>   flexviews.<a href="#robo5">disable</a>, flexviews.<a href="#robo10">get_id</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>    mysql&gt;
+</p>
+<pre>     set @mv_id = flexviews.<a href="#robo10">get_id</a>('test', 'mv_example');
+     call flexviews.<strong>add_table</strong>(@mv_id, 'schema', 'table', 'an_alias', NULL);
+     call flexviews.<strong>add_table</strong>(@mv_id, 'schema', 'table2', 'a2', 'ON an_alias.c1 = a2.c1');
+</pre>
+<p></p>
+<a name="robo4"></a>
+<a name="SQL5fAPI2fcreate"></a>
+<h1>5.  SQL_API/create [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>create</strong> - Create a materialized view id for the view.  This is the very first step when creating a new materialized view.
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>create</strong>(v_schema, v_mview_name, v_refresh_type)
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function creates a materialized view id for a new materialized view.  
+   The materialized view identifier is stored in LAST_INSERT_ID() and is also accessible
+   using flexviews.<a href="#robo10">get_id</a>()
+</p>
+<p class="item_name">INPUTS</p>
+<ul><li>   v_schema       - The schema (aka database) in which to <strong>create</strong> the new view
+</li>
+<li>   v_mview_name   - The name of the materialzied view to <strong>create</strong>
+</li>
+<li>   v_refresh_type - ENUM('INCREMENTAL','COMPLETE')
+</li>
+</ul>
+<p></p>
+<p class="item_name">RESULT</p>
+<p>   An error will be generated in the MySQL client if the skeleton can not be created.
+</p>
+<p class="item_name">NOTES</p>
+<p>  Every materialized view has a unique identifier assigned to it by this function.  
+  Almost every other Flexviews function takes a materialized view id (mview_id) as the first parameter.
+  v_refresh_type:
+</p>
+<ul><li>  COMPLETE - The view is completely replaced with CREATE TABLE .. AS SELECT.  Slow, but works with all SQL.
+</li>
+<li>  INCREMENTAL - Changelogs are used to update the view only based on the rows that changed.  Fast, but only works with a subset of SQL.
+</li>
+</ul>
+<p>  Note that this command will not immediately <strong>create</strong> the table.  It will be created only when the view is ENABLED.
+</p>
+<p class="item_name">SEE ALSO</p>
+<p>  SQL_API/<a href="#robo6">enable</a>, SQL_API/<a href="#robo3">add_table</a>, SQL_API/<a href="#robo2">add_expr</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   mysql&gt;
+</p>
+<pre>     call flexviews.<strong>create</strong>('test', 'mv_example', 'INCREMENTAL');
+     call flexviews.<strong>create</strong>('test', 'another_example', 'COMPLETE');
+</pre>
+<p></p>
+<a name="robo5"></a>
+<a name="SQL5fAPI2fdisable"></a>
+<h1>6.  SQL_API/disable [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>disable</strong> - Drop the materialized view table.  
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>disable</strong>(v_mview_id);
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function drops the table holding the rows for the materialized
+   view.  There is no warning and the table is dropped as soon as this command is issued.
+</p>
+<p class="item_name">INPUTS</p>
+<p>   v_mview_id - The materialized view id 
+</p>
+<p class="item_name">RESULT</p>
+<p>   An error will be generated in the MySQL client if the view can not be disabled.
+</p>
+<p class="item_name">NOTES</p>
+<p>   The dictionary information is not removed, instead the metadata is updated to reflect the disabled status.
+</p>
+<p class="item_name">SEE ALSO</p>
+<p>   SQL_API/<a href="#robo4">create</a>, SQL_API/<a href="#robo6">enable</a>, SQL_API/<a href="#robo10">get_id</a> 
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>  mysql&gt;
+</p>
+<pre>    call flexviews.<strong>disable</strong>(flexviews.<a href="#robo10">get_id</a>('test','mv_example'))
+</pre>
+<p></p>
+<a name="robo6"></a>
+<a name="SQL5fAPI2fenable"></a>
+<h1>7.  SQL_API/enable [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>enable</strong> - Materialize a view which has not yet been materialized.  
+   Once a view is enabled its structure can not be altered unless it is disabled.
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>enable</strong>(v_mview_id);
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function creates the table which will hold the rows for the materialized
+   view.  It then uses INSERT .. SELECT to populate the view.  Once the call to
+   this function is made, any DML statements made on the base tables will be reflected
+   in the view when it is refreshed.   
+</p>
+<p class="item_name">INPUTS</p>
+<p>   v_mview_id - The materialized view id 
+</p>
+<p class="item_name">RESULT</p>
+<p>   An error will be generated in the MySQL client if the view can not be enabled.
+</p>
+<p class="item_name">NOTES</p>
+<ul><li>   If the view can not be created for some reason, an error message will be displayed.
+</li>
+<li>   You can check the values of @MV_DEBUG and @v_sql which will contain the SELECT statement and CREATE TABLE statement for the view, respectively.
+</li>
+</ul>
+<p></p>
+<p class="item_name">SEE ALSO</p>
+<p>   flexviews.<a href="#robo5">disable</a>, flexviews.<a href="#robo10">get_id</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   call flexviews.<strong>enable</strong>(flexviews.<a href="#robo10">get_id</a>('test','mv_example'))
+</p>
+<a name="robo7"></a>
+<a name="SQL5fAPI2fremove5fexpr"></a>
+<h1>8.  SQL_API/remove_expr [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>remove_expr</strong> - Remove an expression or indexes from a materialized view.
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>remove_expr</strong>(v_mview_id, v_alias) 
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function removes the expression with the given alias from the materialized view.
+</p>
+<p class="item_name">INPUTS</p>
+<ul><li>   v_mview_id - The materialized view id
+</li>
+<li>   v_alias - The alias that was specified for the expression when you added it to the view
+</li>
+</ul>
+<p></p>
+<p class="item_name">NOTES</p>
+<ul><li>   You can not modify an enabled view.
+</li>
+<li>   This function is most often used to correct a mistake or typo made when creating the view.
+</li>
+</ul>
+<p></p>
+<p class="item_name">SEE ALSO</p>
+<p>   flexviews.<a href="#robo6">enable</a>, flexviews.<a href="#robo3">add_table</a>, flexviews.<a href="#robo2">add_expr</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   mysql&gt;
+</p>
+<pre>     set @mv_id = flexviews.<a href="#robo10">get_id</a>('test', 'mv_example');
+     call flexviews.<a href="#robo3">add_table</a>(@mv_id, 'schema', 'table', 'an_alias', NULL);
+     call flexviews.<a href="#robo2">add_expr</a>(@mv_id, 'PRIMARY', 'c1*oops*', 'pk'); # ADD AN EXPRESSION WITH A PROBLEM
+     call flexviews.<strong>remove_expr</strong>(@mv_id, 'pk'); # REMOVE THE EXPRESSION
+</pre>
+<p></p>
+<a name="robo8"></a>
+<a name="SQL5fAPI2fremove5ftable"></a>
+<h1>9.  SQL_API/remove_table [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>remove_table</strong> - Remove a table from a materialized view.
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>remove_table</strong>(v_mview_id, v_table_alias);
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function removes a table from a materialized view.  Any expressions
+   which reference this table must also be removed manually!
+</p>
+<p class="item_name">INPUTS</p>
+<ul><li>   v_mview_id     - The materialized view id (see flexviews.<a href="#robo10">get_id</a>)
+</li>
+<li>   v_table_alias  - The table alias you used when you added the table to the view.  
+</li>
+</ul>
+<p></p>
+<p class="item_name">RESULT</p>
+<p>   An error will be generated if the view is enabled.  No error is raised if the
+   given alias does not exist in the view.
+</p>
+<p class="item_name">SEE ALSO</p>
+<p>   flexviews.<a href="#robo5">disable</a>, flexviews.<a href="#robo10">get_id</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   mysql&gt;
+</p>
+<pre>     set @mv_id = flexviews.<a href="#robo10">get_id</a>('test', 'mv_example');
+     call flexviews.<a href="#robo3">add_table</a>(@mv_id, 'schema', 'table', 'an_alias', NULL);
+     call flexviews.<strong>remove_table</strong>(@mv_id, 'an_alias'); #remove the table we just added
+</pre>
+<p></p>
+<a name="robo9"></a>
+<a name="SQL5fAPI2fset5fdefinition"></a>
+<h1>10.  SQL_API/set_definition [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>set_definition</strong> - sets the SQL SELECT statement to be used by the
+   CREATE TABLE AS ... SELECT statement which is used for COMPLETE <a href="#robo12">refresh</a>
+   materialized views.
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>set_definition</strong>(v_mview_id, v_sql);
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   COMPLETE <a href="#robo12">refresh</a> materialized views are created and refreshed with
+   CREATE TABLE ... AS SELECT.  The SELECT statement provided in v_sql is
+   used to <a href="#robo4">create</a> the view.
+</p>
+<p class="item_name">INPUTS</p>
+<p>   v_mview_id - The materialized view id (see flexviews.<a href="#robo10">get_id</a>)
+   v_sql      - The SELECT statement to use for the view
+</p>
+<p class="item_name">RESULT</p>
+<p>   If the UPDATE does not succeed then the error will passed to the MySQL client
+</p>
+<p class="item_name">SEE ALSO</p>
+<p>   SQL_API/<a href="#robo5">disable</a>, UTIL_API/flexviews.<a href="#robo10">get_id</a>, SQL_API/flexviews.<a href="#robo6">enable</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   mysql&gt;
+</p>
+<pre>     call flexviews.<strong>set_definition</strong>(flexviews.<a href="#robo10">get_id</a>('test','mv_example'), 'SELECT * from my_table where c1=1')
+</pre>
+<p></p>
+<a name="robo10"></a>
+<a name="UTIL5fAPI2fget5fid"></a>
+<h1>11.  UTIL_API/get_id [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>get_id</strong> - Get the materialized view id for the given view in the given schema
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>get_id</strong>(v_mview_schema, v_mview_name)
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function returns the materialied view id for the given materialized view.
+</p>
+<p class="item_name">INPUTS</p>
+<ul><li>   v_mview_schema - The schema which contains the materialized view
+</li>
+<li>   v_mview_name - The name of the table which contains the rows for the view
+</li>
+</ul>
+<p></p>
+<p class="item_name">RESULT</p>
+<p>   NULL will be returned if the view does not exist.
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>  mysql&gt; 
+</p>
+<pre>    set @mv_id := flexviews.<strong>get_id</strong>('test','mv_example');
+</pre>
+<p></p>
+<a name="robo11"></a>
+<a name="UTIL5fAPI2fget5fsql"></a>
+<h1>12.  UTIL_API/get_sql [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>get_sql</strong> - Retrieve the SELECT statement which would represent the materialized view in a regular view
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>get_sql</strong>(v_mview_id)
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function returns the SELECT statement which would be used by a normal view for the given expressions, tables
+   etc which have been created for the materialized view.
+</p>
+<p class="item_name">INPUTS</p>
+<p>   v_mview_id - Id of the view
+</p>
+<p class="item_name">RESULT</p>
+<p>   The SQL for the view.
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   mysql&gt;
+</p>
+<pre>     call flexviews.<strong>get_sql</strong>(1);
+     call flexviews.<strong>get_sql</strong>(flexviews.<a href="#robo10">get_id</a>('test','test_mv'));
+</pre>
+<p></p>
+<a name="robo12"></a>
+<a name="UTIL5fAPI2frefresh"></a>
+<h1>13.  UTIL_API/refresh [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>refresh</strong> - Applies changes made to the database since the materialized view was created.
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>refresh</strong>(v_mview_id, 
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function initiates the <strong>refresh</strong> process for the given view.  The process varies depending on
+   the type of view.  
+</p>
+<p class="item_name">INPUTS</p>
+<p>   This function takes a combination of input parameters:
+</p>
+<ul><li>   v_mview_id - The materialized view identifier
+</li>
+<li>   v_mode     - COMPLETE|COMPUTE|APPLY|BOTH
+</li>
+<li>   v_uow_id   - (MAY BE NULL)
+                When a uow_id (transaction id) is provided the mode selected above will operate only on records
+                created at or before the given uow_id.  If a NULL value is provided, then the most recent committed 
+                transaction id will be used.
+</li>
+</ul>
+<p></p>
+<p class="item_name">NOTES</p>
+<p> v_mode:
+<table border=1 align="center">
+<tr><th bgcolor=#cccccc>v_mode<th bgcolor=#cccccc>explanation</th></tr><tr>             
+</tr><tr><td>COMPLETE</td><td>COMPLETE is used only for COMPLETE refresh materialized view.  The view is refreshed from scratch using a combination of CREATE TABLE, INSERT INTO and RENAME TABLE
+</tr><tr><td>COMPUTE</td><td>COMPUTE is used for INCREMENTAL tables.  It computes the changes since the last refresh but it does not apply them.  Low cost frequent computations can be made while maintaining the transactional consistency of the view at the last refresh point in time.
+</tr><tr><td>APPLY</td><td>APPLY is used to apply any un-applied changes from previous COMPUTE runs
+</tr><tr><td>BOTH</td><td>BOTH executes a COMPUTE followed by an APPLY
+</tr></table>
+</p>
+<p class="item_name">SEE ALSO</p>
+<p>   flexviews.<a href="#robo6">enable</a>, flexviews.<a href="#robo3">add_table</a>, flexviews.<a href="#robo2">add_expr</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   mysql&gt;
+</p>
+<pre>     set @mv_id = flexviews.<a href="#robo10">get_id</a>('test', 'mv_example');
+     call flexviews.<strong>refresh</strong>(@mv_id, 'BOTH', NULL);
+</pre>
+<p></p>
+<p class="item_name">NOTES</p>
+<p>   The external binary log consumer MUST BE RUNNING in order to COMPUTE changes to views!
+</p>
+<a name="robo13"></a>
+<a name="UTIL5fAPI2frefresh5fall"></a>
+<h1>14.  UTIL_API/refresh_all [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>refresh_all</strong> - Computes or applies changes or completely refreshes every enabled materialized view, serially.
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<a href="#robo12">refresh</a>(v_mview_id, 
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This is a convenience function...
+   This function initiates the <a href="#robo12">refresh</a> process for all enabled views.  It operates only on one type of  
+   view at a time.  That is, if you specify 'COMPLETE', only 'COMPLETE' views will be refreshed. 
+   Conversely, complete <a href="#robo12">refresh</a> views won't be refreshed if 'COMPUTE' or 'APPLY' is specified. 
+</p>
+<p class="item_name">INPUTS</p>
+<p>   This function takes a combination of input parameters:
+</p>
+<ul><li>   v_mview_id - The materialized view identifier
+</li>
+<li>   v_mode     - COMPLETE|COMPUTE|APPLY|BOTH
+</li>
+<li>   v_uow_id   - (MAY BE NULL)
+                When a uow_id (transaction id) is provided the mode selected above will operate only on records
+                created at or before the given uow_id.  If a NULL value is provided, then the most recent committed 
+                transaction id will be used.
+</li>
+</ul>
+<p></p>
+<p class="item_name">NOTES</p>
+<p> v_mode:
+<table border=1 align="center">
+<tr><th bgcolor=#cccccc>v_mode<th bgcolor=#cccccc>explanation</th></tr><tr>             
+</tr><tr><td>COMPLETE</td><td>COMPLETE is used only for COMPLETE refresh materialized view.  The view is refreshed from scratch using a combination of CREATE TABLE, INSERT INTO and RENAME TABLE
+</tr><tr><td>COMPUTE</td><td>COMPUTE is used for INCREMENTAL tables.  It computes the changes since the last refresh but it does not apply them.  Low cost frequent computations can be made while maintaining the transactional consistency of the view at the last refresh point in time.
+</tr><tr><td>APPLY</td><td>APPLY is used to apply any un-applied changes from previous COMPUTE runs
+</tr><tr><td>BOTH</td><td>BOTH executes a COMPUTE followed by an APPLY
+</tr></table>
+</p>
+<p class="item_name">SEE ALSO</p>
+<p>   flexviews.<a href="#robo6">enable</a>, flexviews.<a href="#robo3">add_table</a>, flexviews.<a href="#robo2">add_expr</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   mysql&gt;
+</p>
+<pre>     set @mv_id = flexviews.<a href="#robo10">get_id</a>('test', 'mv_example');
+     call flexviews.<a href="#robo12">refresh</a>(@mv_id, 'BOTH', NULL);
+</pre>
+<p></p>
+<p class="item_name">NOTES</p>
+<p>   FlexCDC MUST BE RUNNING in order to COMPUTE changes to views!
+</p>
+<a name="robo14"></a>
+<a name="UTIL5fAPI2frename"></a>
+<h1>15.  UTIL_API/rename [ Functions ]  </h1>
+<p>[ <a href="#robo_top_of_doc">Top</a> ] [ Functions ]</p>
+<p class="item_name">NAME</p>
+<p>   flexviews.<strong>rename</strong> - Rename a materialized views
+</p>
+<p class="item_name">SYNOPSIS</p>
+<p>   flexviews.<strong>rename</strong>(v_mview_id, v_new_schema, v_new_table);
+</p>
+<p class="item_name">FUNCTION</p>
+<p>   This function renames the given materialized view.
+</p>
+<p class="item_name">INPUTS</p>
+<ul><li>   v_mview_id - The materialized view id (see flexviews.<a href="#robo10">get_id</a>)
+</li>
+<li>   v_new_schema - The new schema, may be the same as the current schema 
+</li>
+<li>   v_new_table  - The new table, may be the same as the current table 
+</li>
+</ul>
+<p></p>
+<p class="item_name">RESULT</p>
+<p>   An error will be generated in the MySQL client if the view can not be enabled.
+</p>
+<p class="item_name">SEE ALSO</p>
+<p>   SQL_API/<a href="#robo5">disable</a>, UTIL_API/<a href="#robo10">get_id</a>, SQL_API/<a href="#robo6">enable</a>, SQL_API/<a href="#robo4">create</a>
+</p>
+<p class="item_name">EXAMPLE</p>
+<p>   mysql&gt;
+</p>
+<pre>     call flexviews.<strong>rename</strong>(flexviews.<a href="#robo10">get_id</a>('test','mv_example'), 'test', 'new_name_example')
+     call flexviews.<strong>rename</strong>(flexviews.<a href="#robo10">get_id</a>('test','mv_example'), 'new_schema_example', 'test')
+     call flexviews.<strong>rename</strong>(flexviews.<a href="#robo10">get_id</a>('test','mv_example'), 'new_schema', 'and_new_table')
+</pre>
+<p></p>
+<div id="footer">
+<p>Generated from ./procs/ with <a href="http://www.xs4all.nl/~rfsber/Robo/robodoc.html">ROBODoc</a> V4.99.41 on Sat Aug 13 2011 20:49:33
+</p>
+</div> <!-- footer -->
+</body>
+</html>

@@ -1,0 +1,69 @@
+#summary This page lists the SQL features which are supported by incrementally refreshable materialized views.
+#labels Phase-Implementation,Featured
+= Supported SQL operations =
+== This list applies to incrementally refreshable materialized views ==
+<table border=1>
+<tr>
+<th align=left bgcolor="#cccccc"> Operation
+<th align=left bgcolor="#cccccc"> Supported
+<th align=left bgcolor="#cccccc"> Notes
+<tr>
+<td>GROUP BY
+<td>Yes
+<td>
+<tr>
+<td>COUNT
+<td>Yes
+<td>
+<tr>
+<td>COUNT_DISTINCT
+<td>Yes
+<td>
+<tr>
+<td>SUM
+<td>Yes
+<td>
+<tr>
+<td>SUM_DISTINCT
+<td>No
+<td>
+<tr>
+<td>AVG
+<td>Yes
+<td>
+<tr>
+<td>AVG_DISTINCT
+<td>No
+<td>
+<tr>
+<td>MIN
+<td>Yes
+<td>
+<tr>
+<td>MIN_DISTINCT
+<td>No
+<td>
+<tr>
+<td>MAX
+<td>Yes
+<td>
+<tr>
+<td>MAX_DISTINCT
+<td>No
+<td>
+<tr>
+<td>JOIN
+<td>Yes
+<td>INNER JOIN only.  No CROSS JOIN, OUTER JOIN or cartesian products.
+<tr>
+<td>WHERE
+<td>Yes
+<td>
+<tr>
+<td>HAVING
+<td>No
+<td>(use a where clause when you select from the view)
+<tr>
+<td>ORDER BY
+<td>No
+<td>(use an order by clause when you select from the view)

@@ -1,0 +1,26 @@
+Installation:
+
+ * set up FlexCDC 
+ * cd consumer
+ * cp consumer.ini.example consumer.ini
+ * MODIFY consumer.ini appropriately!
+ * php consumer/setup.php
+   :: BINARY LOGGING MUST BE ENABLED
+   :: SERVER_ID MUST BE SET
+   :: BINLOG_FORMAT=ROW IS REQUIRED
+
+ * if no errors, then proceed
+
+ * run the consumer (there is a PHP file provided)
+ * sh consumer_safe.sh --ini=consumer.ini & 
+
+ * You must leave the consumer running at all times!
+
+ * Connect to MySQL as the 'root' user (or any user with SUPER privilege)
+
+ * Source the install.sql file
+   \. install.sql
+
+
+
+

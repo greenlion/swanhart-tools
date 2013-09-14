@@ -1,0 +1,26 @@
+[replication]
+;location of mysqlbinlog.  path will be searched if this path is not provided
+mysqlbinlog=/data/vol1/justin_557/bin/mysqlbinlog
+
+;The database in which to write changelogs
+database=replication
+
+;Name of the state table
+binlog_consumer_status=binlog_consumer_status
+
+;The SOURCE is where the change logs are read from.  This does not have to be the same as the local machine.
+[source]
+port=17555
+user=root
+password=msandbox
+host=127.0.0.1
+
+;The DEST is the place where logs are written to.  You should be able to collect from more than one source into a single
+;dest, but this is experimental at best
+[dest]
+port=17556
+;this user requires SUPER privs
+user=root
+host=127.0.0.1
+password=msandbox
+

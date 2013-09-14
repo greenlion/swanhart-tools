@@ -1,0 +1,69 @@
+== 1.8.1 beta 2 ==
+Views with aggregate functions lacked unique keys on their GROUP BY attributes.  This resulted in wrong results during refresh.  This has been corrected.
+There is now a limit of 16 GROUP BY columns in a materialized view.  This is because MySQL will not allow more than 16 columns in an index.
+A future version of Flexviews may lift this limitation using a hash column.
+
+Views without aggregate tables now include a hash column.  This makes updating the views efficient without requiring the user explicitly create an 
+index over columns in the table to facilitate fast refresh.
+
+You need to disable all views without aggregate functions before upgrading and then re-enable them after upgrading.
+
+== 1.8.0 beta 1 ==
+The refresh algorithm for views without aggregate functions has been changed to take into account the order of changes in the database. 
+All table changelogs now include a fv$gsn column to support the improved refresh algorithm
+FlexCDC is improved to support all datatypes
+
+== 1.6.1 GA ==
+Whats new in Flexviews 1.6.1 GA
+    * This is the first Flexviews GA release!
+    * See UPGRADE if you are running an 1.6.0 RC1 or RC2.  Upgrade from earlier versions is not supported.
+    * Flexviews now automatically adds indexes to changelogs to improve performance
+    * Fixed a regression in flexviews.add_table() which would allow a table without a changelog to be added to an INCREMENTAL view 
+
+== 1.6.0RC2 ==
+Whats new in Flexviews 1.6.0RC2
+    * This release is a performance and bug fix release, there are no new features.
+
+Significant bug fixes
+    * Reduce the number of subqueries and temporary tables
+    * Eliminate full table scans during the delta application process
+    * Remove dead code
+    * Add indexes to GROUP and COUNT expressions automatically
+    * When the first table (the one with a NULL join condition) was removed and then added again, the JOIN clause could have be constructed in an incorrect order.
+    * Fix a problem with the PERCENTILE function
+    * Improve some error messages
+
+== 1.6.0RC1 ==
+Whats new in Flexviews 1.6.0RC1
+
+    * This is the first release candidate before the final release.  If no major bugs are uncovered, then the next release will be the first GA release. 
+    * Flexviews now has a test suite for all major features.  The creation of these tests uncovered a number of issues which have been resolved in this release. 
+    * All MySQL aggregate functions except GROUP_CONCAT are now supported. 
+    * A special aggregate function called PERCENTILE is now also supported.  The calculation uses a modified version of the GROUP_CONCAT based solution suggested by Roland Bouman for percentiles.  This function should be considered experimental.  Please report bugs if you find any.
+    * You can add indexes to enabled materialized views using SQL_API/add_expr
+    * Adding PRIMARY KEY indexes is no longer supported.  All views get an auto_incrementing primary  key.  You can add additional UNIQUE indexes instead.
+    * There is an upgrade process from 1.5.3b (see UPGRADE and upgrade.sql)
+
+Significant bug fixes
+
+    * Views with aggregate functions but no GROUP BY columns now work properly for all supported aggregate function types
+    * NULL values in GROUP BY columns are now properly supported
+    * NULL values now work properly with distributive aggregate functions
+    * There is a wrapper script around run_consumer.php which can restart the consumer if it stops running
+
+== 1.5.3b3 ==
+Improvements for Flexviews, materialized view for MySQL 5.1+
+--------------------------------------------------------------------
+   1. There is up-to-date documentation available as manual.html, a robodoc generated version of the manual for the SQL_API interface. The manual is generated from RoboDOC comments embedded in the source code. This makes it easy to maintain the documentation if the interface changes.
+   2. Flexviews has a new easier to read, and hopefully easier to understand website. You can find a copy of the manual on the web site as well.
+   3. There is a SQL converter on the website than will automatically generate Flexviews SQL_API calls from a SELECT statement. The next step will be to turn this into a MySQL proxy script that can handle 'CREATE ALGORITHM=INCREMENTAL MATERIALIZED VIEW ...'
+   4. Support for the FlexCDC auto_changelog mode, which automatically logs changes of all tables. This is great for small schemas.
+
+Improvements for FlexCDC
+---------------------------------
+   1. The main wrapper scripts around flexcdc.php accidently included 'consumer.php' instead of 'flexcdc.php', which I had renamed shortly before the prior release. This problem has been resolved.
+   2. I added an ini parameter to control the issuing of warnings by the script
+   3. I added info to the README about when to not use auto_changelog
+   4. flexcdc.php now looks for the ini file in the same directory in which the script resides, instead of the working directory
+   5. the next release will have a command line option to specify the ini location. this will make it easy to run more than one consumer.
+

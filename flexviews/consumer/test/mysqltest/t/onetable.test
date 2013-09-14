@@ -1,0 +1,149 @@
+-- disable-warnings
+delete from flexviews.mview;
+drop database if exists test;
+
+create database if not exists test;
+
+use test;
+
+drop table if exists t1;
+
+create table test.t1(
+c1 int auto_increment primary key,
+c2 int default null)
+engine=innodb;
+
+call flexviews.create_mvlog('test','t1');
+
+call flexviews.create('test','mv1','INCREMENTAL');
+set @mvid := last_insert_id();
+
+call flexviews.add_table(@mvid, 'test','t1','t1', null);
+call flexviews.add_expr(@mvid,'COUNT','*','the_count');
+
+call flexviews.enable(@mvid);
+
+select * from test.mv1;
+
+select count(*) the_count from test.t1;
+
+insert into test.t1 values (1,1);
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select  * from test.mv1;
+
+select count(*) the_count from test.t1;
+
+delete from test.t1;
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select  * from test.mv1;
+
+select count(*) the_count from test.t1;
+
+-- disable-warnings
+delete from flexviews.mview;
+drop database if exists test;
+
+create database if not exists test;
+
+use test;
+
+drop table if exists t1;
+
+create table test.t1(
+c1 int auto_increment primary key,
+c2 int default null)
+engine=innodb;
+
+call flexviews.create_mvlog('test','t1');
+
+call flexviews.create('test','mv1','INCREMENTAL');
+set @mvid := last_insert_id();
+
+call flexviews.add_table(@mvid, 'test','t1','t1', null);
+call flexviews.add_expr(@mvid,'SUM','c2','the_sum');
+
+call flexviews.enable(@mvid);
+
+select the_sum from test.mv1;
+
+select sum(c2) the_sum from test.t1;
+
+insert into test.t1 values (1,1);
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select the_sum from test.mv1;
+
+select sum(c2) the_sum from test.t1;
+
+delete from test.t1;
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select the_sum from test.mv1;
+
+select sum(c2) the_sum from test.t1;
+
+-- #TEST 3#
+
+-- disable-warnings
+delete from flexviews.mview;
+drop database if exists test;
+
+create database if not exists test;
+
+use test;
+
+drop table if exists t1;
+
+create table test.t1(
+c1 int auto_increment primary key,
+c2 int default null)
+engine=innodb;
+
+call flexviews.create_mvlog('test','t1');
+
+call flexviews.create('test','mv1','INCREMENTAL');
+set @mvid := last_insert_id();
+
+call flexviews.add_table(@mvid, 'test','t1','t1', null);
+call flexviews.add_expr(@mvid,'MIN','c2','the_min');
+
+call flexviews.enable(@mvid);
+
+select the_min from test.mv1;
+
+select min(c2) the_min from test.t1;
+
+insert into test.t1 values (1,1);
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select the_min from test.mv1;
+
+select min(c2) the_min from test.t1;
+
+delete from test.t1;
+
+select sleep(1);
+
+call flexviews.refresh(@mvid,'BOTH',NULL);
+
+select the_min from test.mv1;
+
+select min(c2) the_min from test.t1;
+
