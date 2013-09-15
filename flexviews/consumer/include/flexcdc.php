@@ -1094,6 +1094,9 @@ EOREGEX
 						if(preg_match('/### (UPDATE|INSERT INTO|DELETE FROM)\s([^.]+)\.(.*$)/', $line, $matches)) {
 							$this->db          = $matches[2];
 							$this->base_table  = $matches[3];
+
+							$this->db = preg_replace('/[^a-zA-Z0-9\_]+/','',$this->db);
+							$this->base_table = preg_replace('/[^a-zA-Z0-9\_]+/','', $this->base_table);
 						
 							if($this->db == $this->mvlogDB && $this->base_table == $this->mvlogs) {
 								$this->refresh_mvlog_cache();
@@ -1109,6 +1112,7 @@ EOREGEX
 								$this->mvlog_table = $this->mvlogList[$this->db . $this->base_table];
 								$lastLine = $this->process_rowlog($proc, $line);
 							}
+
 							
 						}
 					} 
