@@ -36,7 +36,13 @@ CREATE TABLE `mview` (
   UNIQUE KEY `mview_name` (`mview_name`,`mview_schema`)
 ) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS flexviews.refresh_log(tstamp timestamp, usec int auto_increment,  message TEXT, key(usec));
+CREATE TABLE IF NOT EXISTS flexviews.refresh_log(
+  tstamp timestamp,
+  usec int auto_increment,
+  message TEXT,
+  key(usec)
+)
+  ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS mview_settings;
@@ -70,7 +76,7 @@ DROP TABLE IF EXISTS `mview_refresh_status`;
   `mview_name` varchar(50),
   `mview_last_refresh` datetime,
   `mview_refresh_type` enum('INCREMENTAL','COMPLETE')
-) */;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 */;
 
 
 DROP TABLE IF EXISTS `mview_table`;
