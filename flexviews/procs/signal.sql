@@ -24,6 +24,11 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`signal`(
   IN in_errortext VARCHAR(255)
 )
 BEGIN
+   /*!50404
+        SIGNAL SQLSTATE '45000' SET
+          CLASS_ORIGIN = 'FlexViews',
+          MESSAGE_TEXT = in_errortext;
+    */
    SET @sql=CONCAT('UPDATE flexviews.mview SET `ERROR: ',
             in_errortext,
             '` = `', in_errortext, '`');

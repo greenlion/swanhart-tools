@@ -42,17 +42,17 @@ CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_id (
   v_mview_schema TEXT,
   v_mview_name TEXT
 )
-RETURNS INT
+RETURNS INT UNSIGNED
+NOT DETERMINISTIC
 READS SQL DATA
+COMMENT 'Return materialized view id or NULL'
 BEGIN
-DECLARE v_mview_id INT;
- SELECT mview_id 
-   INTO v_mview_id
-   FROM flexviews.mview
-  WHERE mview_name = v_mview_name
-    AND mview_schema = v_mview_schema;
-
- RETURN v_mview_id;
+  RETURN (
+    SELECT mview_id
+      FROM flexviews.mview
+      WHERE mview_name = v_mview_name
+        AND mview_schema = v_mview_schema
+  );
 END;
 ;;
 
