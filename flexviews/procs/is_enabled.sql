@@ -22,16 +22,15 @@ DROP FUNCTION IF EXISTS flexviews.is_enabled;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.is_enabled(v_mview_id INT) 
 RETURNS BOOLEAN
+NOT DETERMINISTIC
 READS SQL DATA
+COMMENT 'Wether specified MView is currently enabled'
 BEGIN
-  DECLARE v_return BOOLEAN DEFAULT NULL;
-
-  SELECT mview_enabled
-    INTO v_return
-    FROM flexviews.mview
-   WHERE mview_id = v_mview_id;
- 
-  RETURN v_return;
+    RETURN (
+          SELECT mview_enabled
+              FROM flexviews.mview
+              WHERE mview_id = v_mview_id
+      );
 END;;
 
 DELIMITER ;

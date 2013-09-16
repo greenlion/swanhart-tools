@@ -56,6 +56,18 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`create`(
   IN v_mview_refresh_type TEXT
 )
 BEGIN
+  -- validate input
+  IF NOT UPPER(v_mview_refresh_type) IN ('INCREMENTAL','COMPLETE') THEN
+    CALL flexviews.signal(
+        CONCAT_WS('', 'Invalid refresh type: ', v_mview_refresh_type)
+      );
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM `information_schema`.`SCHEMATA` WHERE `SCHEMA_NAME` = v_mview_schema) THEN
+    CALL flexviews.signal(
+        CONCAT_WS('', 'Schema not found: ', v_mview_schema)
+      );
+  END IF;
+
   INSERT INTO flexviews.mview
   (  mview_name,
      mview_schema, 
