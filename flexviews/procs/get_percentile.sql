@@ -26,13 +26,32 @@ DELIMITER ;;
 
 DROP FUNCTION IF EXISTS flexviews.`get_percentile`;;
 
-CREATE DEFINER=flexviews@localhost FUNCTION flexviews.`get_percentile`( v_mview_expression TEXT, v_percentile INT) RETURNS TEXT CHARSET latin1
-    READS SQL DATA
-BEGIN  
-
-set group_concat_max_len = 1024 * 1024 * 1024;
-
-return CONCAT(
+CREATE DEFINER=flexviews@localhost FUNCTION flexviews.`get_percentile`(
+    v_mview_expression TEXT,
+    v_percentile TINYINT UNSIGNED
+  )
+  RETURNS TEXT CHARSET latin1
+  DETERMINISTIC
+  CONTAINS SQL
+  COMMENT 'Return the SQL to get N percentile on given subquery'
+BEGIN
+  -- backup SESSION group_concat_max_len
+  DECLARE bkp_group_concat_max_len INT UNSIGNED DEFAULT @@session.group_concat_max_len;
+  DECLARE expr TEXT DEFAULT NULL;
+  
+  -- validate input
+  IF v_percentile NOT BETWEEN 1 AND 100 OR v_percentile IS NULL THEN
+    /*!50404
+        SIGNAL SQLSTATE '45000' SET
+          CLASS_ORIGIN = 'FlexViews',
+          MESSAGE_TEXT = 'A percentile must be a number between 1 and 100';
+    */
+    RETURN NULL;
+  END IF;
+  
+  SET group_concat_max_len := 1024 * 1024 * 1024;
+  
+  SET expr := CONCAT(
 'SUBSTRING_INDEX(
             SUBSTRING_INDEX(
 		SUBSTR(
@@ -47,9 +66,12 @@ return CONCAT(
         ,   ","                               
         ,   -1
         )'
-);
-
-
+  );
+  
+  -- restore SESSION group_concat_max_len
+  SET group_concat_max_len := bkp_group_concat_max_len;
+  
+  RETURN expr;
 END ;;
 
 DELIMITER ;

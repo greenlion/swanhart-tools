@@ -24,8 +24,10 @@ CREATE DEFINER=flexviews@localhost FUNCTION flexviews.fvrand (
   v_low INT,
   v_high INT
 )
-RETURNS INT
-READS SQL DATA
+  RETURNS INT
+  NOT DETERMINISTIC
+  CONTAINS SQL
+  COMMENT 'Get a random INT between v_low and v_high'
 BEGIN
  RETURN FLOOR(v_low + RAND() * (v_high - v_low));
 END;
