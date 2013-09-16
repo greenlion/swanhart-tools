@@ -28,8 +28,8 @@ DROP PROCEDURE IF EXISTS `rename`;;
  *   This function renames the given materialized view.
  * INPUTS
  *   * v_mview_id - The materialized view id (see flexviews.get_id)
- *   * v_new_schema - The new schema, may be the same as the current schema 
- *   * v_new_table  - The new table, may be the same as the current table 
+ *   * v_new_schema - The new schema, may be the same as the current schema. NULL or '' = current schema.
+ *   * v_new_table  - The new table, may be the same as the current table. NULL or '' = current table.
  * RESULT
  *   An error will be generated in the MySQL client if the view can not be enabled.
  * SEE ALSO
@@ -48,38 +48,38 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `rename`(
 )
 BEGIN
   DECLARE v_mview_enabled tinyint(1);
-  DECLARE v_mview_refresh_type TEXT;
-  DECLARE v_mview_engine TEXT;
   DECLARE v_mview_name TEXT DEFAULT NULL; 
   DECLARE v_mview_schema TEXT;
-  DECLARE v_mview_definition TEXT;
-  DECLARE v_keys TEXT;
 
   DECLARE v_sql TEXT;
 
   SELECT mview_name, 
          mview_schema, 
-	 mview_enabled, 
-         mview_refresh_type,
-         mview_engine,
-         mview_definition
+	     mview_enabled
     INTO v_mview_name, 
          v_mview_schema, 
-         v_mview_enabled, 
-         v_mview_refresh_type, 
-         v_mview_engine,
-         v_mview_definition
+         v_mview_enabled
     FROM flexviews.mview
    WHERE mview_id = v_mview_id;
-    IF v_mview_name IS NULL THEN
+   
+   IF v_mview_name IS NULL THEN
      CALL flexviews.signal('The specified materialized view does not exist');
-    END IF;
+   END IF;
 
    IF v_mview_enabled = TRUE THEN
-     SET v_sql = CONCAT('RENAME TABLE ', v_mview_schema, '.', v_mview_name, ' TO ', v_mview_schema_new, '.', v_mview_name_new);
-     SET v_sql = CONCAT(v_sql, ',', v_mview_schema, '.', v_mview_name, '_delta TO ', v_mview_schema_new, '.', v_mview_name_new, '_delta');
+     -- NULL or '' = dont-change
+     IF NOT LENGTH(v_mview_schema_new) > 0 THEN
+        SET v_mview_schema_new := v_mview_schema;
+     END IF;
+     IF NOT LENGTH(v_mview_name_new) > 0 THEN
+        SET v_mview_name_new := v_mview_name;
+     END IF;
+     
+     SET v_sql = CONCAT('RENAME TABLE ', v_mview_schema, '.', v_mview_name, ' TO ', v_mview_schema_new, '.', v_mview_name_new,
+       ',', v_mview_schema, '.', v_mview_name, '_delta TO ', v_mview_schema_new, '.', v_mview_name_new, '_delta');
      SET @v_sql = v_sql;
-     PREPARE mv_stmt FROM @v_sql; 
+     PREPARE mv_stmt FROM @v_sql;
+     SET @v_sql := NULL;
      EXECUTE mv_stmt;
      DEALLOCATE PREPARE mv_stmt;
    END IF;
