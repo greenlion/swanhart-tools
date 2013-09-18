@@ -43,33 +43,27 @@ DROP PROCEDURE IF EXISTS flexviews.disable;;
 */
 
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`disable`(
-  IN v_mview_id INT
+  IN v_mview_id INT UNSIGNED
 )
+  MODIFIES SQL DATA
+  COMMENT 'Disable a materialized view'
 BEGIN
-  DECLARE v_mview_enabled tinyint(1);
-  DECLARE v_mview_refresh_type TEXT;
-  DECLARE v_mview_engine TEXT;
+  -- DECLARE v_mview_enabled tinyint(1);
   DECLARE v_mview_name TEXT;
   DECLARE v_mview_schema TEXT;
-  DECLARE v_mview_definition TEXT;
-  DECLARE v_keys TEXT;
 
   DECLARE v_child_mview_id INT;
-  DECLARE v_sql TEXT;
 
-  SET max_sp_recursion_depth = 999;
+  -- backup SESSION max_sp_recursion_depth
+  DECLARE bkp_max_sp_recursion_depth INT UNSIGNED DEFAULT @@session.max_sp_recursion_depth;
+  SET max_sp_recursion_depth := 255;
+
   SELECT mview_name, 
-         mview_schema, 
-	 mview_enabled, 
-         mview_refresh_type,
-         mview_engine,
-         mview_definition
+         mview_schema
+--	     mview_enabled
     INTO v_mview_name, 
-         v_mview_schema, 
-         v_mview_enabled, 
-         v_mview_refresh_type, 
-         v_mview_engine,
-         v_mview_definition
+         v_mview_schema
+--       v_mview_enabled
     FROM flexviews.mview
    WHERE mview_id = v_mview_id;
 /*
@@ -91,22 +85,24 @@ BEGIN
      CALL flexviews.disable(v_child_mview_id);
    END IF;
 
-   SET v_sql = CONCAT('DROP TABLE IF EXISTS ', v_mview_schema, '.', v_mview_name);
-   SET @v_sql = v_sql;
+   SET @v_sql = CONCAT('DROP TABLE IF EXISTS ', v_mview_schema, '.', v_mview_name);
    PREPARE drop_stmt FROM @v_sql; 
    EXECUTE drop_stmt;
-   DEALLOCATE PREPARE drop_stmt;
 
-   SET v_sql = CONCAT('DROP TABLE IF EXISTS ', v_mview_schema, '.', v_mview_name, '_delta');
-   SET @v_sql = v_sql;
+   SET @v_sql = CONCAT('DROP TABLE IF EXISTS ', v_mview_schema, '.', v_mview_name, '_delta');
    PREPARE drop_stmt FROM @v_sql; 
    EXECUTE drop_stmt;
+
+   SET @v_sql := NULL;
    DEALLOCATE PREPARE drop_stmt;
 
    UPDATE flexviews.mview
       SET mview_last_refresh = NULL,
           mview_enabled = FALSE
     WHERE mview_id = v_mview_id;
+ 
+   -- restore SESSION max_sp_recursion_depth
+   SET max_sp_recursion_depth := bkp_max_sp_recursion_depth;
 END ;;
 
 DELIMITER ;
