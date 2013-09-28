@@ -53,6 +53,11 @@ BEGIN
 
   DECLARE v_sql TEXT;
 
+  -- NULL v_mview_id?
+  IF v_mview_id IS NULL THEN
+    CALL flexviews.signal('Materialized view id is NULL');
+  END IF;
+  
   SELECT mview_name, 
          mview_schema, 
 	     mview_enabled
@@ -67,12 +72,24 @@ BEGIN
    END IF;
 
    IF v_mview_enabled = TRUE THEN
-     -- NULL or '' = dont-change
+     -- NULL or '' = dont-change;
+     -- otherwise, check schema & table exist
+     
      IF NOT LENGTH(v_mview_schema_new) > 0 THEN
-        SET v_mview_schema_new := v_mview_schema;
+       SET v_mview_schema_new := v_mview_schema;
+     ELSEIF NOT `flexviews`.`schema_exists`(v_mview_schema_new) THEN
+       -- check that new schema exists
+       CALL flexviews.signal(
+           CONCAT_WS('', 'Schema not found: ', v_mview_schema_new)
+         );
      END IF;
      IF NOT LENGTH(v_mview_name_new) > 0 THEN
-        SET v_mview_name_new := v_mview_name;
+       SET v_mview_name_new := v_mview_name;
+     ELSEIF `flexviews`.`table_exists`(v_mview_name_new) THEN
+       -- check that new table NOT exists
+       CALL flexviews.signal(
+           CONCAT_WS('', 'Table already exists: ', v_mview_name_new)
+         );
      END IF;
      
      SET v_sql = CONCAT('RENAME TABLE ', v_mview_schema, '.', v_mview_name, ' TO ', v_mview_schema_new, '.', v_mview_name_new,
