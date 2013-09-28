@@ -18,7 +18,7 @@ DELIMITER ;;
     If not, see <http://www.gnu.org/licenses/>.
 */
 
-DROP PROCEDURE IF EXISTS `set_definition`;;
+DROP PROCEDURE IF EXISTS `flexviews`.`set_definition`;;
 /****f* SQL_API/set_definition
  * NAME
  *   flexviews.set_definition - sets the SQL SELECT statement to be used by the
@@ -42,16 +42,20 @@ DROP PROCEDURE IF EXISTS `set_definition`;;
  *     call flexviews.set_definition(flexviews.get_id('test','mv_example'), 'SELECT * from my_table where c1=1')
 ******
 */
-CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `set_definition`(
+CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `flexviews`.`set_definition`(
   IN v_mview_id INT,
   IN v_definition_sql TEXT
 )
 BEGIN
-
  UPDATE flexviews.mview
     SET mview_definition = v_definition_sql
   WHERE mview_id = v_mview_id;   
-     
+  
+  IF ROW_COUNT() != 1 THEN
+    CALL `flexviews`.signal(
+        CONCAT_WS('', 'Cannot set definition for materialized view: ', v_mview_id)
+      );
+  END IF;
 END ;;
 
 DELIMITER ;
