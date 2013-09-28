@@ -53,18 +53,20 @@ DROP PROCEDURE IF EXISTS flexviews.create;;
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`create`(
   IN v_mview_schema TEXT,
   IN v_mview_name TEXT,
-  IN v_mview_refresh_type TEXT
+  IN v_mview_refresh_type ENUM('INCREMENTAL','COMPLETE')
 )
 BEGIN
-  -- validate input
-  IF NOT UPPER(v_mview_refresh_type) IN ('INCREMENTAL','COMPLETE') THEN
-    CALL flexviews.signal(
-        CONCAT_WS('', 'Invalid refresh type: ', v_mview_refresh_type)
-      );
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM `information_schema`.`SCHEMATA` WHERE `SCHEMA_NAME` = v_mview_schema) THEN
+  -- validate input:
+  -- schema exists?
+  IF NOT `flexviews`.`schema_exists`(v_mview_schema) THEN
     CALL flexviews.signal(
         CONCAT_WS('', 'Schema not found: ', v_mview_schema)
+      );
+  END IF;
+  -- table exists?
+  IF NOT `flexviews`.`table_exists`(mview_name) THEN
+    CALL flexviews.signal(
+        CONCAT_WS('', 'Table not found: ', mview_name)
       );
   END IF;
 
