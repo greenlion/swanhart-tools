@@ -1,4 +1,4 @@
-DELIMITER ;;
+DELIMITER ||
 /*  Flexviews for MySQL 
     Copyright 2008 Justin Swanhart
 
@@ -37,6 +37,52 @@ CREATE DATABASE `test_flexviews_simple_procs`
 	DEFAULT CHARACTER SET = 'utf8';
 
 
+CREATE PROCEDURE `test_flexviews_simple_procs`.`before_all_tests`()
+  MODIFIES SQL DATA
+BEGIN
+  -- create a small in-memory relational db which can be used
+  -- to create test mviews.
+  -- tables cannot be TEMPORARY because I_S doesnt show temptables.
+  
+  CREATE DATABASE IF NOT EXISTS `test`;
+  
+  DROP TABLE IF EXISTS `test`.`customer`;
+  CREATE TABLE `test`.`customer`
+  (
+    `customer_id` INTEGER UNSIGNED NOT NULL PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL,
+    `city_id` INTEGER UNSIGNED NOT NULL
+  )
+    ENGINE = MEMORY;
+  
+  DROP TABLE IF EXISTS `test`.`city`;
+  CREATE TABLE `test`.`city`
+  (
+    `city_id` INTEGER UNSIGNED NOT NULL PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL,
+    `country_id` VARCHAR(100) NOT NULL,
+    `is_capital` BOOLEAN NOT NULL,
+    `population` INTEGER UNSIGNED NOT NULL
+  )
+    ENGINE = MEMORY;
+  
+  DROP TABLE IF EXISTS `test`.`country`;
+  CREATE TABLE `test`.`country`
+  (
+    `country_id` INTEGER UNSIGNED NOT NULL PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL
+  )
+    ENGINE = MEMORY;
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`set_up`()
+  MODIFIES SQL DATA
+BEGIN
+  TRUNCATE TABLE `flexviews`.`mview`;
+END;
+
+
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_signal`()
   MODIFIES SQL DATA
 BEGIN
@@ -51,7 +97,7 @@ BEGIN
   CALL `flexviews`.`signal`('test');
   -- if EXIT HANDLER is not triggered...
   CALL `stk_unit`.assert_true(FALSE, 'signal() generated no error');
-END;;
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_fvrand`()
@@ -74,7 +120,7 @@ BEGIN
     CALL `stk_unit`.assert_between_integer(`flexviews`.`fvrand`(v_min, v_max), v_min, v_max, NULL);
     SET i := i - 1;
   END WHILE;
-END;;
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_get_setting`()
@@ -91,7 +137,7 @@ BEGIN
   INSERT INTO `flexviews`.`mview_settings` SET `setting_key` = o_key, `setting_value` = o_val;
   CALL `stk_unit`.assert_equal(`flexviews`.`get_setting`(o_key), o_val, NULL);
   DELETE FROM `flexviews`.`mview_settings` WHERE `setting_key` = o_key;
-END;;
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_get_definition`()
@@ -114,7 +160,7 @@ BEGIN
   -- check that an error is returned for non-existing mview
   CALL `stk_unit`.expect_any_exception();
   CALL `flexviews`.`set_definition`(t_mview_id, t_def);
-END;;
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_schema_exists`()
@@ -123,7 +169,7 @@ BEGIN
   CALL `stk_unit`.assert_true(`flexviews`.`schema_exists`('information_schema'), 'information_schema exists');
   CALL `stk_unit`.assert_false(`flexviews`.`schema_exists`('not-exists'), NULL);
   CALL `stk_unit`.assert_false(`flexviews`.`schema_exists`(NULL), 'wrong result with NULL');
-END;;
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_table_exists`()
@@ -134,7 +180,7 @@ BEGIN
   CALL `stk_unit`.assert_false(`flexviews`.`table_exists`('not-exists', 'SCHEMATA'), NULL);
   CALL `stk_unit`.assert_false(`flexviews`.`table_exists`('not-exists', 'not-exists'), NULL);
   CALL `stk_unit`.assert_false(`flexviews`.`table_exists`(NULL, NULL), 'wrong result with NULL');
-END;;
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_quote_name`()
@@ -146,7 +192,7 @@ BEGIN
   -- unusual input
   CALL `stk_unit`.assert_equal(`flexviews`.`quote_name`(''), '``', 'wrong result with empty string');
   CALL `stk_unit`.assert_null(`flexviews`.`quote_name`(NULL), 'wrong result with NULL');
-END;;
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create`()
@@ -155,44 +201,49 @@ BEGIN
   -- WHITE BOX
   
   -- existing db.table
-  DECLARE t_db TEXT DEFAULT 'mysql';
-  DECLARE t_tab TEXT DEFAULT 'users';
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'new_mv';
+  DECLARE id BIGINT;
   
   -- test incremental
   CALL `flexviews`.`create`(t_db, t_tab, 'INCREMENTAL');
-  CALL `stk_unit`.assert_equal(test_flexviews_simple_procs`.`get_id`(t_db, t_tab), LAST_INSERT_ID(), NULL);
+  SET id := LAST_INSERT_ID();
+  CALL `stk_unit`.assert_equal(`flexviews`.`get_id`(t_db, t_tab), id, NULL);
   TRUNCATE TABLE `flexviews`.`mview`;
   
   -- test complete
   CALL `flexviews`.`create`(t_db, t_tab, 'COMPLETE');
-  CALL `stk_unit`.assert_equal(test_flexviews_simple_procs`.`get_id`(t_db, t_tab), LAST_INSERT_ID(), NULL);
+  SET id := LAST_INSERT_ID();
+  CALL `stk_unit`.assert_equal(`flexviews`.`get_id`(t_db, t_tab), id, NULL);
   TRUNCATE TABLE `flexviews`.`mview`;
-END;;
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_flush_method`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.`expect_any_exception`();
-  CALL `flexviews`.`create`('mysql', 'users', 'not-exists');
-END;;
+  CALL `flexviews`.`create`('test', 'new_md', 'not-exists');
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_db`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.`expect_any_exception`();
-  CALL `flexviews`.`create`('not-exists', 'users', 'INCREMENTAL');
-END;;
+  CALL `flexviews`.`create`('not-exists', 'new_md', 'INCREMENTAL');
+END;
 
 
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_table`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.`expect_any_exception`();
-  CALL `flexviews`.`create`('mysql', 'not-exists', 'INCREMENTAL');
-END;;
+  -- cannot create: already exists
+  CALL `flexviews`.`create`('test', 'customer', 'INCREMENTAL');
+END;
 
 
+||
 DELIMITER ;
 

@@ -78,7 +78,7 @@ BEGIN
      IF NOT LENGTH(v_mview_schema_new) > 0 THEN
        SET v_mview_schema_new := v_mview_schema;
      ELSEIF NOT `flexviews`.`schema_exists`(v_mview_schema_new) THEN
-       -- check that new schema exists
+       -- NEW schema MUST exist
        CALL flexviews.signal(
            CONCAT_WS('', 'Schema not found: ', v_mview_schema_new)
          );
@@ -86,7 +86,7 @@ BEGIN
      IF NOT LENGTH(v_mview_name_new) > 0 THEN
        SET v_mview_name_new := v_mview_name;
      ELSEIF `flexviews`.`table_exists`(v_mview_name_new) THEN
-       -- check that new table NOT exists
+       -- NEW table MUST NOT exist in given db
        CALL flexviews.signal(
            CONCAT_WS('', 'Table already exists: ', v_mview_name_new)
          );
