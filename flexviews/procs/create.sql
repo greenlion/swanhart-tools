@@ -64,9 +64,9 @@ BEGIN
       );
   END IF;
   -- table exists?
-  IF NOT `flexviews`.`table_exists`(mview_name) THEN
+  IF NOT `flexviews`.`table_exists`(v_mview_schema, v_mview_name) THEN
     CALL flexviews.signal(
-        CONCAT_WS('', 'Table not found: ', mview_name)
+        CONCAT_WS('', 'Table not found: ', v_mview_name, ' in schema: ', v_mview_schema)
       );
   END IF;
 
