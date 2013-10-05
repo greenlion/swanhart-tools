@@ -60,26 +60,23 @@ DROP PROCEDURE IF EXISTS flexviews.refresh_all ;;
 ******
 */
 CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.refresh_all(
-  IN v_mode TEXT,
-  IN v_uow_id BIGINT 
+  IN v_mode ENUM('COMPLETE', 'INCREMENTAL'),
+  IN v_uow_id BIGINT UNSIGNED
 )
 BEGIN
-DECLARE v_done boolean DEFAULT FALSE;
-DECLARE v_mview_id INT;
-DECLARE v_got_lock INT;
+DECLARE v_done BOOLEAN DEFAULT FALSE;
+DECLARE v_mview_id SMALLINT UNSIGNED;
 
 
 DECLARE cur_views CURSOR
 FOR 
 SELECT mview_id
   FROM flexviews.mview
- WHERE mview_refresh_type = IF( v_mode = 'COMPLETE', v_mode, 'INCREMENTAL')
-   AND mview_enabled = true;
+ WHERE mview_refresh_type = IF(v_mode = 'COMPLETE', 'COMPLETE', 'INCREMENTAL')
+   AND mview_enabled = TRUE;
 
 DECLARE CONTINUE HANDLER FOR  SQLSTATE '02000'
     SET v_done = TRUE;
-
-SET v_mode = UPPER(v_mode);
 
 SET max_sp_recursion_depth=999;
 

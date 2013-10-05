@@ -18,6 +18,24 @@ DELIMITER ;;
     If not, see <http://www.gnu.org/licenses/>.
 */
 
+/****f* SQL_API/is_enabled
+ * NAME
+ *   flexviews.is_enabled - Returns wether a materialized view is enabled.
+ * SYNOPSIS
+ *   flexviews.is_enabled(v_mview_id)
+ * FUNCTION
+ *   This function accepts a materialized view id and returns TRUE if the mview is enabled,
+ *   FALSE if it is not enabled, NULL if it does not exist.
+ * INPUTS
+ *   * v_mview_id     - Materialized view id.
+ * RESULT
+ *   Boolean value.
+ * EXAMPLE
+ *   mysql>
+ *     call flexviews.is_enabled(flexviews.get_id('test', 'mv_example'));
+******
+*/
+
 DROP FUNCTION IF EXISTS flexviews.is_enabled;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.is_enabled(v_mview_id INT) 
