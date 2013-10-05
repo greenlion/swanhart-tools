@@ -156,16 +156,19 @@ BEGIN
   
   -- existing db.table
   DECLARE t_db TEXT DEFAULT 'mysql';
-  DECLARE t_tab TEXT DEFAULT 'users';
+  DECLARE t_tab TEXT DEFAULT 'user';
+  DECLARE id BIGINT;
   
   -- test incremental
   CALL `flexviews`.`create`(t_db, t_tab, 'INCREMENTAL');
-  CALL `stk_unit`.assert_equal(test_flexviews_simple_procs`.`get_id`(t_db, t_tab), LAST_INSERT_ID(), NULL);
+  SET id := LAST_INSERT_ID();
+  CALL `stk_unit`.assert_equal(`flexviews`.`get_id`(t_db, t_tab), id, NULL);
   TRUNCATE TABLE `flexviews`.`mview`;
   
   -- test complete
   CALL `flexviews`.`create`(t_db, t_tab, 'COMPLETE');
-  CALL `stk_unit`.assert_equal(test_flexviews_simple_procs`.`get_id`(t_db, t_tab), LAST_INSERT_ID(), NULL);
+  SET id := LAST_INSERT_ID();
+  CALL `stk_unit`.assert_equal(`flexviews`.`get_id`(t_db, t_tab), id, NULL);
   TRUNCATE TABLE `flexviews`.`mview`;
 END;;
 
