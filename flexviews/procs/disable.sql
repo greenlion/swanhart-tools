@@ -68,7 +68,7 @@ BEGIN
          v_mview_schema,
          v_mview_enabled
     FROM flexviews.mview
-   WHERE mview_id = v_mview_id;
+   WHERE flexviews.mview.mview_id = v_mview_id;
 
    SELECT 'This procedure is deprecated.  Please use flexviews.DROP() to remove a view or flexviews.INVALIDATE() to mark it as invalid' as `WARNING` from dual;
 
@@ -83,7 +83,7 @@ BEGIN
    SELECT mview_id
      INTO v_child_mview_id
      FROM flexviews.mview
-    WHERE parent_mview_id = v_mview_id;
+    WHERE flexviews.mview.parent_mview_id = v_mview_id;
 
    IF v_child_mview_id IS NOT NULL THEN
      CALL flexviews.disable(v_child_mview_id);
@@ -93,7 +93,7 @@ BEGIN
    UPDATE flexviews.mview
       SET mview_last_refresh = NULL,
           mview_enabled = FALSE
-    WHERE mview_id = v_mview_id;
+    WHERE flexviews.mview.mview_id = v_mview_id;
 
    SET @v_sql = CONCAT('DROP TABLE IF EXISTS ', v_mview_schema, '.', v_mview_name);
    PREPARE drop_stmt FROM @v_sql; 

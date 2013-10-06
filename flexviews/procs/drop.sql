@@ -18,7 +18,7 @@ DELIMITER ;;
     If not, see <http://www.gnu.org/licenses/>.
 */
 
-DROP PROCEDURE IF EXISTS flexviews.disable;;
+DROP PROCEDURE IF EXISTS flexviews.drop;;
 /****f* SQL_API/disable
  * NAME
  *   flexviews.disable - Drop the materialized view table.  
@@ -42,7 +42,7 @@ DROP PROCEDURE IF EXISTS flexviews.disable;;
 ******
 */
 
-CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`disable`(
+CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`drop`(
   IN v_mview_id INT UNSIGNED
 )
   MODIFIES SQL DATA
@@ -74,14 +74,24 @@ BEGIN
     FROM flexviews.mview mv1
     LEFT JOIN flexviews.mview mv2
       ON mv1.mview_id = mv2.parent_mview_id
-   WHERE mview_id = v_mview_id;
+   WHERE mv1.mview_id = v_mview_id;
 
-   IF v_mview_id IS NULL THEN
-     CALL flexviews.signal('The specified materialized view does not exist (NOTHING WAS DROPPED)');
-   END IF;
+   IF @fv_force IS NULL OR @fv_force = FALSE THEN
+     IF v_mview_id IS NULL THEN
+       IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
+         CALL flexviews.signal('The specified materialized view does not exist (NOTHING WAS DROPPED)');
+       ELSE
+         CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
+       END IF;
+     END IF;
 
-   IF v_mview_enabled = FALSE OR v_mview_enabled is null THEN
-     CALL flexviews.signal('This materialized view is already disabled (NOTHING WAS DROPPED)');
+     IF v_mview_enabled = FALSE OR v_mview_enabled is null THEN
+       IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
+         CALL flexviews.signal('This materialized view is already disabled (NOTHING WAS DROPPED)');
+       ELSE
+         CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
+       END IF;
+     END IF;
    END IF;
 
    -- start the transaction on the parent view.  the parent and child will both get marked
@@ -111,12 +121,14 @@ BEGIN
    SET @v_sql := NULL;
    DEALLOCATE PREPARE drop_stmt;
 
-   IF v_child_mview_id IS NOT NULL THEN
+   IF v_parent_mview_id IS NOT NULL THEN
      SELECT 'The view, the view delta and the child views (if any) have now been removed' as `MESSAGE` from dual;
+     SET @fv_force = false;
    END IF;
  
    -- restore SESSION max_sp_recursion_depth
    SET max_sp_recursion_depth := bkp_max_sp_recursion_depth;
+  
 END ;;
 
 DELIMITER ;
