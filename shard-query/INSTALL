@@ -1,33 +1,34 @@
-BASIC INSTALLATION
----------------------------
 1) Install gearmand
 
 2) Install MySQL on each storage node (one or more databases)
 
 3) Install apache/php/php-mysql/php-pear
 
-4) Download shard-query and extract it into /usr/share/ (so you have /usr/share/shard-query/include, etc..)
+4) Download and extract swanhart-tools. Move shard-query to /usr/share/ (so you have /usr/share/shard-query/include, etc..)
 
 5) Install the config repo
-   php install_config_repo.php
- 
+cd /usr/share/shard_query
+php install_config_repo.php
+
+Make sure that the account you use to set up the repo was created WITH GRANT OPTION. 
+That is really important. Same thing goes for account used to set up virtual schema. It must be able to 
+delegate grants to the shard_query user (or whatever you select in the setup)
+
 6) copy bootstrap.ini.example to bootstrap.ini and edit it appropriately
 
 7) php setup_virtual_schema.php --ini=bootstrap.ini
 
-8) start gearman: 
-   gearmand -d -p 7001 -L 127.0.0.1
+8 ) start gearman: 
+gearmand -d -p 7001 -L 127.0.0.1
 
 9) test a worker:
-   cd bin/
-   ./worker  
+cd bin/
+./worker 
 
-
-   If no errors in 10 to 15 seconds hit ctrl-c.
+If no errors in 10 to 15 seconds hit ctrl-c.
 
 10) start workers
-   ./start_workers 6  (where 6 = number of workers you want to start)
-
+./start_workers 6 (where 6 = number of workers you want to start)
 
 UI installation (CentOS 6.4)
 ---------------------------
