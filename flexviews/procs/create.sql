@@ -57,6 +57,10 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`create`(
 )
 BEGIN
   -- validate input:
+  -- ENUM is not enforced if SQL_MODE is not strict
+  IF v_mview_refresh_type IS NULL OR v_mview_refresh_type NOT IN ('INCREMENTAL', 'COMPLETE') THEN
+    CALL flexviews.signal('Invalid refresh type');
+  END IF;
   -- schema MUST exist
   IF NOT `flexviews`.`schema_exists`(v_mview_schema) THEN
     CALL flexviews.signal(

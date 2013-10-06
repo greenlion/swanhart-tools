@@ -57,7 +57,7 @@ BEGIN
   IF v_mview_id IS NULL THEN
     CALL flexviews.signal('Materialized view id is NULL');
   END IF;
-  
+
   SELECT mview_name, 
          mview_schema, 
 	     mview_enabled
@@ -66,32 +66,35 @@ BEGIN
          v_mview_enabled
     FROM flexviews.mview
    WHERE mview_id = v_mview_id;
-   
+
    IF v_mview_name IS NULL THEN
      CALL flexviews.signal('The specified materialized view does not exist');
    END IF;
 
+  -- NULL or '' = dont-change;
+  -- otherwise, check schema exists & table NOT exists
+
+  IF v_mview_schema_new IS NULL OR v_mview_schema_new = '' THEN
+    SET v_mview_schema_new := v_mview_schema;
+  END IF;
+  IF NOT `flexviews`.`schema_exists`(v_mview_schema_new) THEN
+    -- NEW schema MUST exist
+    CALL flexviews.signal(
+        CONCAT_WS('', 'Schema not found: ', v_mview_schema_new)
+      );
+  END IF;
+
+  IF v_mview_name_new IS NULL OR v_mview_name_new = '' THEN
+    SET v_mview_name_new := v_mview_name;
+  END IF;
+  IF `flexviews`.`table_exists`(v_mview_schema_new, v_mview_name_new) THEN
+    -- NEW table MUST NOT exist in given db
+    CALL flexviews.signal(
+        CONCAT_WS('', 'Table already exists: ', v_mview_name_new, ' in schema: ', v_mview_schema_new)
+      );
+  END IF;
+
    IF v_mview_enabled = TRUE THEN
-     -- NULL or '' = dont-change;
-     -- otherwise, check schema & table exist
-     
-     IF NOT LENGTH(v_mview_schema_new) > 0 THEN
-       SET v_mview_schema_new := v_mview_schema;
-     ELSEIF NOT `flexviews`.`schema_exists`(v_mview_schema_new) THEN
-       -- NEW schema MUST exist
-       CALL flexviews.signal(
-           CONCAT_WS('', 'Schema not found: ', v_mview_schema_new)
-         );
-     END IF;
-     IF NOT LENGTH(v_mview_name_new) > 0 THEN
-       SET v_mview_name_new := v_mview_name;
-     ELSEIF `flexviews`.`table_exists`(v_mview_name_new) THEN
-       -- NEW table MUST NOT exist in given db
-       CALL flexviews.signal(
-           CONCAT_WS('', 'Table already exists: ', v_mview_name_new)
-         );
-     END IF;
-     
      SET v_sql = CONCAT('RENAME TABLE ', v_mview_schema, '.', v_mview_name, ' TO ', v_mview_schema_new, '.', v_mview_name_new,
        ',', v_mview_schema, '.', v_mview_name, '_delta TO ', v_mview_schema_new, '.', v_mview_name_new, '_delta');
      SET @v_sql = v_sql;

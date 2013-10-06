@@ -32,6 +32,9 @@ DELIMITER ||
 */
 
 
+SET @@session.SQL_MODE = 'ERROR_FOR_DIVISION_BY_ZERO,NO_ZERO_DATE,NO_ZERO_IN_DATE,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY,STRICT_ALL_TABLES,STRICT_TRANS_TABLES';
+
+
 DROP DATABASE IF EXISTS `test_flexviews_simple_procs`;
 CREATE DATABASE `test_flexviews_simple_procs`
 	DEFAULT CHARACTER SET = 'utf8';
@@ -45,6 +48,7 @@ BEGIN
   -- tables cannot be TEMPORARY because I_S doesnt show temptables.
   
   CREATE DATABASE IF NOT EXISTS `test`;
+  CREATE DATABASE IF NOT EXISTS `test2`;
   
   DROP TABLE IF EXISTS `test`.`customer`;
   CREATE TABLE `test`.`customer`
@@ -219,11 +223,21 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_flush_method`()
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_flush_method_strict_mode`()
   MODIFIES SQL DATA
 BEGIN
+  SET @@session.sql_mode = 'STRICT_ALL_TABLES,STRICT_TRANS_TABLES';
   CALL `stk_unit`.`expect_any_exception`();
-  CALL `flexviews`.`create`('test', 'new_md', 'not-exists');
+  CALL `flexviews`.`create`('test', 'new_mv', 'not-exists');
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_flush_method_not_strict`()
+  MODIFIES SQL DATA
+BEGIN
+  SET @@session.sql_mode = '';
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`create`('test', 'new_mv', 'not-exists');
 END;
 
 
@@ -241,6 +255,125 @@ BEGIN
   CALL `stk_unit`.`expect_any_exception`();
   -- cannot create: already exists
   CALL `flexviews`.`create`('test', 'customer', 'INCREMENTAL');
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename`()
+  MODIFIES SQL DATA
+BEGIN
+  -- existing db.table
+  DECLARE t_db_old TEXT DEFAULT 'test';
+  DECLARE t_tab_old TEXT DEFAULT 'old_mv';
+  DECLARE id BIGINT;
+  DECLARE t_db_new TEXT DEFAULT 'test';
+  DECLARE t_tab_new TEXT DEFAULT 'new_mv';
+  
+  -- add old mv, NOT enabled
+  CALL `flexviews`.`create`(t_db_old, t_tab_old, 'COMPLETE');
+  SET id := LAST_INSERT_ID();
+  
+  -- rename
+  CALL `flexviews`.`rename`(id, t_db_new, t_tab_new);
+  
+  -- asserts
+  CALL `stk_unit`.assert_null(`flexviews`.`get_id`(t_db_old, t_tab_old), 'old skeleton should not exist');
+  CALL `stk_unit`.assert_equal(`flexviews`.`get_id`(t_db_new, t_tab_new), id, 'new skeleton with same id should exist');
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_empty_table`()
+  MODIFIES SQL DATA
+BEGIN
+  -- existing db.table
+  DECLARE t_db_old TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'old_mv';
+  DECLARE id BIGINT;
+  DECLARE t_db_new TEXT DEFAULT 'test2';
+  
+  -- add old mv, NOT enabled
+  CALL `flexviews`.`create`(t_db_old, t_tab, 'COMPLETE');
+  SET id := LAST_INSERT_ID();
+  
+  -- rename with '' table (change db)
+  CALL `flexviews`.`rename`(id, t_db_new, '');
+  CALL `stk_unit`.assert_null(`flexviews`.`get_id`(t_db_old, t_tab), 'old skeleton should not exist');
+  CALL `stk_unit`.assert_equal(id, `flexviews`.`get_id`(t_db_new, t_tab), NULL);
+  
+  -- switch back to old db, this time use NULL
+  CALL `flexviews`.`rename`(id, t_db_old, NULL);
+  CALL `stk_unit`.assert_null(`flexviews`.`get_id`(t_db_new, t_tab), 'old skeleton should not exist');
+  CALL `stk_unit`.assert_equal(id, `flexviews`.`get_id`(t_db_old, t_tab), NULL);
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_empty_db`()
+  MODIFIES SQL DATA
+BEGIN
+  -- existing db.table
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab_old TEXT DEFAULT 'old_mv';
+  DECLARE t_tab_new TEXT DEFAULT 'new_mv';
+  DECLARE id BIGINT;
+  
+  -- add old mv, NOT enabled
+  CALL `flexviews`.`create`(t_db, t_tab_old, 'COMPLETE');
+  SET id := LAST_INSERT_ID();
+  
+  -- rename with '' db (change only table)
+  CALL `flexviews`.`rename`(id, '', t_tab_new);
+  CALL `stk_unit`.assert_null(`flexviews`.`get_id`(t_db, t_tab_old), NULL);
+  CALL `stk_unit`.assert_equal(id, `flexviews`.`get_id`(t_db, t_tab_new), NULL);
+  
+  -- switch back to old table, this time use NULL
+  CALL `flexviews`.`rename`(id, NULL, t_tab_old);
+  CALL `stk_unit`.assert_null(`flexviews`.`get_id`(t_db, t_tab_new), NULL);
+  CALL `stk_unit`.assert_equal(id, `flexviews`.`get_id`(t_db, t_tab_old), NULL);
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_mvid`()
+  MODIFIES SQL DATA
+BEGIN
+  -- rename non-existing mview
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`rename`(999, 'test', 'new_mv');
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_db`()
+  MODIFIES SQL DATA
+BEGIN
+  -- existing db.table
+  DECLARE t_db_old TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'old_mv';
+  DECLARE id BIGINT;
+  
+  -- add old mv, NOT enabled
+  CALL `flexviews`.`create`(t_db_old, t_tab, 'COMPLETE');
+  SET id := LAST_INSERT_ID();
+  
+  -- rename with non-existing db
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`rename`(id, 'not-exists', t_tab);
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_table`()
+  MODIFIES SQL DATA
+BEGIN
+ -- existing db.table
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab_old TEXT DEFAULT 'old_mv';
+  DECLARE id BIGINT;
+  DECLARE t_tab_new TEXT DEFAULT 'new_mv';
+  
+  -- add old mv, NOT enabled
+  CALL `flexviews`.`create`(t_db, t_tab_old, 'COMPLETE');
+  SET id := LAST_INSERT_ID();
+  
+  -- rename with existing table
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`rename`(id, t_db, 'customer');
 END;
 
 
