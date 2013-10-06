@@ -19,6 +19,7 @@
 
 USE flexviews;
 
+\. ./procs/quote_name.sql
 \. ./procs/add_expr.sql
 \. ./procs/add_table.sql
 \. ./procs/create_mvlog.sql
