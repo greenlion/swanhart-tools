@@ -148,11 +148,10 @@ EOREGEX
 	#By default read settings from the INI file unless they are passed
 	#into the constructor	
 	public function __construct($settings = NULL, $no_connect = false) {
-		
 		if(!$settings) {
 			$settings = $this->read_settings();
-			$this->settings = $settings;
-		}
+		} 
+		$this->settings = $settings;
 		if(!$this->cmdLine) $this->cmdLine = `which mysqlbinlog`;
 		if(!$this->cmdLine) {
 			die1("could not find mysqlbinlog!",2);
