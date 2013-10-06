@@ -511,7 +511,7 @@ class DirectoryShardKeyMapper implements ShardKeyMapper{
 			$sql .= "$column_id_sql, {$row['id']}, $key);";
 		} else {
 			$sql = "INSERT INTO shard_map (column_id, shard_id, key_string_value) VALUES (";
-			$sql .= "$column_id_sql, {$row['id']}, '$key');";
+			$sql .= "$column_id_sql, {$row['id']}, $key);";
 		}
 
 		$this->execute($sql);
