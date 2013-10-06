@@ -26,7 +26,7 @@ CREATE DEFINER=flexviews@localhost FUNCTION flexviews.fvrand (
 )
   RETURNS INT
   NOT DETERMINISTIC
-  CONTAINS SQL
+  NO SQL
   COMMENT 'Get a random INT between v_low and v_high'
 BEGIN
  RETURN FLOOR(v_low + RAND() * (v_high - v_low));

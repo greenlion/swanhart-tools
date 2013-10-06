@@ -51,6 +51,7 @@ BEGIN
   -- DECLARE v_mview_enabled tinyint(1);
   DECLARE v_mview_name TEXT;
   DECLARE v_mview_schema TEXT;
+  DECLARE v_mview_enabled INT;
 
   DECLARE v_child_mview_id INT;
 
@@ -58,23 +59,26 @@ BEGIN
   DECLARE bkp_max_sp_recursion_depth INT UNSIGNED DEFAULT @@session.max_sp_recursion_depth;
   SET max_sp_recursion_depth := 255;
 
+  START TRANSACTION WITH CONSISTENT SNAPSHOT;
+
   SELECT mview_name, 
-         mview_schema
---	     mview_enabled
+         mview_schema,
+	 mview_enabled
     INTO v_mview_name, 
-         v_mview_schema
---       v_mview_enabled
+         v_mview_schema,
+         v_mview_enabled
     FROM flexviews.mview
    WHERE mview_id = v_mview_id;
-/*
-    IF v_mview_id IS NULL THEN
-     CALL flexviews.signal('The specified materialized view does not exist');
-    END IF;
 
-   IF v_mview_enabled = FALSE THEN
-     CALL flexviews.signal('This materialized view is already disabled');
+   SELECT 'This procedure is deprecated.  Please use flexviews.DROP() to remove a view or flexviews.INVALIDATE() to mark it as invalid' as `WARNING` from dual;
+
+   IF v_mview_id IS NULL THEN
+     CALL flexviews.signal('The specified materialized view does not exist (NOTHING WAS DROPPED)');
    END IF;
-*/
+
+   IF v_mview_enabled = FALSE OR v_mview_enabled is null THEN
+     CALL flexviews.signal('This materialized view is already disabled (NOTHING WAS DROPPED)');
+   END IF;
 
    SELECT mview_id
      INTO v_child_mview_id
@@ -85,9 +89,17 @@ BEGIN
      CALL flexviews.disable(v_child_mview_id);
    END IF;
 
+   -- This will be committed by the DROP
+   UPDATE flexviews.mview
+      SET mview_last_refresh = NULL,
+          mview_enabled = FALSE
+    WHERE mview_id = v_mview_id;
+
    SET @v_sql = CONCAT('DROP TABLE IF EXISTS ', v_mview_schema, '.', v_mview_name);
    PREPARE drop_stmt FROM @v_sql; 
    EXECUTE drop_stmt;
+
+   SELECT 'The materialized view was dropped sucessfully' as `MESSAGE` from dual;
 
    SET @v_sql = CONCAT('DROP TABLE IF EXISTS ', v_mview_schema, '.', v_mview_name, '_delta');
    PREPARE drop_stmt FROM @v_sql; 
@@ -95,11 +107,9 @@ BEGIN
 
    SET @v_sql := NULL;
    DEALLOCATE PREPARE drop_stmt;
+   SELECT 'The materialized view delta table was dropped sucessfully' as `MESSAGE` from dual;
 
-   UPDATE flexviews.mview
-      SET mview_last_refresh = NULL,
-          mview_enabled = FALSE
-    WHERE mview_id = v_mview_id;
+   SELECT 'View is now disabled.' as `MESSAGE` from dual;
  
    -- restore SESSION max_sp_recursion_depth
    SET max_sp_recursion_depth := bkp_max_sp_recursion_depth;
