@@ -49,11 +49,12 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `flexviews`.`set_definition`(
 BEGIN
  UPDATE flexviews.mview
     SET mview_definition = v_definition_sql
-  WHERE mview_id = v_mview_id;   
+  WHERE mview_id = v_mview_id
+    AND mview_refresh_type = 'COMPLETE';
   
   IF ROW_COUNT() != 1 THEN
     CALL `flexviews`.signal(
-        CONCAT_WS('', 'Cannot set definition for materialized view: ', v_mview_id)
+        CONCAT_WS('', 'Materialized view does not exist or does not use COMPLETE method: ', v_mview_id)
       );
   END IF;
 END ;;
