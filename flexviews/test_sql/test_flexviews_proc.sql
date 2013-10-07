@@ -83,6 +83,7 @@ END;
 CREATE PROCEDURE `test_flexviews_simple_procs`.`set_up`()
   MODIFIES SQL DATA
 BEGIN
+  SET @fv_force = NULL;
   TRUNCATE TABLE `flexviews`.`mview`;
 END;
 
@@ -223,6 +224,36 @@ BEGIN
 END;
 
 
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_reset_force`()
+  MODIFIES SQL DATA
+BEGIN
+  -- WHITE BOX
+
+  -- check if create() resets @fv_force to NULL
+
+  -- existing db.table
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'new_mv';
+
+  SET @fv_force = TRUE;
+  CALL `flexviews`.`create`(t_db, t_tab, 'INCREMENTAL');
+  CALL `stk_unit`.assert_null(@fv_force, '@fv_force was not reset');
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_duplicate`()
+  MODIFIES SQL DATA
+BEGIN
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'new_mv';
+  
+  -- add twice, expect error
+  CALL `flexviews`.`create`(t_db, t_tab, 'INCREMENTAL');
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`create`(t_db, t_tab, 'INCREMENTAL');
+END;
+
+
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_flush_method_strict_mode`()
   MODIFIES SQL DATA
 BEGIN
@@ -249,12 +280,33 @@ BEGIN
 END;
 
 
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_db_force`()
+  MODIFIES SQL DATA
+BEGIN
+  SET @fv_force = TRUE;
+  CALL `flexviews`.`create`('not-exists', 'new_md', 'INCREMENTAL');
+  -- no error? pass!
+  CALL `stk_unit`.`assert_true`(TRUE, NULL);
+END;
+
+
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_table`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.`expect_any_exception`();
   -- cannot create: already exists
   CALL `flexviews`.`create`('test', 'customer', 'INCREMENTAL');
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_table_force`()
+  MODIFIES SQL DATA
+BEGIN
+  SET @fv_force = TRUE;
+  -- already exists, but we force skeleton creation
+  CALL `flexviews`.`create`('test', 'customer', 'INCREMENTAL');
+  -- no error? pass!
+  CALL `stk_unit`.`assert_true`(TRUE, NULL);
 END;
 
 
@@ -278,6 +330,38 @@ BEGIN
   -- asserts
   CALL `stk_unit`.assert_null(`flexviews`.`get_id`(t_db_old, t_tab_old), 'old skeleton should not exist');
   CALL `stk_unit`.assert_equal(`flexviews`.`get_id`(t_db_new, t_tab_new), id, 'new skeleton with same id should exist');
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_reset_force`()
+  MODIFIES SQL DATA
+BEGIN
+  -- test that rename() resets @fv_force to NULL
+
+  -- existing db.table
+  DECLARE t_db_old TEXT DEFAULT 'test';
+  DECLARE t_tab_old TEXT DEFAULT 'old_mv';
+  DECLARE id BIGINT;
+  DECLARE t_db_new TEXT DEFAULT 'test';
+  DECLARE t_tab_new TEXT DEFAULT 'new_mv';
+  
+  -- create & rename
+  CALL `flexviews`.`create`(t_db_old, t_tab_old, 'COMPLETE');
+  SET @fv_force = TRUE;
+  CALL `flexviews`.`rename`(LAST_INSERT_ID(), t_db_new, t_tab_new);
+  
+  CALL `stk_unit`.assert_null(@fv_force, '@fv_force was not reset');
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_duplicate`()
+  MODIFIES SQL DATA
+BEGIN
+  -- create 2 mviews, than try to rename mv2 like mv1; expect error
+  CALL `flexviews`.`create`('test', 'mv1', 'COMPLETE');
+  CALL `flexviews`.`create`('test', 'mv2', 'COMPLETE');
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`rename`(LAST_INSERT_ID(), 'test', 'mv1');
 END;
 
 
@@ -358,6 +442,21 @@ BEGIN
 END;
 
 
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_db_force`()
+  MODIFIES SQL DATA
+BEGIN
+  -- existing db.table
+  DECLARE t_db_old TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'old_mv';
+  
+  -- create, then rename trying to move to a non-existing db; force skeleton creation
+  CALL `flexviews`.`create`(t_db_old, t_tab, 'COMPLETE');
+  SET @fv_force = TRUE;
+  CALL `flexviews`.`rename`(LAST_INSERT_ID(), 'not-exists', t_tab);
+  CALL `stk_unit`.`assert_true`(TRUE, NULL);
+END;
+
+
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_table`()
   MODIFIES SQL DATA
 BEGIN
@@ -365,7 +464,6 @@ BEGIN
   DECLARE t_db TEXT DEFAULT 'test';
   DECLARE t_tab_old TEXT DEFAULT 'old_mv';
   DECLARE id BIGINT;
-  DECLARE t_tab_new TEXT DEFAULT 'new_mv';
   
   -- add old mv, NOT enabled
   CALL `flexviews`.`create`(t_db, t_tab_old, 'COMPLETE');
@@ -374,6 +472,21 @@ BEGIN
   -- rename with existing table
   CALL `stk_unit`.`expect_any_exception`();
   CALL `flexviews`.`rename`(id, t_db, 'customer');
+END;
+
+
+CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_table_force`()
+  MODIFIES SQL DATA
+BEGIN
+ -- existing db.table
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab_old TEXT DEFAULT 'old_mv';
+  
+  -- add old mv, NOT enabled
+  CALL `flexviews`.`create`(t_db, t_tab_old, 'COMPLETE');
+  SET @fv_force = TRUE;
+  CALL `flexviews`.`rename`(LAST_INSERT_ID(), t_db, 'customer');
+  CALL `stk_unit`.`assert_true`(TRUE, NULL);
 END;
 
 

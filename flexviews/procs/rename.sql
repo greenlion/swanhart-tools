@@ -32,6 +32,9 @@ DROP PROCEDURE IF EXISTS `rename`;;
  *   * v_new_table  - The new table, may be the same as the current table. NULL or '' = current table.
  * RESULT
  *   An error will be generated in the MySQL client if the view can not be enabled.
+ * NOTES
+ *   If the materialized view cannot be renamed, an error is produced.
+ *  If @fv_force is set to TRUE, the creation is forced and no error is issued, whenever possible.
  * SEE ALSO
  *   SQL_API/disable, UTIL_API/get_id, SQL_API/enable, SQL_API/create
  * EXAMPLE
@@ -53,9 +56,19 @@ BEGIN
 
   DECLARE v_sql TEXT;
 
+  DECLARE EXIT HANDLER
+    FOR 1062
+  BEGIN
+    SET @fv_force = NULL;
+    CALL flexviews.signal(
+        CONCAT_WS('', 'Materialized view already exists: ', v_mview_name, ' in schema: ', v_mview_schema)
+      );
+  END;
+
   -- NULL v_mview_id?
   IF v_mview_id IS NULL THEN
-    CALL flexviews.signal('Materialized view id is NULL');
+    SET @fv_force = NULL;
+	CALL flexviews.signal('Materialized view id is NULL');
   END IF;
 
   SELECT mview_name, 
@@ -68,7 +81,8 @@ BEGIN
    WHERE mview_id = v_mview_id;
 
    IF v_mview_name IS NULL THEN
-     CALL flexviews.signal('The specified materialized view does not exist');
+     SET @fv_force = NULL;
+	 CALL flexviews.signal('The specified materialized view does not exist');
    END IF;
 
   -- NULL or '' = dont-change;
@@ -77,7 +91,7 @@ BEGIN
   IF v_mview_schema_new IS NULL OR v_mview_schema_new = '' THEN
     SET v_mview_schema_new := v_mview_schema;
   END IF;
-  IF NOT `flexviews`.`schema_exists`(v_mview_schema_new) THEN
+  IF (@fv_force IS NULL OR @fv_force != TRUE) AND NOT `flexviews`.`schema_exists`(v_mview_schema_new) THEN
     -- NEW schema MUST exist
     CALL flexviews.signal(
         CONCAT_WS('', 'Schema not found: ', v_mview_schema_new)
@@ -87,7 +101,7 @@ BEGIN
   IF v_mview_name_new IS NULL OR v_mview_name_new = '' THEN
     SET v_mview_name_new := v_mview_name;
   END IF;
-  IF `flexviews`.`table_exists`(v_mview_schema_new, v_mview_name_new) THEN
+  IF (@fv_force IS NULL OR @fv_force != TRUE) AND `flexviews`.`table_exists`(v_mview_schema_new, v_mview_name_new) THEN
     -- NEW table MUST NOT exist in given db
     CALL flexviews.signal(
         CONCAT_WS('', 'Table already exists: ', v_mview_name_new, ' in schema: ', v_mview_schema_new)
@@ -108,6 +122,16 @@ BEGIN
       SET mview_name = v_mview_name_new,
           mview_schema = v_mview_schema_new
     WHERE mview_id = v_mview_id;
+	
+	-- generic error
+  IF NOT ROW_COUNT() = 1 THEN
+	SET @fv_force = NULL;
+	CALL flexviews.signal(
+        CONCAT_WS('', 'Could not create materialized view: ', v_mview_name)
+      );
+  END IF;
+  
+  SET @fv_force = NULL;
 END ;;
 
 DELIMITER ;
