@@ -22,25 +22,47 @@ DELIMITER ||
     This is a Test Case for STK/Unit:
     http://stk.wikidot.com/stk-unit
     
-    To run this Test Case:
-    CALL stk_unit.tc('test_flexviews_simple_procs');
-    You can use the command line. Output is human-readable by default.
+    "Official" way to run this Test Case:
+    CALL stk_unit.tc('test_flexviews');
+    Shortcut:
+    flexviews.test()
     
-    test_flexviews_simple_procs is a pure Unit Test.
-    It only tests stored routines which don't call other routines
-    and don't need that the consumer is running.
+    You can use the command line. Output is human-readable by default.
 */
 
 
 SET @@session.SQL_MODE = 'ERROR_FOR_DIVISION_BY_ZERO,NO_ZERO_DATE,NO_ZERO_IN_DATE,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY,STRICT_ALL_TABLES,STRICT_TRANS_TABLES';
 
 
-DROP DATABASE IF EXISTS `test_flexviews_simple_procs`;
-CREATE DATABASE `test_flexviews_simple_procs`
+CREATE PROCEDURE `flexviews`.`test`()
+  MODIFIES SQL DATA
+  COMMENT 'Shortcut for STK/Unit tests'
+`whole_proc`:
+BEGIN
+  -- is STK/Unit installed?
+  IF NOT EXISTS (SELECT TRUE FROM `information_schema`.`SCHEMATA` WHERE `SCHEMA_NAME` = 'stk_unit') THEN
+    BEGIN
+      DECLARE txt TEXT DEFAULT 'STK/Unit is not installed';
+      /*!50404
+        SIGNAL SQLSTATE '45000' SET
+          CLASS_ORIGIN = 'FlexViews',
+          MESSAGE_TEXT = txt;
+      */
+      SELECT '45000' AS `SQLSTATE`, txt AS `MESSAGE_TEXT`;
+      LEAVE `whole_proc`;
+    END;
+  END IF;
+  
+  CALL `stk_unit`.`tc`('test_flexviews');
+END;
+
+
+DROP DATABASE IF EXISTS `test_flexviews`;
+CREATE DATABASE `test_flexviews`
 	DEFAULT CHARACTER SET = 'utf8';
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`before_all_tests`()
+CREATE PROCEDURE `test_flexviews`.`before_all_tests`()
   MODIFIES SQL DATA
 BEGIN
   -- create a small in-memory relational db which can be used
@@ -80,7 +102,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`set_up`()
+CREATE PROCEDURE `test_flexviews`.`set_up`()
   MODIFIES SQL DATA
 BEGIN
   SET @fv_force = NULL;
@@ -88,7 +110,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_signal`()
+CREATE PROCEDURE `test_flexviews`.`test_signal`()
   MODIFIES SQL DATA
 BEGIN
   DECLARE EXIT HANDLER
@@ -105,7 +127,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_fvrand`()
+CREATE PROCEDURE `test_flexviews`.`test_fvrand`()
   MODIFIES SQL DATA
 BEGIN
   -- there is no clean way to test a random function,
@@ -128,7 +150,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_get_setting`()
+CREATE PROCEDURE `test_flexviews`.`test_get_setting`()
   MODIFIES SQL DATA
 BEGIN
   -- WHITE BOX
@@ -145,7 +167,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_get_definition`()
+CREATE PROCEDURE `test_flexviews`.`test_get_definition`()
   MODIFIES SQL DATA
 BEGIN
   -- WHITE BOX
@@ -168,7 +190,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_schema_exists`()
+CREATE PROCEDURE `test_flexviews`.`test_schema_exists`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.assert_true(`flexviews`.`schema_exists`('information_schema'), 'information_schema exists');
@@ -177,7 +199,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_table_exists`()
+CREATE PROCEDURE `test_flexviews`.`test_table_exists`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.assert_true(`flexviews`.`table_exists`('test', 'customer'), 'mysql.user exists');
@@ -188,7 +210,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_quote_name`()
+CREATE PROCEDURE `test_flexviews`.`test_quote_name`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.assert_equal(`flexviews`.`quote_name`('test'), '`test`', NULL);
@@ -200,7 +222,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create`()
+CREATE PROCEDURE `test_flexviews`.`test_create`()
   MODIFIES SQL DATA
 BEGIN
   -- WHITE BOX
@@ -224,7 +246,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_reset_force`()
+CREATE PROCEDURE `test_flexviews`.`test_create_reset_force`()
   MODIFIES SQL DATA
 BEGIN
   -- WHITE BOX
@@ -241,7 +263,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_duplicate`()
+CREATE PROCEDURE `test_flexviews`.`test_create_duplicate`()
   MODIFIES SQL DATA
 BEGIN
   DECLARE t_db TEXT DEFAULT 'test';
@@ -254,7 +276,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_flush_method_strict_mode`()
+CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_flush_method_strict_mode`()
   MODIFIES SQL DATA
 BEGIN
   SET @@session.sql_mode = 'STRICT_ALL_TABLES,STRICT_TRANS_TABLES';
@@ -263,7 +285,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_flush_method_not_strict`()
+CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_flush_method_not_strict`()
   MODIFIES SQL DATA
 BEGIN
   SET @@session.sql_mode = '';
@@ -272,7 +294,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_db`()
+CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_db`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.`expect_any_exception`();
@@ -280,7 +302,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_db_force`()
+CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_db_force`()
   MODIFIES SQL DATA
 BEGIN
   SET @fv_force = TRUE;
@@ -290,7 +312,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_table`()
+CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_table`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.`expect_any_exception`();
@@ -299,7 +321,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_create_with_invalid_table_force`()
+CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_table_force`()
   MODIFIES SQL DATA
 BEGIN
   SET @fv_force = TRUE;
@@ -310,7 +332,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename`()
+CREATE PROCEDURE `test_flexviews`.`test_rename`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -333,7 +355,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_reset_force`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_reset_force`()
   MODIFIES SQL DATA
 BEGIN
   -- test that rename() resets @fv_force to NULL
@@ -354,7 +376,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_duplicate`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_duplicate`()
   MODIFIES SQL DATA
 BEGIN
   -- create 2 mviews, than try to rename mv2 like mv1; expect error
@@ -365,7 +387,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_empty_table`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_with_empty_table`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -390,7 +412,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_empty_db`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_with_empty_db`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -415,7 +437,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_mvid`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_mvid`()
   MODIFIES SQL DATA
 BEGIN
   -- rename non-existing mview
@@ -424,7 +446,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_db`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_db`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -442,7 +464,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_db_force`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_db_force`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -457,7 +479,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_table`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_table`()
   MODIFIES SQL DATA
 BEGIN
  -- existing db.table
@@ -475,7 +497,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews_simple_procs`.`test_rename_with_invalid_table_force`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_table_force`()
   MODIFIES SQL DATA
 BEGIN
  -- existing db.table
