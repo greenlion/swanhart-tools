@@ -30,11 +30,12 @@ CREATE TABLE `mview` (
   `mview_refresh_period` int(11) default '86400',
   `mview_refresh_type` enum('INCREMENTAL','COMPLETE') default NULL,
   `mview_engine` enum('MyISAM','InnoDB') default 'InnoDB',
-  `mview_definition` MEDIUMTEXT,
+  `mview_definition` MEDIUMTEXT DEFAULT NULL,
   `incremental_hwm` bigint(20) default NULL,
   `refreshed_to_uow_id` bigint(20) default NULL,
   `parent_mview_id` int null, 
   `created_at_signal_id` bigint null,
+  `refresh_state` enum('VALID','INVALID') default 'INVALID',
   PRIMARY KEY  (`mview_id`),
   UNIQUE KEY `mview_name` (`mview_name`,`mview_schema`)
 ) DEFAULT CHARSET=utf8;

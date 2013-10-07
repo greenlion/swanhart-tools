@@ -1,31 +1,32 @@
 #!/bin/bash
 if [ "$1" = "" ]
 then
-  workers=1
+  echo "Starting one of each type worker per core...";
+  workers=$(cat /proc/cpuinfo | grep processor|wc -l)
+  echo "Detected $workers cores"
 else
+  echo "Starting only $1 of each type of worker"
   workers=$1
 fi
+
 #wait for the config file to show up before trying to
 #actually start any workers
+if [ ! -f ../include/config.inc ]; then
+  echo "Did not find bootstrap file!  Please configure shard-query before starting workers."
+fi
+
 while [ ! -f ../include/config.inc ]
 do
-  echo "waiting for config..."
+  echo "waiting for bootstrap (hit ctrl-c to cancel)..."
   sleep 2
 done
-
-./run_loader_worker >> ../log/worker.log &
-./run_loader_worker >> ../log/worker.log &
-
-./run_shard_query_worker >> ../log/worker.log &
-./run_shard_query_worker >> ../log/worker.log &
-./run_shard_query_worker >> ../log/worker.log &
-./run_shard_query_worker >> ../log/worker.log &
-./run_shard_query_worker >> ../log/worker.log &
 
 echo "Launching $workers store workers"
 for i in `seq 1 $workers`
 do
   echo "Launching store worker #$i"
   ./run_store_resultset_worker >> ../log/worker.log &
+  ./run_loader_worker >> ../log/worker.log &
+  ./run_shard_query_worker >> ../log/worker.log &
 done
 echo "done.."
