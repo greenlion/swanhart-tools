@@ -34,6 +34,7 @@ DELIMITER ||
 SET @@session.SQL_MODE = 'ERROR_FOR_DIVISION_BY_ZERO,NO_ZERO_DATE,NO_ZERO_IN_DATE,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY,STRICT_ALL_TABLES,STRICT_TRANS_TABLES';
 
 
+DROP PROCEDURE IF EXISTS `flexviews`.`test`;
 CREATE PROCEDURE `flexviews`.`test`()
   MODIFIES SQL DATA
   COMMENT 'Shortcut for STK/Unit tests'
@@ -167,26 +168,43 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_get_definition`()
+CREATE PROCEDURE `test_flexviews`.`test_set_definition`()
   MODIFIES SQL DATA
 BEGIN
   -- WHITE BOX
   
   -- test option is needed, because the table seems to be unused now
-  DECLARE t_mview_id TINYINT UNSIGNED DEFAULT 5;
+  DECLARE t_mview_id TINYINT UNSIGNED;
   DECLARE t_def TEXT DEFAULT 'SELECT xxx FROM yyy WHERE zzz';
   
-  -- insert a mview and set definition
-  INSERT INTO `flexviews`.`mview` SET `mview_id` = t_mview_id;
+  -- create a mview and set definition
+  CALL `flexviews`.`create`('test', 'mv', 'COMPLETE');
+  SET t_mview_id = LAST_INSERT_ID();
   CALL `flexviews`.`set_definition`(t_mview_id, t_def);
   CALL `stk_unit`.assert_equal(
       (SELECT `mview_definition` FROM `flexviews`.`mview` WHERE `mview_id` = t_mview_id), t_def, NULL
     );
-  DELETE FROM `flexviews`.`mview` WHERE `mview_id` = t_mview_id;
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_set_definition_with_non_existing_mview`()
+  MODIFIES SQL DATA
+BEGIN
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`set_definition`(999, 'SELECT 1');
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_set_definition_with_non_complete_mview`()
+  MODIFIES SQL DATA
+BEGIN
+  DECLARE id BIGINT;
   
-  -- check that an error is returned for non-existing mview
-  CALL `stk_unit`.expect_any_exception();
-  CALL `flexviews`.`set_definition`(t_mview_id, t_def);
+  CALL `flexviews`.`create`('test', 'mv', 'INCREMENTAL');
+  SET id := LAST_INSERT_ID();
+  
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`set_definition`(id, 'SELECT 1');
 END;
 
 
@@ -500,7 +518,7 @@ END;
 CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_table_force`()
   MODIFIES SQL DATA
 BEGIN
- -- existing db.table
+  -- existing db.table
   DECLARE t_db TEXT DEFAULT 'test';
   DECLARE t_tab_old TEXT DEFAULT 'old_mv';
   
