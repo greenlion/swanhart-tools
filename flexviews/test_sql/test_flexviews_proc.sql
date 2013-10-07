@@ -180,9 +180,9 @@ END;
 CREATE PROCEDURE `test_flexviews_simple_procs`.`test_table_exists`()
   MODIFIES SQL DATA
 BEGIN
-  CALL `stk_unit`.assert_true(`flexviews`.`table_exists`('information_schema', 'SCHEMATA'), 'information_schema.SCHEMATA exists');
-  CALL `stk_unit`.assert_false(`flexviews`.`table_exists`('information_schema', 'not-exists'), NULL);
-  CALL `stk_unit`.assert_false(`flexviews`.`table_exists`('not-exists', 'SCHEMATA'), NULL);
+  CALL `stk_unit`.assert_true(`flexviews`.`table_exists`('test', 'customer'), 'mysql.user exists');
+  CALL `stk_unit`.assert_false(`flexviews`.`table_exists`('test', 'not-exists'), NULL);
+  CALL `stk_unit`.assert_false(`flexviews`.`table_exists`('not-exists', 'customer'), NULL);
   CALL `stk_unit`.assert_false(`flexviews`.`table_exists`('not-exists', 'not-exists'), NULL);
   CALL `stk_unit`.assert_false(`flexviews`.`table_exists`(NULL, NULL), 'wrong result with NULL');
 END;
