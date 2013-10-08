@@ -168,46 +168,6 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_set_definition`()
-  MODIFIES SQL DATA
-BEGIN
-  -- WHITE BOX
-  
-  -- test option is needed, because the table seems to be unused now
-  DECLARE t_mview_id TINYINT UNSIGNED;
-  DECLARE t_def TEXT DEFAULT 'SELECT xxx FROM yyy WHERE zzz';
-  
-  -- create a mview and set definition
-  CALL `flexviews`.`create`('test', 'mv', 'COMPLETE');
-  SET t_mview_id = LAST_INSERT_ID();
-  CALL `flexviews`.`set_definition`(t_mview_id, t_def);
-  CALL `stk_unit`.assert_equal(
-      (SELECT `mview_definition` FROM `flexviews`.`mview` WHERE `mview_id` = t_mview_id), t_def, NULL
-    );
-END;
-
-
-CREATE PROCEDURE `test_flexviews`.`test_set_definition_with_non_existing_mview`()
-  MODIFIES SQL DATA
-BEGIN
-  CALL `stk_unit`.`expect_any_exception`();
-  CALL `flexviews`.`set_definition`(999, 'SELECT 1');
-END;
-
-
-CREATE PROCEDURE `test_flexviews`.`test_set_definition_with_non_complete_mview`()
-  MODIFIES SQL DATA
-BEGIN
-  DECLARE id BIGINT;
-  
-  CALL `flexviews`.`create`('test', 'mv', 'INCREMENTAL');
-  SET id := LAST_INSERT_ID();
-  
-  CALL `stk_unit`.`expect_any_exception`();
-  CALL `flexviews`.`set_definition`(id, 'SELECT 1');
-END;
-
-
 CREATE PROCEDURE `test_flexviews`.`test_schema_exists`()
   MODIFIES SQL DATA
 BEGIN
@@ -243,8 +203,6 @@ END;
 CREATE PROCEDURE `test_flexviews`.`test_create`()
   MODIFIES SQL DATA
 BEGIN
-  -- WHITE BOX
-  
   -- existing db.table
   DECLARE t_db TEXT DEFAULT 'test';
   DECLARE t_tab TEXT DEFAULT 'new_mv';
@@ -267,8 +225,6 @@ END;
 CREATE PROCEDURE `test_flexviews`.`test_create_reset_force`()
   MODIFIES SQL DATA
 BEGIN
-  -- WHITE BOX
-
   -- check if create() resets @fv_force to NULL
 
   -- existing db.table
@@ -527,6 +483,83 @@ BEGIN
   SET @fv_force = TRUE;
   CALL `flexviews`.`rename`(LAST_INSERT_ID(), t_db, 'customer');
   CALL `stk_unit`.`assert_true`(TRUE, NULL);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_set_definition`()
+  MODIFIES SQL DATA
+BEGIN
+  -- WHITE BOX
+  
+  -- test option is needed, because the table seems to be unused now
+  DECLARE t_mview_id TINYINT UNSIGNED;
+  DECLARE t_def TEXT DEFAULT 'SELECT xxx FROM yyy WHERE zzz';
+  
+  -- create a mview and set definition
+  CALL `flexviews`.`create`('test', 'mv', 'COMPLETE');
+  SET t_mview_id = LAST_INSERT_ID();
+  CALL `flexviews`.`set_definition`(t_mview_id, t_def);
+  CALL `stk_unit`.assert_equal(
+      (SELECT `mview_definition` FROM `flexviews`.`mview` WHERE `mview_id` = t_mview_id), t_def, NULL
+    );
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_set_definition_with_non_existing_mview`()
+  MODIFIES SQL DATA
+BEGIN
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`set_definition`(999, 'SELECT 1');
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_set_definition_with_non_complete_mview`()
+  MODIFIES SQL DATA
+BEGIN
+  DECLARE id BIGINT;
+  
+  CALL `flexviews`.`create`('test', 'mv', 'INCREMENTAL');
+  SET id := LAST_INSERT_ID();
+  
+  CALL `stk_unit`.`expect_any_exception`();
+  CALL `flexviews`.`set_definition`(id, 'SELECT 1');
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_get_sql_complete`()
+  MODIFIES SQL DATA
+BEGIN
+  -- test option is needed, because the table seems to be unused now
+  DECLARE t_mview_id BIGINT;
+  DECLARE t_def TEXT DEFAULT 'SELECT xxx FROM yyy WHERE zzz';
+  
+  -- create a mview and set definition
+  CALL `flexviews`.`create`('test', 'mv', 'COMPLETE');
+  SET t_mview_id = LAST_INSERT_ID();
+  CALL `flexviews`.`set_definition`(t_mview_id, t_def);
+  CALL `stk_unit`.assert_equal(
+      `flexviews`.`get_sql`(t_mview_id), t_def, NULL
+    );
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_get_sql_with_bare_skeleton`()
+  MODIFIES SQL DATA
+BEGIN
+  -- we create a mview but DONT set definition.
+  -- get_sql() should return NULL.
+  DECLARE t_mview_id BIGINT;
+  CALL `flexviews`.`create`('test', 'mv', 'COMPLETE');
+  SET t_mview_id = LAST_INSERT_ID();
+  CALL `stk_unit`.assert_null(`flexviews`.`get_sql`(t_mview_id), NULL);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_get_sql_with_invalid_mview_id`()
+  MODIFIES SQL DATA
+BEGIN
+  CALL `stk_unit`.expect_any_exception();
+  CALL `stk_unit`.assert_null(`flexviews`.`get_sql`(999), NULL);
 END;
 
 

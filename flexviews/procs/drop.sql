@@ -60,6 +60,11 @@ BEGIN
 
   -- backup SESSION max_sp_recursion_depth
   DECLARE bkp_max_sp_recursion_depth INT UNSIGNED DEFAULT @@session.max_sp_recursion_depth;
+
+  -- suppress DROP IF EXISTS warnings
+  DECLARE CONTINUE HANDLER FOR 1051
+  BEGIN END;
+
   SET max_sp_recursion_depth := 255;
 
   START TRANSACTION WITH CONSISTENT SNAPSHOT;

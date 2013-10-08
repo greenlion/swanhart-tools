@@ -40,6 +40,10 @@ BEGIN
   FOR SQLSTATE '02000'
   SET v_done = TRUE;
 
+  -- suppress DROP IF EXISTS warnings
+  DECLARE CONTINUE HANDLER FOR 1051
+  BEGIN END;
+
   OPEN cur_mvlog;
 
   mvlogLoop: LOOP
