@@ -80,13 +80,18 @@ DECLARE v_pos INT;
 DECLARE v_using_clause TEXT DEFAULT '';
 
 SET v_mode = UPPER(v_mode);
-
-SET max_sp_recursion_depth=999;
+SET max_sp_recursion_depth=255;
 
 IF NOT flexviews.is_enabled(v_mview_id) = 1 THEN
     CALL flexviews.signal('MV_NOT_ENABLED');
 END IF;
 
+IF v_mode IS NULL OR v_mode = 'AUTO' THEN
+  select IF(mview_refresh_type = 'COMPLETE', 'COMPLETE', 'BOTH')
+    INTO v_mode
+    from flexviews.mview 
+   where mview_id = v_mview_id;
+END IF;
 
 IF v_mode != 'COMPLETE' AND v_mode != 'FULL' AND v_mode != "BOTH" and v_mode != "COMPUTE" and v_mode != "APPLY" THEN
   call flexviews.signal('INVALID_REFRESH_MODE');
@@ -121,7 +126,7 @@ IF v_signal_id IS NOT NULL AND v_refreshed_to_uow_id IS NULL THEN
 
   SELECT MAX(uow_id)
     INTO v_refreshed_to_uow_id
-    FROM flexviews.flexviews_mview_signal
+    FROM flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1 as flexviews_mview_signal
    WHERE signal_id = v_signal_id 
      and `fv$server_id` = @@server_id 
      and dml_type = 1;
@@ -211,7 +216,7 @@ IF TRUE THEN
 
   SELECT MAX(uow_id)
     INTO v_refreshed_to_uow_id
-    FROM flexviews.flexviews_mview_signal
+    FROM flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1 as flexviews_mview_signal
    WHERE signal_id = v_signal_id 
      and `fv$server_id` = @@server_id 
      and dml_type = 1;

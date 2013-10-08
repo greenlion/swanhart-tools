@@ -64,6 +64,7 @@ set @uow_id = NULL;
 
 -- Flexviews requires a signal table to communicate with the external binlog consumer
 call flexviews.create_mvlog('flexviews', 'mview_signal');
-ALTER TABLE flexviews.flexviews_mview_signal add key(signal_id);
+ALTER TABLE flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1 add key(signal_id);
+CREATE OR REPLACE VIEW flexviews.flexviews_mview_signal as select * from flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1;
 
 SELECT 'If you see no errors, then installation was successful.' as message;

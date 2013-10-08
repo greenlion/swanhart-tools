@@ -1059,7 +1059,7 @@ EOREGEX
 		#in another procedure which also reads from $proc, and we
 		#can't seek backwards, so this function returns the next line to process
 		#In this case we use that line instead of reading from the file again
-		while( !feof($proc) ) {
+		while( !feof($proc) || $lastLine !== '') {
 			if($lastLine) {
 				#use a previously saved line (from process_rowlog)
 				$line = $lastLine;
@@ -1091,12 +1091,9 @@ EOREGEX
 					#decoded RBR changes are prefixed with ###				
 					if($prefix == "### I" || $prefix == "### U" || $prefix == "### D") {
 						if(preg_match('/### (UPDATE|INSERT INTO|DELETE FROM)\s([^.]+)\.(.*$)/', $line, $matches)) {
-							$this->db          = $matches[2];
-							$this->base_table  = $matches[3];
+							$this->db          = trim($matches[2],'`');
+							$this->base_table  = trim($matches[3],'`');
 
-							$this->db = preg_replace('/[^a-zA-Z0-9\_]+/','',$this->db);
-							$this->base_table = preg_replace('/[^a-zA-Z0-9\_]+/','', $this->base_table);
-						
 							if($this->db == $this->mvlogDB && $this->base_table == $this->mvlogs) {
 								$this->refresh_mvlog_cache();
 							}
@@ -1106,8 +1103,7 @@ EOREGEX
 								 		$this->create_mvlog($this->db, $this->base_table);  
 								 		$this->refresh_mvlog_cache();
 								}
-							}
-							if(!empty($this->mvlogList[$this->db . $this->base_table])) {
+							} else {
 								$this->mvlog_table = $this->mvlogList[$this->db . $this->base_table];
 								$lastLine = $this->process_rowlog($proc, $line);
 							}
@@ -1269,11 +1265,13 @@ EOREGEX
 		if( trim( $v_sql ) == "" ) {
 			trigger_error('Could not access table:' . $v_table_name, E_USER_ERROR);
 		}
-			
-		$v_sql = FlexCDC::concat('CREATE TABLE IF NOT EXISTS`', $this->mvlogDB ,'`.`' ,$v_schema_name, '_', $v_table_name,'` ( dml_type INT DEFAULT 0, uow_id BIGINT, `fv$server_id` INT UNSIGNED,fv$gsn bigint, ', $v_sql, 'KEY(uow_id, dml_type) ) ENGINE=INNODB');
+
+		$mv_logname = 'mvlog_' . md5(md5($v_schema_name) .  md5($v_table_name));
+		
+		$v_sql = FlexCDC::concat('CREATE TABLE IF NOT EXISTS `',$mvLogname ,'` ( dml_type INT DEFAULT 0, uow_id BIGINT, `fv$server_id` INT UNSIGNED,fv$gsn bigint, ', $v_sql, 'KEY(uow_id, dml_type) ) ENGINE=INNODB');
 		$create_stmt = my_mysql_query($v_sql, $this->dest);
 		if(!$create_stmt) die1('COULD NOT CREATE MVLOG. ' . $v_sql . "\n");
-		$exec_sql = " INSERT IGNORE INTO `". $this->mvlogDB . "`.`" . $this->mvlogs . "`( table_schema , table_name , mvlog_name ) values('$v_schema_name', '$v_table_name', '" . $v_schema_name . "_" . $v_table_name . "')";
+		$exec_sql = " INSERT IGNORE INTO `". $this->mvlogDB . "`.`" . $this->mvlogs . "`( table_schema , table_name , mvlog_name ) values('$v_schema_name', '$v_table_name', '" . $mv_logname . "')";
 		my_mysql_query($exec_sql) or die1($exec_sql . ':' . mysql_error($this->dest) . "\n");
 
 		return true;

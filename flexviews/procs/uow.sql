@@ -110,7 +110,7 @@ BEGIN
        INTO v_uow_id
        FROM (
           select uow_id
-          FROM flexviews.flexviews_mview_signal
+          FROM flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1
            WHERE signal_id = v_signal_id
              AND dml_type = 1
            UNION ALL
@@ -119,7 +119,7 @@ BEGIN
 */
           select max(uow_id)
           into v_uow_id
-          FROM flexviews.flexviews_mview_signal
+          FROM flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1 as flexviews_mview_signal
            WHERE signal_id >= v_signal_id
              AND dml_type = 1;
     
