@@ -49,7 +49,7 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`drop`(
   IN v_mview_id INT UNSIGNED
 )
   MODIFIES SQL DATA
-  COMMENT 'Physically remove a materialized view from the database and also mark it as disabled in the metadata.'
+  COMMENT 'Physically remove the view and mark as disabled in metadata.'
 BEGIN
   -- DECLARE v_mview_enabled tinyint(1);
   DECLARE v_mview_name TEXT;
