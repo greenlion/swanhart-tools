@@ -19,28 +19,25 @@ DELIMITER ;;
 */
 
 DROP PROCEDURE IF EXISTS flexviews.drop;;
-/****f* SQL_API/drop
+/****f* SQL_API/disable
  * NAME
- *   flexviews.drop - Drop the materialized view table.  
+ *   flexviews.disable - Drop the materialized view table.  
  * SYNOPSIS
- *   flexviews.drop(v_mview_id);
+ *   flexviews.disable(v_mview_id);
  * FUNCTION
  *   This function drops the table holding the rows for the materialized
- *   view and also the delta table with the view.  Any automatically maintained
- *   child views are also dropped.  
- * DANGER 
- *   The table is dropped as soon as this command is issued.
+ *   view.  There is no warning and the table is dropped as soon as this command is issued.
  * INPUTS
  *   v_mview_id - The materialized view id 
  * RESULT
- *   An error will be generated in the MySQL client if the view can not be dropped .
+ *   An error will be generated in the MySQL client if the view can not be disabled.
  * NOTES
  *   The dictionary information is not removed, instead the metadata is updated to reflect the disabled status.
  * SEE ALSO
  *   SQL_API/create, SQL_API/enable, SQL_API/get_id 
  * EXAMPLE
  *  mysql>
- *    call flexviews.drop(flexviews.get_id('test','mv_example'))
+ *    call flexviews.disable(flexviews.get_id('test','mv_example'))
  
 ******
 */
@@ -49,7 +46,7 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`drop`(
   IN v_mview_id INT UNSIGNED
 )
   MODIFIES SQL DATA
-  COMMENT 'Physically remove the view and mark as disabled in metadata.'
+  COMMENT 'Disable a materialized view'
 BEGIN
   -- DECLARE v_mview_enabled tinyint(1);
   DECLARE v_mview_name TEXT;
@@ -60,6 +57,11 @@ BEGIN
 
   -- backup SESSION max_sp_recursion_depth
   DECLARE bkp_max_sp_recursion_depth INT UNSIGNED DEFAULT @@session.max_sp_recursion_depth;
+
+  -- suppress DROP IF EXISTS warnings
+  DECLARE CONTINUE HANDLER FOR 1051
+  BEGIN END;
+
   SET max_sp_recursion_depth := 255;
 
   START TRANSACTION WITH CONSISTENT SNAPSHOT;

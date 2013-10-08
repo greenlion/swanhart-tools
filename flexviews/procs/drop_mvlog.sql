@@ -43,6 +43,10 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`drop_mvlog`(
 BEGIN
   DECLARE v_mvlog_name TEXT;
 
+  -- suppress DROP IF EXISTS warnings
+  DECLARE CONTINUE HANDLER FOR 1051
+  BEGIN END;
+
   START TRANSACTION;
   SET v_mvlog_name := CONCAT(v_schema_name, '_', v_table_name);
   DELETE FROM flexviews.mvlogs where table_schema = v_schema_name and table_name = v_table_name;
