@@ -79,7 +79,7 @@ CREATE DEFINER=`flexviews`@`localhost` FUNCTION `flexviews`.`table_exists`(v_sch
     COMMENT 'Returns wether specified table/view exists'
 BEGIN
     RETURN EXISTS (
-        SELECT 1 FROM `information_schema`.`TABLES` WHERE `TABLE_SCHEMA` = v_schema AND `TABLE_NAME` = v_table
+        SELECT 1 FROM `information_schema`.`TABLES` WHERE `TABLE_NAME` = v_table AND `TABLE_SCHEMA` = v_schema AND `TABLE_TYPE` LIKE 'BASE TABLE'
       );
 END ;;
 

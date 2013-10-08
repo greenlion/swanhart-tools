@@ -71,10 +71,8 @@ END ;;
 DROP PROCEDURE IF EXISTS flexviews.uow_end;;
 
 CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.uow_end(IN v_uow_id BIGINT)
-BEGIN
-  DECLARE do_nothing INT;
-  SET do_nothing = 1;
-END ;;
+  CONTAINS SQL
+BEGIN END ;;
 
 DROP PROCEDURE IF EXISTS flexviews.uow_state_change;;
 
