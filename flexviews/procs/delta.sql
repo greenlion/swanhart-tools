@@ -40,6 +40,10 @@ DECLARE v_cnt_column TEXT;
 DECLARE v_only_agg BOOLEAN DEFAULT FALSE;
 DECLARE v_mview_fqn TEXT;
 
+-- suppress DROP IF EXISTS warnings
+DECLARE CONTINUE HANDLER FOR 1051
+BEGIN END;
+
 SELECT mview_name,
        mview_schema,
        CONCAT(mview_schema, '.', mview_name, '_delta'), 
@@ -82,7 +86,12 @@ IF NOT flexviews.has_aggregates(v_mview_id) THEN
     DECLARE v_uow_id bigint;
     DECLARE v_done BOOLEAN DEFAULT FALSE;
     DECLARE gsn_cur cursor for select * from apply_gsn order by uow_id, gsn;
+    
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET v_done=TRUE;
+    -- suppress DROP IF EXISTS warnings
+    DECLARE CONTINUE HANDLER FOR 1051
+    BEGIN END;
+    
     SET v_done = false;
     OPEN gsn_cur;
     gsnLoop: LOOP
@@ -404,6 +413,10 @@ DECLARE v_recurse TINYINT;
 
 -- if we recurse, this will be the next depth 
 DECLARE v_next_depth TINYINT;
+
+-- suppress DROP IF EXISTS warnings
+DECLARE CONTINUE HANDLER FOR 1051
+BEGIN END;
 
 -- when we recurse, v_start_uow_id IS NULL
 IF v_start_uow_id IS NULL THEN

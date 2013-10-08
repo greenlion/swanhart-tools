@@ -60,6 +60,10 @@ body: BEGIN
 
   DECLARE v_sql TEXT;
 
+  -- suppress DROP IF EXISTS warnings
+  DECLARE CONTINUE HANDLER FOR 1051
+  BEGIN END;
+
   SELECT mview_name, 
          mview_schema, 
 	 mview_enabled, 

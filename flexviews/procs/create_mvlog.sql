@@ -71,6 +71,10 @@ BEGIN
   SQLSTATE '02000'
     SET v_done = TRUE;
 
+  -- suppress DROP IF EXISTS warnings
+  DECLARE CONTINUE HANDLER FOR 1051
+  BEGIN END;
+
   SET v_mvlog_name := CONCAT('mvlog_', MD5(CONCAT(MD5(v_schema_name), MD5(v_table_name))));
   
   SET v_sql = CONCAT('DROP TABLE IF EXISTS ', flexviews.get_setting('mvlog_db'), '.', v_mvlog_name);
