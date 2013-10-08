@@ -19,25 +19,28 @@ DELIMITER ;;
 */
 
 DROP PROCEDURE IF EXISTS flexviews.drop;;
-/****f* SQL_API/disable
+/****f* SQL_API/drop
  * NAME
- *   flexviews.disable - Drop the materialized view table.  
+ *   flexviews.drop - Drop the materialized view table.  
  * SYNOPSIS
- *   flexviews.disable(v_mview_id);
+ *   flexviews.drop(v_mview_id);
  * FUNCTION
  *   This function drops the table holding the rows for the materialized
- *   view.  There is no warning and the table is dropped as soon as this command is issued.
+ *   view and also the delta table with the view.  Any automatically maintained
+ *   child views are also dropped.  
+ * DANGER 
+ *   The table is dropped as soon as this command is issued.
  * INPUTS
  *   v_mview_id - The materialized view id 
  * RESULT
- *   An error will be generated in the MySQL client if the view can not be disabled.
+ *   An error will be generated in the MySQL client if the view can not be dropped .
  * NOTES
  *   The dictionary information is not removed, instead the metadata is updated to reflect the disabled status.
  * SEE ALSO
  *   SQL_API/create, SQL_API/enable, SQL_API/get_id 
  * EXAMPLE
  *  mysql>
- *    call flexviews.disable(flexviews.get_id('test','mv_example'))
+ *    call flexviews.drop(flexviews.get_id('test','mv_example'))
  
 ******
 */
@@ -46,7 +49,7 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`drop`(
   IN v_mview_id INT UNSIGNED
 )
   MODIFIES SQL DATA
-  COMMENT 'Disable a materialized view'
+  COMMENT 'Physically remove a materialized view from the database and also mark it as disabled in the metadata.'
 BEGIN
   -- DECLARE v_mview_enabled tinyint(1);
   DECLARE v_mview_name TEXT;
