@@ -1192,7 +1192,9 @@ DROP PROCEDURE IF EXISTS flexviews.rlog;;
 CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.rlog(v_message TEXT)
 BEGIN
 DECLARE v_tstamp DATETIME;
-  INSERT INTO flexviews.refresh_log VALUES (NOW(), NULL, v_message);
+  IF @fv_rlog = TRUE THEN
+    INSERT INTO flexviews.refresh_log VALUES (NOW(), NULL, v_message);
+  END IF;
 END;;
 drop procedure if exists process_rlog;;
 
