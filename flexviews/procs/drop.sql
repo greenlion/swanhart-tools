@@ -85,7 +85,7 @@ BEGIN
    WHERE mv1.mview_id = v_mview_id;
 
    IF @fv_force IS NULL OR @fv_force = FALSE THEN
-     IF v_mview_id IS NULL THEN
+     IF v_mview_id IS NULL OR NOT EXISTS (SELECT TRUE FROM `flexviews`.`mview` WHERE `mview_id` = v_mview_id) THEN
        IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
          CALL flexviews.signal('The specified materialized view does not exist (NOTHING WAS DROPPED)');
        ELSE
