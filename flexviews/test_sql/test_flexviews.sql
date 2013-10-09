@@ -486,6 +486,51 @@ BEGIN
 END;
 
 
+CREATE PROCEDURE `test_flexviews`.`test_drop_on_disabled_mview`()
+  MODIFIES SQL DATA
+BEGIN
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'new_mv';
+  DECLARE id BIGINT;
+  
+  CALL `flexviews`.`create`(t_db, t_tab, 'INCREMENTAL');
+  SET id := LAST_INSERT_ID();
+  CALL `stk_unit`.expect_any_exception();
+  CALL `flexviews`.`drop`(id);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_drop_on_disabled_mview_force`()
+  MODIFIES SQL DATA
+BEGIN
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'new_mv';
+  
+  SET @fv_force = TRUE;
+  CALL `flexviews`.`create`(t_db, t_tab, 'INCREMENTAL');
+  CALL `flexviews`.`drop`(LAST_INSERT_ID());
+  CALL `stk_unit`.assert_null(@fv_force);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_drop_on_invalid_mview`()
+  MODIFIES SQL DATA
+BEGIN
+  CALL `stk_unit`.expect_any_exception();
+  CALL `flexviews`.`drop`(999);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_drop_on_invalid_mview_force`()
+  MODIFIES SQL DATA
+BEGIN
+  SET @fv_force = TRUE;
+  CALL `stk_unit`.expect_any_exception();
+  CALL `flexviews`.`drop`(999);
+  CALL `stk_unit`.assert_null(@fv_force);
+END;
+
+
 CREATE PROCEDURE `test_flexviews`.`test_set_definition`()
   MODIFIES SQL DATA
 BEGIN

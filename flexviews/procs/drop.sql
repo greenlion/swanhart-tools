@@ -94,15 +94,13 @@ BEGIN
      END IF;
    END IF;
 
-   IF @fv_force IS NOT NULL AND @fv_force != TRUE THEN
-     IF v_mview_enabled = FALSE OR v_mview_enabled is null THEN
-       IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
-         SET @fv_force := NULL;
-         CALL flexviews.signal('This materialized view is already disabled (NOTHING WAS DROPPED)');
-       ELSE
-         SET @fv_force := NULL;
-         CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
-       END IF;
+   IF NOT @fv_force <=> TRUE AND (v_mview_enabled = FALSE OR v_mview_enabled IS NULL) THEN
+     IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
+       SET @fv_force := NULL;
+       CALL flexviews.signal('This materialized view is already disabled (NOTHING WAS DROPPED)');
+     ELSE
+       SET @fv_force := NULL;
+       CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
      END IF;
    END IF;
 
