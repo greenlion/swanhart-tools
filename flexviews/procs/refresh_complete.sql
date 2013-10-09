@@ -31,6 +31,10 @@ DECLARE v_mview_last_refresh DATETIME;
 DECLARE v_mview_refresh_period INT;
 DECLARE v_mview_definition TEXT;
 
+-- suppress DROP IF EXISTS warnings
+DECLARE CONTINUE HANDLER FOR 1051
+BEGIN END;
+
 SELECT mview_name, 
        mview_schema, 
        mview_last_refresh,
