@@ -86,8 +86,10 @@ BEGIN
 
    IF v_mview_id IS NULL OR NOT EXISTS (SELECT TRUE FROM `flexviews`.`mview` WHERE `mview_id` = v_mview_id) THEN
      IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
+       SET @fv_force := NULL;
        CALL flexviews.signal('The specified materialized view does not exist (NOTHING WAS DROPPED)');
      ELSE
+       SET @fv_force := NULL;
        CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
      END IF;
    END IF;
@@ -95,8 +97,10 @@ BEGIN
    IF @fv_force IS NOT NULL AND @fv_force != TRUE THEN
      IF v_mview_enabled = FALSE OR v_mview_enabled is null THEN
        IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
+         SET @fv_force := NULL;
          CALL flexviews.signal('This materialized view is already disabled (NOTHING WAS DROPPED)');
        ELSE
+         SET @fv_force := NULL;
          CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
        END IF;
      END IF;
@@ -131,7 +135,7 @@ BEGIN
 
    IF v_parent_mview_id IS NOT NULL THEN
      SELECT 'The view, the view delta and the child views (if any) have now been removed' as `MESSAGE` from dual;
-     SET @fv_force = false;
+     SET @fv_force := NULL;
    END IF;
  
    -- restore SESSION max_sp_recursion_depth
