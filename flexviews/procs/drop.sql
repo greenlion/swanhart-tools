@@ -84,15 +84,15 @@ BEGIN
       ON mv1.mview_id = mv2.parent_mview_id
    WHERE mv1.mview_id = v_mview_id;
 
-   IF @fv_force IS NULL OR @fv_force = FALSE THEN
-     IF v_mview_id IS NULL OR NOT EXISTS (SELECT TRUE FROM `flexviews`.`mview` WHERE `mview_id` = v_mview_id) THEN
-       IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
-         CALL flexviews.signal('The specified materialized view does not exist (NOTHING WAS DROPPED)');
-       ELSE
-         CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
-       END IF;
+   IF v_mview_id IS NULL OR NOT EXISTS (SELECT TRUE FROM `flexviews`.`mview` WHERE `mview_id` = v_mview_id) THEN
+     IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
+       CALL flexviews.signal('The specified materialized view does not exist (NOTHING WAS DROPPED)');
+     ELSE
+       CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
      END IF;
+   END IF;
 
+   IF @fv_force IS NOT NULL AND @fv_force != TRUE THEN
      IF v_mview_enabled = FALSE OR v_mview_enabled is null THEN
        IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
          CALL flexviews.signal('This materialized view is already disabled (NOTHING WAS DROPPED)');
