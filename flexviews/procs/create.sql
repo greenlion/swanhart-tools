@@ -74,13 +74,13 @@ BEGIN
 	CALL flexviews.signal('Invalid refresh type');
   END IF;
   -- schema MUST exist
-  IF (@fv_force IS NULL OR @fv_force != TRUE) AND NOT `flexviews`.`schema_exists`(v_mview_schema) THEN
+  IF NOT @fv_force <=> TRUE AND NOT `flexviews`.`schema_exists`(v_mview_schema) THEN
     CALL flexviews.signal(
         CONCAT_WS('', 'Schema not found: ', v_mview_schema)
       );
   END IF;
   -- table MUST NOT exist
-  IF (@fv_force IS NULL OR @fv_force != TRUE) AND `flexviews`.`table_exists`(v_mview_schema, v_mview_name) THEN
+  IF NOT @fv_force <=> TRUE AND `flexviews`.`table_exists`(v_mview_schema, v_mview_name) THEN
     CALL flexviews.signal(
         CONCAT_WS('', 'Table already exists: ', v_mview_name, ' in schema: ', v_mview_schema)
       );

@@ -1231,9 +1231,15 @@ EOREGEX
 
 	#AUTOPORTED FROM FLEXVIEWS.CREATE_MVLOG() w/ minor modifications for PHP
 	function create_mvlog($v_schema_name,$v_table_name) { 
+		// loop flag
 		$v_done=FALSE;
+		// each column in $v_table_name
 		$v_column_name=NULL;
+		// each column's datatype
 		$v_data_type=NULL;
+		// changelog name
+		$mv_logname=NULL;
+		// SQL to create & populate the changelog
 		$v_sql=NULL;
 	
 		$cursor_sql = "SELECT COLUMN_NAME, IF(COLUMN_TYPE='TIMESTAMP', 'TIMESTAMP', COLUMN_TYPE) COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='$v_table_name' AND TABLE_SCHEMA = '$v_schema_name'";
@@ -1268,7 +1274,7 @@ EOREGEX
 
 		$mv_logname = 'mvlog_' . md5(md5($v_schema_name) .  md5($v_table_name));
 		
-		$v_sql = FlexCDC::concat('CREATE TABLE IF NOT EXISTS `',$mvLogname ,'` ( dml_type INT DEFAULT 0, uow_id BIGINT, `fv$server_id` INT UNSIGNED,fv$gsn bigint, ', $v_sql, 'KEY(uow_id, dml_type) ) ENGINE=INNODB');
+		$v_sql = FlexCDC::concat('CREATE TABLE IF NOT EXISTS `',$mv_logname ,'` ( dml_type INT DEFAULT 0, uow_id BIGINT, `fv$server_id` INT UNSIGNED,fv$gsn bigint, ', $v_sql, 'KEY(uow_id, dml_type) ) ENGINE=INNODB');
 		$create_stmt = my_mysql_query($v_sql, $this->dest);
 		if(!$create_stmt) die1('COULD NOT CREATE MVLOG. ' . $v_sql . "\n");
 		$exec_sql = " INSERT IGNORE INTO `". $this->mvlogDB . "`.`" . $this->mvlogs . "`( table_schema , table_name , mvlog_name ) values('$v_schema_name', '$v_table_name', '" . $mv_logname . "')";
