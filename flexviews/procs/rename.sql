@@ -91,7 +91,7 @@ BEGIN
   IF v_mview_schema_new IS NULL OR v_mview_schema_new = '' THEN
     SET v_mview_schema_new := v_mview_schema;
   END IF;
-  IF (@fv_force IS NULL OR @fv_force != TRUE) AND NOT `flexviews`.`schema_exists`(v_mview_schema_new) THEN
+  IF NOT @fv_force <=> TRUE AND NOT `flexviews`.`schema_exists`(v_mview_schema_new) THEN
     -- NEW schema MUST exist
     CALL flexviews.signal(
         CONCAT_WS('', 'Schema not found: ', v_mview_schema_new)
@@ -101,7 +101,7 @@ BEGIN
   IF v_mview_name_new IS NULL OR v_mview_name_new = '' THEN
     SET v_mview_name_new := v_mview_name;
   END IF;
-  IF (@fv_force IS NULL OR @fv_force != TRUE) AND `flexviews`.`table_exists`(v_mview_schema_new, v_mview_name_new) THEN
+  IF NOT @fv_force <=> TRUE AND `flexviews`.`table_exists`(v_mview_schema_new, v_mview_name_new) THEN
     -- NEW table MUST NOT exist in given db
     CALL flexviews.signal(
         CONCAT_WS('', 'Table already exists: ', v_mview_name_new, ' in schema: ', v_mview_schema_new)
