@@ -149,20 +149,32 @@ BEGIN
       FROM flexviews.mview_expression
      WHERE mview_id=v_mview_id;
 
-      INSERT INTO flexviews.mview_expression
-      (  mview_id,
-         mview_expr_type,
-         mview_expression,
-         mview_alias,
-         mview_expr_order, 
-         percentile )
-      VALUES
-      (  v_mview_id,
-         v_mview_expr_type,
-         v_mview_expression,
-         v_mview_alias,
-         v_mview_expr_order, 
-         v_percentile );
+     BEGIN
+       DECLARE EXIT HANDLER
+         FOR 1062
+       BEGIN
+         CALL flexviews.signal(
+           CONCAT_WS('',
+               'An expression with this alias already exists: ', v_mview_alias,
+               ' in materialized view: ', v_mview_id
+             )
+           );
+       END;
+       INSERT INTO flexviews.mview_expression
+       (  mview_id,
+          mview_expr_type,
+          mview_expression,
+          mview_alias,
+          mview_expr_order, 
+          percentile )
+       VALUES
+       (  v_mview_id,
+          v_mview_expr_type,
+          v_mview_expression,
+          v_mview_alias,
+          v_mview_expr_order, 
+          v_percentile );
+     END;
      if (v_error != false) then
        select concat('Invalid expression type: ', v_mview_expr_type,'  Available expression types: ', column_type) as 'error'
          from information_schema.columns 
