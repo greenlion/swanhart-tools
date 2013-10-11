@@ -108,6 +108,8 @@ CREATE PROCEDURE `test_flexviews`.`set_up`()
 BEGIN
   SET @fv_force = NULL;
   TRUNCATE TABLE `flexviews`.`mview`;
+  TRUNCATE TABLE `flexviews`.`mview_expression`;
+  TRUNCATE TABLE `flexviews`.`mview_table`;
 END;
 
 
@@ -600,11 +602,56 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_get_sql_on_invalid_mview_id`()
+CREATE PROCEDURE `test_flexviews`.`test_get_sql_on_invalid_mview`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.expect_any_exception();
   CALL `stk_unit`.assert_null(`flexviews`.`get_sql`(999), NULL);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_add_expr`()
+  MODIFIES SQL DATA
+BEGIN
+  DECLARE t_mview_id BIGINT;
+  CALL `flexviews`.`create`('test', 'mv', 'COMPLETE');
+  SET t_mview_id = LAST_INSERT_ID();
+  CALL `flexviews`.`add_expr`(t_mview_id, 'COLUMN', 't.x', 'al1');
+  CALL `flexviews`.`add_expr`(t_mview_id, 'COLUMN', 't.y', 'al2');
+  CALL `stk_unit`.assert_true(TRUE, NULL);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_add_expr_on_double_alias`()
+  MODIFIES SQL DATA
+BEGIN
+  DECLARE t_mview_id BIGINT;
+  CALL `flexviews`.`create`('test', 'mv', 'COMPLETE');
+  SET t_mview_id = LAST_INSERT_ID();
+  CALL `flexviews`.`add_expr`(t_mview_id, 'COLUMN', 't.x', 'al');
+  -- add (different) col with same alias, expect error
+  CALL `stk_unit`.expect_any_exception();
+  CALL `flexviews`.`add_expr`(t_mview_id, 'COLUMN', 't.y', 'al');
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_add_expr_on_invalid_mview`()
+  MODIFIES SQL DATA
+BEGIN
+  CALL `stk_unit`.expect_any_exception();
+  CALL `flexviews`.`add_expr`(999, 'GROUP', 't.c1', 'c1');
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_add_expr_on_invalid_refresh_type`()
+  MODIFIES SQL DATA
+BEGIN
+  -- wrong mview refresh type
+  CALL `flexviews`.`create`('test', 'mv', 'COMPLETE');
+  -- this should happen even if we're not in strict mode
+  SET @@session.sql_mode = '';
+  CALL `stk_unit`.expect_any_exception();
+  CALL `flexviews`.`add_expr`(`flexviews`.`get_id`('test', 'mv'), 'not-exists', 't.c1', 'c1');
 END;
 
 
