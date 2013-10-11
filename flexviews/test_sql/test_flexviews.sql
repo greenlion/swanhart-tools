@@ -250,7 +250,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_flush_method_strict_mode`()
+CREATE PROCEDURE `test_flexviews`.`test_create_on_invalid_flush_method_strict_mode`()
   MODIFIES SQL DATA
 BEGIN
   SET @@session.sql_mode = 'STRICT_ALL_TABLES,STRICT_TRANS_TABLES';
@@ -259,7 +259,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_flush_method_not_strict`()
+CREATE PROCEDURE `test_flexviews`.`test_create_on_invalid_flush_method_not_strict`()
   MODIFIES SQL DATA
 BEGIN
   SET @@session.sql_mode = '';
@@ -268,7 +268,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_db`()
+CREATE PROCEDURE `test_flexviews`.`test_create_on_invalid_db`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.`expect_any_exception`();
@@ -276,7 +276,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_db_force`()
+CREATE PROCEDURE `test_flexviews`.`test_create_on_invalid_db_force`()
   MODIFIES SQL DATA
 BEGIN
   SET @fv_force = TRUE;
@@ -286,7 +286,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_table`()
+CREATE PROCEDURE `test_flexviews`.`test_create_on_invalid_table`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.`expect_any_exception`();
@@ -295,7 +295,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_create_with_invalid_table_force`()
+CREATE PROCEDURE `test_flexviews`.`test_create_on_invalid_table_force`()
   MODIFIES SQL DATA
 BEGIN
   SET @fv_force = TRUE;
@@ -361,7 +361,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_rename_with_empty_table`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_on_empty_table`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -386,7 +386,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_rename_with_empty_db`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_on_empty_db`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -411,7 +411,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_mvid`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_on_invalid_mvid`()
   MODIFIES SQL DATA
 BEGIN
   -- rename non-existing mview
@@ -420,7 +420,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_db`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_on_invalid_db`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -438,7 +438,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_db_force`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_on_invalid_db_force`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -453,7 +453,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_table`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_on_invalid_table`()
   MODIFIES SQL DATA
 BEGIN
  -- existing db.table
@@ -471,7 +471,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_rename_with_invalid_table_force`()
+CREATE PROCEDURE `test_flexviews`.`test_rename_on_invalid_table_force`()
   MODIFIES SQL DATA
 BEGIN
   -- existing db.table
@@ -483,6 +483,51 @@ BEGIN
   SET @fv_force = TRUE;
   CALL `flexviews`.`rename`(LAST_INSERT_ID(), t_db, 'customer');
   CALL `stk_unit`.`assert_true`(TRUE, NULL);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_drop_on_disabled_mview`()
+  MODIFIES SQL DATA
+BEGIN
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'new_mv';
+  DECLARE id BIGINT;
+  
+  CALL `flexviews`.`create`(t_db, t_tab, 'INCREMENTAL');
+  SET id := LAST_INSERT_ID();
+  CALL `stk_unit`.expect_any_exception();
+  CALL `flexviews`.`drop`(id);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_drop_on_disabled_mview_force`()
+  MODIFIES SQL DATA
+BEGIN
+  DECLARE t_db TEXT DEFAULT 'test';
+  DECLARE t_tab TEXT DEFAULT 'new_mv';
+  
+  SET @fv_force = TRUE;
+  CALL `flexviews`.`create`(t_db, t_tab, 'INCREMENTAL');
+  CALL `flexviews`.`drop`(LAST_INSERT_ID());
+  CALL `stk_unit`.assert_null(@fv_force);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_drop_on_invalid_mview`()
+  MODIFIES SQL DATA
+BEGIN
+  CALL `stk_unit`.expect_any_exception();
+  CALL `flexviews`.`drop`(999);
+END;
+
+
+CREATE PROCEDURE `test_flexviews`.`test_drop_on_invalid_mview_force`()
+  MODIFIES SQL DATA
+BEGIN
+  SET @fv_force = TRUE;
+  CALL `stk_unit`.expect_any_exception();
+  CALL `flexviews`.`drop`(999);
+  CALL `stk_unit`.assert_null(@fv_force);
 END;
 
 
@@ -505,7 +550,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_set_definition_with_non_existing_mview`()
+CREATE PROCEDURE `test_flexviews`.`test_set_definition_on_invalid_mview`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.`expect_any_exception`();
@@ -513,7 +558,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_set_definition_with_non_complete_mview`()
+CREATE PROCEDURE `test_flexviews`.`test_set_definition_on_non_complete_mview`()
   MODIFIES SQL DATA
 BEGIN
   DECLARE id BIGINT;
@@ -543,7 +588,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_get_sql_with_bare_skeleton`()
+CREATE PROCEDURE `test_flexviews`.`test_get_sql_on_bare_skeleton`()
   MODIFIES SQL DATA
 BEGIN
   -- we create a mview but DONT set definition.
@@ -555,7 +600,7 @@ BEGIN
 END;
 
 
-CREATE PROCEDURE `test_flexviews`.`test_get_sql_with_invalid_mview_id`()
+CREATE PROCEDURE `test_flexviews`.`test_get_sql_on_invalid_mview_id`()
   MODIFIES SQL DATA
 BEGIN
   CALL `stk_unit`.expect_any_exception();
