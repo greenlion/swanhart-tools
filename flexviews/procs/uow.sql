@@ -44,16 +44,17 @@ DROP PROCEDURE IF EXISTS flexviews.uow_start;;
 
 CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.uow_start(OUT v_uow_id BIGINT)
 BEGIN
-DECLARE v_deadlocked BOOLEAN DEFAULT FALSE;
-
+DECLARE v_retry BOOLEAN DEFAULT FALSE;
 startUOW:WHILE (1) DO
   BEGIN
     DECLARE deadlock_detected CONDITION FOR 1213;
+    DECLARE timeout_detected CONDITION FOR 1205;
     DECLARE EXIT HANDLER 
-    FOR deadlock_detected
-      SET v_deadlocked = TRUE;
+    FOR deadlock_detected, timeout_detected
+      SET v_retry = TRUE;
     
-    SET v_deadlocked = FALSE;
+    SET v_retry = FALSE;
+    START TRANSACTION;
 
     INSERT INTO flexviews.mview_uow
       (uow_id) VALUES (NULL);
@@ -61,7 +62,7 @@ startUOW:WHILE (1) DO
     -- set our output value
     SET v_uow_id = LAST_INSERT_ID();
   END;
-  IF v_deadlocked = FALSE THEN
+  IF v_retry = FALSE THEN
     LEAVE startUOW;
   END IF;
 END WHILE;
