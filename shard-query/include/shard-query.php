@@ -235,7 +235,7 @@ class ShardQuery {
     function create_agg_table(&$state = null) {
         if(!isset($state)) $state = $this->state;
 
-	if(strtolower(substr($state->shard_sql[0], 0, 6)) !== "select") return;
+	if(empty($state->shard_sql[0]) || strtolower(substr($state->shard_sql[0], 0, 6)) !== "select") return;
 
 	$sql = "CREATE TABLE IF NOT EXISTS {$state->table_name} ";
 	$create_subquery = str_replace('1=1','0=1', $state->shard_sql[0]);

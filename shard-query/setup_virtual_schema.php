@@ -209,13 +209,22 @@ foreach($config as $var_name => $var_value) {
 }	
 
 echo "\033[2J\033[;H";
-write_line("Please enter admin credentials for a user with GRANT option (to set up each shard): ");
 $create_user = true;
+if(empty($params['user'])) {
+write_line("Please enter admin credentials for a user with GRANT option (to set up each shard): ");
 write_line("Please enter mysql a administrator username: [root]");
 $username = read_line();
+} else {
+  $username=$params['user'];
+}
+
 if(trim($username) == "") $username = "root"; 
+if(empty($params['password'])) {
 write_line("Enter admin password: [default no password]");
 $password = read_line();
+} else {
+  $password = $params['password'];
+}
 
 echo "* Populating/Updating shard list\n";
 $mapper->conn->my_query('DELETE IGNORE shards.* from shards join schemata on shards.schema_id = schemata.id where schema_name = "' . $config['schema_name'] . '"')
