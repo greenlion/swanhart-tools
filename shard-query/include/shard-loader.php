@@ -51,17 +51,19 @@ $SQ = new ShardQuery();
 $loader = new ShardLoader($SQ, "\t");
 $loader->load_gearman('/tmp/test_load.txt','test_load', null, 8);
 */
-
+define('DEFAULT_CHUNK_SIZE', 16 * 1024 * 1024);
 
 class ShardLoader {
 
-    public function __construct($SQ, $delimiter = ",", $enclosure = "", $line_terminator = "\n", $use_fifo = true) {
+    public function __construct($SQ, $delimiter = ",", $enclosure = "", $line_terminator = "\n", $use_fifo = true, $chunk_size = DEFAULT_CHUNK_SIZE) {
         $this->SQ = $SQ;
-		$delimiter = str_replace(array('\\'),array("\\\\"), $delimiter);
+	$delimiter = str_replace(array('\\'),array("\\\\"), $delimiter);
         $this->delimiter = $delimiter;
         $this->enclosure = $enclosure;
         $this->line_terminator = $line_terminator;
         $this->use_fifo = $use_fifo;
+
+	$this->chunk_size = $chunk_size;
 
         #FIXME
         #support terminators that don't end in newline
@@ -71,10 +73,12 @@ class ShardLoader {
     }
 
     /* 
-    Load a file.  By default, split the file into 16MB chunks
+    Load a file.  
     */
     public function load($path, $table, $chunk_size = null, $segment_count = null) {
-        if(!isset($chunk_size)) $chunk_size = 1024 * 1024 * 16;
+	if(!isset($chunk_size)) {
+		$chunk_size = $this->chunk_size;
+	}
 
         if(!isset($segment_count)) {
             $fs = filesize($path);
@@ -101,7 +105,9 @@ class ShardLoader {
     */
     public function load_gearman($path, $table, $chunk_size = null, $segment_count = null) {
         $SQ = $this->SQ;
-        if(!isset($chunk_size)) $chunk_size = 1024 * 1024 * 16;
+	if(!isset($chunk_size)) {
+		$chunk_size = $this->chunk_size;
+	}
 
         if(!isset($segment_count)) {
             $fs = filesize($path);

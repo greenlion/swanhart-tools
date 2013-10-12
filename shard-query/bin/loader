@@ -42,6 +42,12 @@ function main() {
 		$line_terminator = "\n";
 	}
 
+	if(!empty($spec['default']['chunk_size'])) {
+		$chunk_size = $spec['default']['chunk_size'];
+	} else {
+		$chunk_size = DEFAULT_CHUNK_SIZE;
+	}
+
 	$loadspec = array_merge(array('delimiter'=>',','enclosure'=>''), $spec['default']);
 	unset($spec['default']['delimiter']);
 	unset($spec['default']['enclosure']);
@@ -53,7 +59,7 @@ function main() {
 	unset($spec['default']);
 
 	$SQ = new ShardQuery();
-	$SL = new ShardLoader($SQ, $loadspec['delimiter'], $loadspec['enclosure'], $line_terminator, true);
+	$SL = new ShardLoader($SQ, $loadspec['delimiter'], $loadspec['enclosure'], $line_terminator, true, $chunk_size);
 
 	/*
 	A spec file consists of sections.  Each section corresponds to one table.
@@ -87,6 +93,7 @@ function main() {
 			}
 
 			foreach($files as $file) {
+				echo "Scheduling load of $file\n";
 				if(!trim($file)) continue;
 				$SL->load_gearman($file, $table);
 			}
