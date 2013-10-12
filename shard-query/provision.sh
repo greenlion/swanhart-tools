@@ -4,6 +4,25 @@ echo "INSTALL PERCONA"
 rpm -Uhv http://www.percona.com/downloads/percona-release/percona-release-0.0-1.x86_64.rpm
 yum -y install Percona-Server\*-56-\*
 
+echo '[mysqld_safe]
+open_files_limit=8192
+
+[mysqld]
+innodb_buffer_pool_size=3G
+innodb_stats_persistent=0
+innodb_buffer_pool_instances=8
+table_open_cache=8192
+table_definition_cache=8192
+binlog_cache_size=8M
+binlog_stmt_cache_size=128K
+innodb_flush_log_at_trx_commit=2
+innodb_flush_method=O_DIRECT_NO_FSYNC
+innodb_log_buffer_size=24M
+innodb_log_file_size=256M
+innodb_adaptive_hash_index_partitions=8
+innodb_thread_concurrency=16
+binlog_format=ROW' > /etc/my.cnf
+
 echo "INSTALL PREREQS"
 yum -y install php php-mysql php-pcntl php-pear libevent-devel openssl-devel boost-devel gperf libuuid-devel lua-devel
 
@@ -26,6 +45,9 @@ service mysql start
 chkconfig mysql on
 mysql -uroot -e'delete from mysql.user where user=""; flush privileges;'
 mysql -uroot -e'grant all on shard1.* to shardquery@"%" identified by "CHANGEME" WITH GRANT OPTION'
+mysql -uroot -e'grant all on shard2.* to shardquery@"%" identified by "CHANGEME" WITH GRANT OPTION'
+mysql -uroot -e'grant all on shard3.* to shardquery@"%" identified by "CHANGEME" WITH GRANT OPTION'
+mysql -uroot -e'grant all on shard4.* to shardquery@"%" identified by "CHANGEME" WITH GRANT OPTION'
 mysql -uroot -e'grant all on sqrepo.* to shardquery@"%" identified by "CHANGEME" WITH GRANT OPTION'
 mysqladmin -uroot create shard1 
 mysqladmin -uroot create sqrepo
@@ -69,8 +91,19 @@ gearmand_path=/usr/local/sbin
 [shard1]
 db=shard1
 host=192.168.33.50
-user=shardquery
-password=CHANGEME' > /usr/share/shard-query/provision.ini
+
+[shard2]
+db=shard2
+host=192.168.33.50
+
+[shard3]
+db=shard3
+host=192.168.33.50
+
+[shard4]
+db=shard4
+host=192.168.33.50
+' > /usr/share/shard-query/provision.ini
 
 echo "CREATE VIRTUAL SCHEMA"
 php setup_virtual_schema.php --ini=/usr/share/shard-query/provision.ini --user=shardquery --password=CHANGEME

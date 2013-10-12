@@ -16,10 +16,8 @@ Vagrant::configure("2") do |config|
         centos64.vm.provider :virtualbox do |vbox|
             vbox.gui = false
 
-            vbox.customize [
-                'modifyvm', :id, '--chipset', 'ich9',               # solves kernel panic issue on some host machines
-                '--uartmode1', 'file', 'C:\\base6-console.log'      # uncomment to change log location on Windows
-            ]
+            vbox.customize [ 'modifyvm', :id, '--cpus', '8' ]
+            vbox.customize [ 'modifyvm', :id, '--memory', '4096' ]
         end
 
         config.vm.provision :shell, :path => "provision.sh"
