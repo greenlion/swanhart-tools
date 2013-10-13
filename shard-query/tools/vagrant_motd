@@ -36,7 +36,7 @@ mysql -u root ssb < ../tools/ssb/ssb_partitioned_56.sql
 mkfifo /tmp/loadfifo
 chmod a+wrx /tmp/loadfifo
 mysql -u root ssb -e 'load data infile "/tmp/loadfifo" into table lineorder fields terminated by "|";' &
-cat /ssb/ssb-dbgen/master/lineorder*tbl* > /tmp/loadfifo
+cat /ssb/ssb-dbgen-master/lineorder*tbl* > /tmp/loadfifo
 mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/date.tbl" into table dim_date fields terminated by "|"' 
 mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/supplier.tbl" into table supplier fields terminated by "|"' 
 mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/part.tbl" into table part fields terminated by "|"' 
