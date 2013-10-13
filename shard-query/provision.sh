@@ -177,6 +177,7 @@ chmod a+wrx -R ssb*
 cd ssb*
 make 1>/dev/null 2>/dev/null 3>/dev/null 
 cp /vagrant/tools/vagrant_motd /etc/motd
+chmod -R a+wrx /ssb
 clear
 echo "PROVISION COMPLETED!
 Use vagrant ssh to enter the machine.  You will be given instructions for how to generate and load data."

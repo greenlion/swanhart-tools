@@ -299,7 +299,7 @@ class ShardQuery {
         }
         $this->workers = 0;
         $error_count = 0;
-        $sub_sql = "select version() as `version`, @@version_comment as `comment`, ((version() like '5.6%' or version() like '5.7%') AND  @@version_comment like '%MySQL%' AND @@version_comment not like '%mariadb%') as supports_partition_hint";
+        $sub_sql = "select version() as `version`, @@version_comment as `comment`, ((version() like '5.6%' or version() like '5.7%' or version() like '10.%') ) as supports_partition_hint";
         $stmt = $state->DAL->my_query($sub_sql);
         if(!$stmt) {
             $this->errors[] = "Could not get version of the coordinator DB:" . $state->DAL->my_error();
