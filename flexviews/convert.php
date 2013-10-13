@@ -1,9 +1,5 @@
 <?php
-@include('php-sql-parser.php');
-if(!defined('HAVE_PHP_SQL_PARSER')) {
-	echo "You need to download the SQL parser component in order to use this tool. It is hosted separately here:\nhttp://php-sql-parser.googlecode.com/svn/trunk/php-sql-parser.php\n";
-	exit;
-}
+require_once('php-sql-parser.php');
 $parser=new PHPSQLParser();
 
 if(count($argv) == 1) {
