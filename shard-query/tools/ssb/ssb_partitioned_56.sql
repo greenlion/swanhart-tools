@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS dim_date
     KEY(D_Year, D_DayNumInYear),
     KEY(D_YearMonth),
     KEY(D_WeekNumInYear, D_Year)
-) PARTITION BY HASH(D_DateKey) PARTITIONS 8;
+) ;
  
 DROP TABLE IF EXISTS lineorder;
 CREATE TABLE IF NOT EXISTS lineorder

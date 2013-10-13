@@ -166,50 +166,17 @@ echo "Welcome to the machine - and have a cigar.  You're gonna go far." > /etc/m
 echo "START PROXY"
 ./mysql-proxy -s /usr/share/shard-query/proxy/mysqlproxy.lua --daemon
 
-echo "INSTALL SSB AND GENERATE DATA"
+echo "INSTALL SSB GENERATOR"
 mkdir /ssb
 chmod a+wrx /ssb
 yum -y install unzip
 cd /ssb
 wget https://github.com/greenlion/ssb-dbgen/archive/master.zip -O master.zip
 unzip master.zip
+chmod a+wrx -R ssb*
 cd ssb*
-make 
-echo "Generating dimensions using only one core"
-./dbgen -s 4 -T d 
-./dbgen -s 4 -T s 
-./dbgen -s 4 -T p 
-./dbgen -s 4 -T c 
-echo "Generating fact table using all cores"
-./dbgen -s 4 -T l -C $(cat /proc/cpuinfo|grep processor|wc -l)
+make 1>/dev/null 2>/dev/null 3>/dev/null 
+cp /vagrant/tools/vagrant_motd /etc/motd
 clear
 echo "PROVISION COMPLETED!
-Use vagrant ssh to enter the machine"
-
-cat <<EOD >> /etc/motd
-
-To load the data into Shard-Query:
-----------------------------------------------
-cd /usr/share/shard_query/bin
-php run_query < ../tools/ssb/ssb_partitioned_56.sql
-php loader --spec ../tools/vagrant.spec
-
-Wait for the load to complete. 
-
-This command will show how far along in percent each file is:
-php update_job_table --verbose
-
-Now load the unsharded version for comparison:
-----------------------------------------------
-mysqladmin -uroot create ssb
-mysql -u root ssb < ../tools/ssb/ssb_partitioned_56.sql
-mkfifo /tmp/loadfifo
-chmod a+wrx /tmp/loadfifo
-mysql -u root ssb -e 'load data infile "/tmp/loadfifo" into table lineorder fields terminated by "|";' &
-cat /ssb/ssb-dbgen/master/lineorder*tbl* > /tmp/loadfifo
-mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/date.tbl" into table dim_date fields terminated by "|"' 
-mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/supplier.tbl" into table supplier fields terminated by "|"' 
-mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/part.tbl" into table part fields terminated by "|"' 
-mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/customer.tbl" into table customer fields terminated by "|"' 
-
-EOD  
+Use vagrant ssh to enter the machine.  You will be given instructions for how to generate and load data."

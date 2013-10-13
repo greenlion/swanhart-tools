@@ -1,0 +1,43 @@
+[H[2J
+ .----..-. .-.  .--.  .----. .----.  .----. .-. .-..----..----. .-.  .-.
+{ {__  | {_} | / {} \ | {}  }| {}  \/  {}  \| { } || {_  | {}  } \ \/ / 
+.-._} }| { } |/  /\  \| .-. \|     /\      /| {_} || {__ | .-. \  }  {  
+`----' `-' `-'`-'  `-'`-' `-'`----'  `-----``-----'`----'`-' `-'  `--'  
+
+Wecome to Shard-Query!
+
+
+You must generate some data for the test:
+-----------------------------------------------------------------------
+
+cd /ssb/ssb-dbgen-master
+./dbgen -s 4 -T d 
+./dbgen -s 4 -T s 
+./dbgen -s 4 -T p 
+./dbgen -s 4 -T c 
+./dbgen -s 4 -T l -C $(cat /proc/cpuinfo|grep processor|wc -l)
+
+Then load the data into Shard-Query:
+-----------------------------------------------------------------------
+cd /usr/share/shard_query/bin
+php run_query < ../tools/ssb/ssb_partitioned_56.sql
+php loader --spec ../tools/ssb/vagrant.spec
+
+Wait for the load to complete. 
+
+This command will show how far along in percent each file is:
+php update_job_table --verbose
+
+
+Then load the unsharded version for comparison (so you can compare query performance):
+---------------------------------------------------------------------------------------
+mysqladmin -uroot create ssb
+mysql -u root ssb < ../tools/ssb/ssb_partitioned_56.sql
+mkfifo /tmp/loadfifo
+chmod a+wrx /tmp/loadfifo
+mysql -u root ssb -e 'load data infile "/tmp/loadfifo" into table lineorder fields terminated by "|";' &
+cat /ssb/ssb-dbgen/master/lineorder*tbl* > /tmp/loadfifo
+mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/date.tbl" into table dim_date fields terminated by "|"' 
+mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/supplier.tbl" into table supplier fields terminated by "|"' 
+mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/part.tbl" into table part fields terminated by "|"' 
+mysql -u root ssb -e 'load data infile "/ssb/ssb-dbgen-master/customer.tbl" into table customer fields terminated by "|"' 
