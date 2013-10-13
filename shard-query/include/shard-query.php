@@ -2210,13 +2210,10 @@ class ShardQuery {
                 $select['shard_group'] = ' GROUP BY ' . $select['shard_group'];
             
 	$queries = array();
-	$where_base = "";
-	if(empty($where_clauses)) {
-		$where_base = " WHERE 1=1 ";
-	}
+	$where_base = " WHERE 1=1 ";
 
 	if(!empty($state->push_where)) {
-		$where_base .= join(' ', $state->push_where);
+		$where_base .= ' AND ' . join(' ', $state->push_where);
 	}
 
 	if($state->mysql_version['supports_partition_hint'] == 1) {
@@ -2290,30 +2287,41 @@ class ShardQuery {
 
 	}
 
-	if(!empty($where_clauses)) {
-        if($where_base === "") $where_base = " WHERE ";
-		$where_base .= ' ' . join(' OR ', $where_clauses);
-	}
+	if(empty($where_clauses)) {
+        $where_clauses = array($where_base);
+    } else {
+        $old_clauses = $where_clauses;
+        $where_clauses = array();
+        foreach($old_clauses as $new_where_clause) {
+            $where_clauses[] = $where_base . ' AND ' . $new_where_clause;
+        }
+    }   
+
 	#queries is empty if no partition parallelism was added
 	#parallelism may still have been added from BETWEEN clauses ($where_clauses may be an array of clauses)	
 	if (empty($queries)) { 
-		if (!$state->no_pushdown_limit) {
-			$queries[] = $select['shard_sql']  . $where_base . $select['shard_group'] . ($used_limit ? $order_by : '');
-		} else {
-			$queries[] = $select['shard_sql']  . $where_base . $select['shard_group'] ;
-		}
+        foreach($where_clauses as $where_clause) {
+		    if (!$state->no_pushdown_limit) {
+			    $queries[] = $select['shard_sql']  . $where_clause . $select['shard_group'] . ($used_limit ? $order_by : '');
+		    } else {
+			    $queries[] = $select['shard_sql']  . $where_clause . $select['shard_group'] ;
+		    }
+        }
 	} else {
 		$old_queries = $queries;
 		$queries = array();
 		foreach($old_queries as $query) {
-			if (!$state->no_pushdown_limit) {
-				$query .= ' ' . $where_base . ' ' . $select['shard_group'] . ($used_limit ? $order_by : '');
-			} else {
-				$query .= ' ' . $where_base . ' ' . $select['shard_group'];
-			}
-			$queries[] = $query;
+            foreach($where_clauses as $where_clause) {
+			    if (!$state->no_pushdown_limit) {
+				    $nq = $query . ' ' . $where_clause . ' ' . $select['shard_group'] . ($used_limit ? $order_by : '');
+			    } else {
+				    $nq = $query . ' ' . $where_clause . ' ' . $select['shard_group'];
+			    }
+			    $queries[] = $nq;
+            }
 		} 
 	}
+
 
         } elseif (!empty($state->parsed['INSERT'])) {
             if (!empty($state->parsed['SELECT'])) {
