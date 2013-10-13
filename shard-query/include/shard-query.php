@@ -385,6 +385,7 @@ class ShardQuery {
         if (!empty($state->shard_sql)) {
             $set = new Net_Gearman_Set();
             $this->workers = 0;
+
             $this->create_gearman_set($state->shard_sql, $state->table_name, $collect_cb, $failure_cb, $set, "store_resultset", $state);
             
             $this->run_set($set, $state);
@@ -2102,13 +2103,6 @@ class ShardQuery {
                 unset($state->parsed['WHERE']);
             }
             
-            $out = array();
-            foreach ($where_clauses as $clause) {
-                $out[] = "WHERE $clause";
-            }
-            $where_clauses = $out;
-            unset($out);
-            
             
             if (empty($state->force_shard))
                 $state->force_shard = $state->shards;
@@ -2297,7 +2291,8 @@ class ShardQuery {
 	}
 
 	if(!empty($where_clauses)) {
-		$where_base .= ' ' . join(' ', $where_clauses);
+        if($where_base === "") $where_base = " WHERE ";
+		$where_base .= ' ' . join(' OR ', $where_clauses);
 	}
 	#queries is empty if no partition parallelism was added
 	#parallelism may still have been added from BETWEEN clauses ($where_clauses may be an array of clauses)	
