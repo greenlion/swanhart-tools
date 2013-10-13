@@ -19,7 +19,7 @@ cd /ssb/ssb-dbgen-master
 
 Then load the data into Shard-Query:
 -----------------------------------------------------------------------
-cd /usr/share/shard_query/bin
+cd /usr/share/shard-query/bin
 php run_query < ../tools/ssb/ssb_partitioned_56.sql
 php loader --spec ../tools/ssb/vagrant.spec
 
