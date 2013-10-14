@@ -534,7 +534,7 @@ EOREGEX
 	
 	/* Remove any logs that have gone away */
 	function cleanup_logs() {
-		$sql = "DELETE bcs.* FROM `" . $this->binlog_consumer_status . "` bcs where exec_master_log_pos >= master_log_size and server_id={$this->serverId} AND master_log_file not in (select log_name from log_list)";
+		$sql = "DELETE bcs.* FROM `" . $this->binlog_consumer_status . "` bcs where exec_master_log_pos >= master_log_size and server_id={$this->serverId} AND cast(master_log_file as binary) not in (select CAST(log_name as binary) from log_list)";
 		my_mysql_query($sql, $this->dest) or die1($sql . "\n" . mysql_error() . "\n");
 
 		$sql = "DROP TEMPORARY table IF EXISTS log_list";

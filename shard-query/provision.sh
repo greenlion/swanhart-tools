@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+if [ ! -f /tmp/build ]; then
 echo "INSTALL PERCONA"
 rpm -Uhv http://www.percona.com/downloads/percona-release/percona-release-0.0-1.x86_64.rpm
 yum -y install Percona-Server\*-56-\*
@@ -8,7 +8,7 @@ echo '[mysqld_safe]
 open_files_limit=8192
 
 [mysqld]
-innodb_buffer_pool_size=3G
+innodb_buffer_pool_size=2250M
 innodb_stats_persistent=1
 innodb_buffer_pool_instances=8
 table_open_cache=8192
@@ -19,13 +19,14 @@ innodb_flush_log_at_trx_commit=2
 innodb_flush_method=O_DIRECT_NO_FSYNC
 innodb_log_buffer_size=24M
 innodb_log_file_size=256M
-innodb_adaptive_hash_index_partitions=8
 innodb_thread_concurrency=16
 binlog_format=ROW
 innodb_change_buffer_max_size=50
 innodb_max_dirty_pages_pct=25
 innodb_old_blocks_time=250
 innodb_old_blocks_pct=20
+innodb_read_io_threads=8
+innodb_io_capacity=1000
 ' > /etc/my.cnf
 
 echo "INSTALL PREREQS"
@@ -179,5 +180,9 @@ make 1>/dev/null 2>/dev/null 3>/dev/null
 cp /vagrant/tools/vagrant_motd /etc/motd
 chmod -R a+wrx /ssb
 clear
-echo "PROVISION COMPLETED!
+echo "PROVISION COMPLETED!"
+else
+echo "SKIPPED PROVISION"
+fi
+echo "
 Use vagrant ssh to enter the machine.  You will be given instructions for how to generate and load data."
