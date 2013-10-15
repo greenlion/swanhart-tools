@@ -42,7 +42,7 @@ function echo1($message) {
 
 }
 
-function my_mysql_query($a, $b=NULL, $debug=false) {
+function my_mysql_query($a, $b=NULL, $debug=true) {
 	if($debug) echo "$a\n";
 
 	if($b) {
@@ -744,6 +744,10 @@ EOREGEX
 							case 'datetime': 
 								$col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
 							break;
+
+							default:
+								if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
+							break;
 						}
 
 						$row[] = $col;
@@ -1272,12 +1276,13 @@ EOREGEX
 			trigger_error('Could not access table:' . $v_table_name, E_USER_ERROR);
 		}
 
-		$mv_logname = 'mvlog_' . md5(md5($v_schema_name) .  md5($v_table_name));
+		$mv_logname = "`" . $this->mvlogDB . '`.`' .  'mvlog_' . md5(md5($v_schema_name) .  md5($v_table_name)) . "`";
+		$base_mv_logname = 'mvlog_' . md5(md5($v_schema_name) .  md5($v_table_name)) ;
 		
-		$v_sql = FlexCDC::concat('CREATE TABLE IF NOT EXISTS `',$mv_logname ,'` ( dml_type INT DEFAULT 0, uow_id BIGINT, `fv$server_id` INT UNSIGNED,fv$gsn bigint, ', $v_sql, 'KEY(uow_id, dml_type) ) ENGINE=INNODB');
+		$v_sql = FlexCDC::concat('CREATE TABLE IF NOT EXISTS ',$mv_logname ,' ( dml_type INT DEFAULT 0, uow_id BIGINT, `fv$server_id` INT UNSIGNED,fv$gsn bigint, ', $v_sql, 'KEY(uow_id, dml_type) ) ENGINE=INNODB');
 		$create_stmt = my_mysql_query($v_sql, $this->dest);
 		if(!$create_stmt) die1('COULD NOT CREATE MVLOG. ' . $v_sql . "\n");
-		$exec_sql = " INSERT IGNORE INTO `". $this->mvlogDB . "`.`" . $this->mvlogs . "`( table_schema , table_name , mvlog_name ) values('$v_schema_name', '$v_table_name', '" . $mv_logname . "')";
+		$exec_sql = " INSERT IGNORE INTO `". $this->mvlogDB . "`.`" . $this->mvlogs . "`( table_schema , table_name , mvlog_name ) values('$v_schema_name', '$v_table_name', '" . $base_mv_logname . "')";
 		my_mysql_query($exec_sql) or die1($exec_sql . ':' . mysql_error($this->dest) . "\n");
 
 		return true;
