@@ -37,7 +37,6 @@ USE flexviews;
 \. ./procs/get_keys.sql
 \. ./procs/get_select.sql
 \. ./procs/get_sql.sql
-\. ./procs/get_trigger_body.sql
 \. ./procs/get_where.sql
 \. ./procs/is_enabled.sql
 \. ./procs/mvlog_autoclean.sql
