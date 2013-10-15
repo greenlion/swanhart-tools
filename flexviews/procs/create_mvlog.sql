@@ -47,19 +47,19 @@ DROP PROCEDURE IF EXISTS flexviews.`create_mvlog` ;;
 ******
 */
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`create_mvlog`(
-   IN v_schema_name VARCHAR(100),
-   IN v_table_name VARCHAR(50) 
+   IN v_schema_name VARCHAR(100) CHARACTER SET UTF8,
+   IN v_table_name VARCHAR(50) CHARACTER SET UTF8 
 )
 BEGIN
   DECLARE v_done BOOLEAN DEFAULT FALSE;
   
-  DECLARE v_column_name VARCHAR(100);
-  DECLARE v_data_type VARCHAR(1024);
-  DECLARE v_delim CHAR(5);
+  DECLARE v_column_name VARCHAR(100) CHARACTER SET UTF8;
+  DECLARE v_data_type VARCHAR(1024) CHARACTER SET UTF8;
+  DECLARE v_delim CHAR(5) CHARACTER SET UTF8;
   DECLARE v_mview_type TINYINT(4) DEFAULT -1;
-  DECLARE v_trig_extension CHAR(3);
-  DECLARE v_sql TEXT;
-  DECLARE v_mvlog_name TEXT;
+  DECLARE v_trig_extension CHAR(3) CHARACTER SET UTF8;
+  DECLARE v_sql TEXT CHARACTER SET UTF8;
+  DECLARE v_mvlog_name TEXT CHARACTER SET UTF8;
   DECLARE cur_columns CURSOR
   FOR SELECT COLUMN_NAME, 
              IF(COLUMN_TYPE='TIMESTAMP', 'TIMESTAMP', COLUMN_TYPE) COLUMN_TYPE
