@@ -20,15 +20,15 @@ DELIMITER ;;
 
 DROP FUNCTION IF EXISTS flexviews.`get_keys` ;;
 
-CREATE DEFINER=`flexviews`@`localhost` FUNCTION flexviews.`get_keys`(v_mview_id INT) RETURNS TEXT CHARSET latin1
+CREATE DEFINER=`flexviews`@`localhost` FUNCTION flexviews.`get_keys`(v_mview_id INT) RETURNS TEXT CHARSET UTF8
 READS SQL DATA
 BEGIN
   DECLARE v_done boolean DEFAULT FALSE;
-  DECLARE v_mview_expr_type VARCHAR(50);
-  DECLARE v_mview_expression TEXT default NULL;
-  DECLARE v_mview_alias TEXT;
-  DECLARE v_key_list TEXT default '';
-  DECLARE v_mview_refresh_type TEXT;
+  DECLARE v_mview_expr_type TINYTEXT CHARACTER SET UTF8;
+  DECLARE v_mview_expression TEXT CHARACTER SET UTF8 default NULL;
+  DECLARE v_mview_alias TEXT CHARACTER SET UTF8;
+  DECLARE v_key_list TEXT CHARACTER SET UTF8 default '';
+  DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
   DECLARE v_parent_mview_id INT;
 
   DECLARE cur_expr CURSOR FOR

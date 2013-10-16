@@ -47,22 +47,20 @@ DROP PROCEDURE IF EXISTS flexviews.`create_mvlog` ;;
 ******
 */
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`create_mvlog`(
-   IN v_schema_name VARCHAR(100) CHARACTER SET UTF8,
-   IN v_table_name VARCHAR(50) CHARACTER SET UTF8 
+   IN v_schema_name TINYTEXT CHARACTER SET UTF8,
+   IN v_table_name TINYTEXT CHARACTER SET UTF8 
 )
 BEGIN
   DECLARE v_done BOOLEAN DEFAULT FALSE;
   
-  DECLARE v_column_name VARCHAR(100) CHARACTER SET UTF8;
-  DECLARE v_data_type VARCHAR(1024) CHARACTER SET UTF8;
-  DECLARE v_delim CHAR(5) CHARACTER SET UTF8;
+  DECLARE v_column_name TINYTEXT CHARACTER SET UTF8;
+  DECLARE v_data_type TEXT CHARACTER SET UTF8;
   DECLARE v_mview_type TINYINT(4) DEFAULT -1;
-  DECLARE v_trig_extension CHAR(3) CHARACTER SET UTF8;
   DECLARE v_sql TEXT CHARACTER SET UTF8;
   DECLARE v_mvlog_name TEXT CHARACTER SET UTF8;
   DECLARE cur_columns CURSOR
   FOR SELECT COLUMN_NAME, 
-             IF(COLUMN_TYPE='TIMESTAMP', 'TIMESTAMP', COLUMN_TYPE) COLUMN_TYPE
+             concat(column_type, if(character_set_name is not null, concat(' CHARACTER SET ',character_set_name),''), if(collation_name is not null, concat(' collate ', collation_name),'') ) as column_type
         FROM INFORMATION_SCHEMA.COLUMNS 
        WHERE TABLE_NAME=v_table_name 
          AND TABLE_SCHEMA = v_schema_name;
@@ -102,10 +100,6 @@ BEGIN
     END IF;
     SET v_sql = CONCAT(v_sql, v_column_name, ' ', v_data_type);
   END LOOP; 
-  -- TODO the Flexviews names should have a fv$mvlog_id$ prefix on them in order to prevent conflicts.  
-  -- This will allow weird constructs like mvlogs on mvlogs, though I can't think of a good reason for
-  -- such constructs.  It isn't possible to put mvlogs on almost any internal Flexviews table because
-  -- almost all the tables contain uow_id.  mview_signal is an exception.
 
   IF TRIM(v_sql) = "" THEN
     CALL flexviews.signal('TABLE NOT EXISTS OR ACCESS DENIED');

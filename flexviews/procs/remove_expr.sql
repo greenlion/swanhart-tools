@@ -46,7 +46,7 @@ DROP PROCEDURE IF EXISTS flexviews.`remove_expr`;;
 
 CREATE DEFINER=`flexviews`@`localhost`PROCEDURE flexviews.`remove_expr`(
   IN v_mview_id INT,
-  IN v_mview_alias TEXT
+  IN v_mview_alias TEXT character set utf8
 )
 BEGIN
   IF flexviews.is_enabled(v_mview_id) = 1 THEN

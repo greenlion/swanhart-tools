@@ -22,17 +22,17 @@ DROP FUNCTION IF EXISTS flexviews.get_from ;;
 
 CREATE DEFINER=`flexviews`@`localhost`FUNCTION flexviews.`get_from`(
   v_mview_id INT,
-  v_join_type TEXT,
-  v_table_suffix TEXT
-) RETURNS TEXT CHARSET latin1
+  v_join_type TEXT character set utf8,
+  v_table_suffix TEXT character set utf8
+)  RETURNS TEXT CHARACTER SET UTF8
     READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_table_name TEXT;
-DECLARE v_mview_table_alias TEXT;
-DECLARE v_mview_table_schema TEXT;
-DECLARE v_mview_join_condition TEXT;
-DECLARE v_from_clause TEXT default NULL;  
+DECLARE v_mview_table_name TEXT CHARACTER SET UTF8;
+DECLARE v_mview_table_alias TEXT CHARACTER SET UTF8;
+DECLARE v_mview_table_schema TEXT CHARACTER SET UTF8;
+DECLARE v_mview_join_condition TEXT CHARACTER SET UTF8;
+DECLARE v_from_clause TEXT CHARACTER SET UTF8 default NULL;  
 DECLARE cur_from CURSOR 
 FOR  
 SELECT mview_table_name,

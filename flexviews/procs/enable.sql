@@ -51,14 +51,14 @@ CREATE DEFINER=flexviews@localhost PROCEDURE  `enable`(
 )
 body: BEGIN
   DECLARE v_mview_enabled tinyint(1);
-  DECLARE v_mview_refresh_type TEXT;
-  DECLARE v_mview_engine TEXT;
-  DECLARE v_mview_name TEXT;
-  DECLARE v_mview_schema TEXT;
-  DECLARE v_mview_definition TEXT;
-  DECLARE v_keys TEXT;
+  DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
+  DECLARE v_mview_engine TEXT CHARACTER SET UTF8;
+  DECLARE v_mview_name TEXT CHARACTER SET UTF8;
+  DECLARE v_mview_schema TEXT CHARACTER SET UTF8;
+  DECLARE v_mview_definition TEXT CHARACTER SET UTF8;
+  DECLARE v_keys TEXT CHARACTER SET UTF8;
 
-  DECLARE v_sql TEXT;
+  DECLARE v_sql TEXT CHARACTER SET UTF8;
 
   -- suppress DROP IF EXISTS warnings
   DECLARE CONTINUE HANDLER FOR 1051

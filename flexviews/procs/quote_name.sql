@@ -36,8 +36,8 @@ DROP FUNCTION IF EXISTS `flexviews`.`quote_name`;;
  *   > `this``that`
 ******
 */
-CREATE DEFINER=`flexviews`@`localhost` FUNCTION `flexviews`.`quote_name`(v_name VARCHAR(64))
-    RETURNS VARCHAR(128)
+CREATE DEFINER=`flexviews`@`localhost` FUNCTION `flexviews`.`quote_name`(v_name VARCHAR(64) CHARACTER SET UTF8)
+    RETURNS VARCHAR(128) CHARACTER SET UTF8
     DETERMINISTIC
     CONTAINS SQL
     COMMENT 'Returns name quoted with backticks'

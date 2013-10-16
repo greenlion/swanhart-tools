@@ -44,8 +44,8 @@ DROP PROCEDURE IF EXISTS flexviews.`remove_table` ;;
 */
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `remove_table`(
   IN v_mview_id INT,
-  IN v_mview_table_schema TEXT,
-  IN v_mview_table_name TEXT
+  IN v_mview_table_schema TEXT character set utf8,
+  IN v_mview_table_name TEXT character set utf8
 )
 BEGIN
   IF flexviews.is_enabled(v_mview_id) = 1 THEN

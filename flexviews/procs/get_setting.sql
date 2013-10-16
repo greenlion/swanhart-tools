@@ -20,10 +20,10 @@ DELIMITER ;;
 
 DROP FUNCTION IF EXISTS flexviews.`get_setting`;;
 
-CREATE DEFINER=flexviews@localhost FUNCTION flexviews.`get_setting`( v_setting_key TEXT) RETURNS TEXT CHARSET latin1
+CREATE DEFINER=flexviews@localhost FUNCTION flexviews.`get_setting`( v_setting_key TEXT) RETURNS TEXT CHARACTER SET UTF8
     READS SQL DATA
 BEGIN  
-DECLARE v_setting TEXT;
+DECLARE v_setting TEXT character set utf8;
 
 SELECT setting_value
   INTO v_setting

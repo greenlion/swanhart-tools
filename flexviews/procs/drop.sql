@@ -52,8 +52,8 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`drop`(
   COMMENT 'Physically remove the view and mark as disabled in metadata.'
 BEGIN
   -- DECLARE v_mview_enabled tinyint(1);
-  DECLARE v_mview_name TEXT;
-  DECLARE v_mview_schema TEXT;
+  DECLARE v_mview_name TEXT character set utf8;
+  DECLARE v_mview_schema TEXT character set utf8;
   DECLARE v_mview_enabled INT;
   DECLARE v_child_mview_id INT;
   DECLARE v_parent_mview_id INT DEFAULT NULL;

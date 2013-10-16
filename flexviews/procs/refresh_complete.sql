@@ -24,12 +24,12 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `mview_refresh_complete`(
   IN v_mview_id INT
 )
 BEGIN
-DECLARE v_sql TEXT;
-DECLARE v_mview_name TEXT;
-DECLARE v_mview_schema TEXT;
+DECLARE v_sql TEXT character set utf8;
+DECLARE v_mview_name TEXT character set utf8;
+DECLARE v_mview_schema TEXT character set utf8;
 DECLARE v_mview_last_refresh DATETIME;
 DECLARE v_mview_refresh_period INT;
-DECLARE v_mview_definition TEXT;
+DECLARE v_mview_definition TEXT character set utf8;
 
 -- suppress DROP IF EXISTS warnings
 DECLARE CONTINUE HANDLER FOR 1051

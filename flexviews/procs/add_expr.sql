@@ -100,16 +100,16 @@ DROP PROCEDURE IF EXISTS flexviews.`add_expr` ;;
 
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`add_expr`(
   IN v_mview_id INT,
-  IN v_mview_expr_type varchar(50),
-  IN v_mview_expression TEXT,
-  IN v_mview_alias TEXT
+  IN v_mview_expr_type TINYTEXT CHARACTER SET UTF8,
+  IN v_mview_expression TINYTEXT CHARACTER SET UTF8,
+  IN v_mview_alias TINYTEXT CHARACTER SET UTF8
 )
 BEGIN
   DECLARE v_error BOOLEAN default false;
   DECLARE v_mview_enabled BOOLEAN default NULL;
-  DECLARE v_mview_refresh_type TEXT;
+  DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
   DECLARE v_percentile INT;
-  DECLARE v_mview_fqn TEXT;
+  DECLARE v_mview_fqn TEXT CHARACTER SET UTF8;
 
   DECLARE v_mview_expr_order INT;
   DECLARE CONTINUE HANDLER FOR SQLSTATE '01000' SET v_error = true;

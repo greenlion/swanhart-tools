@@ -40,10 +40,10 @@ DROP FUNCTION IF EXISTS flexviews.get_sql;;
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_sql (
   v_mview_id INT
 )
-RETURNS TEXT
+RETURNS TEXT character set utf8
 READS SQL DATA
 BEGIN
-  DECLARE v_sql TEXT default '';
+  DECLARE v_sql TEXT character set utf8 default '';
 
   IF NOT EXISTS (SELECT TRUE FROM `mview` WHERE `mview_id` = v_mview_id) THEN
     CALL `flexviews`.`signal`(CONCAT_WS('', 'Materialized view id not found: ', v_mview_id));

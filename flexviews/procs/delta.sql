@@ -29,16 +29,16 @@ IN v_until_uow_id BIGINT
 BEGIN
 DECLARE v_incremental_hwm BIGINT; -- propagation high water mark (we can't refresh past here)
 DECLARE v_refreshed_to_uow_id BIGINT; -- uow_id that the mview has been refreshed to
-DECLARE v_sql TEXT;
-DECLARE v_mview_schema TEXT;
-DECLARE v_mview_name TEXT;
-DECLARE v_delta_table TEXT;
-DECLARE v_mview_refresh_type TEXT;
+DECLARE v_sql TEXT CHARACTER SET UTF8;
+DECLARE v_mview_schema TEXT CHARACTER SET UTF8;
+DECLARE v_mview_name TEXT CHARACTER SET UTF8;
+DECLARE v_delta_table TEXT CHARACTER SET UTF8;
+DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
 DECLARE v_cur_row INT;
 DECLARE v_row_count INT;
-DECLARE v_cnt_column TEXT;
+DECLARE v_cnt_column TEXT CHARACTER SET UTF8;
 DECLARE v_only_agg BOOLEAN DEFAULT FALSE;
-DECLARE v_mview_fqn TEXT;
+DECLARE v_mview_fqn TEXT CHARACTER SET UTF8;
 
 -- suppress DROP IF EXISTS warnings
 DECLARE CONTINUE HANDLER FOR 1051
@@ -270,17 +270,17 @@ DROP FUNCTION IF EXISTS flexviews.get_delta_where;;
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_delta_where(
 v_mview_id INT,
 v_depth TINYINT
-) RETURNS TEXT
+)  RETURNS TEXT CHARACTER SET UTF8
 READS SQL DATA
 BEGIN
-DECLARE v_where_clause TEXT DEFAULT '';
+DECLARE v_where_clause TEXT CHARACTER SET UTF8 default '';
 
 DECLARE v_uow_id_start BIGINT;
 DECLARE v_uow_id_end BIGINT;
-DECLARE v_mview_table_alias TEXT;
+DECLARE v_mview_table_alias TEXT CHARACTER SET UTF8;
 DECLARE v_mview_table_id INT;
 
-DECLARE v_mview_expression TEXT;
+DECLARE v_mview_expression TEXT CHARACTER SET UTF8;
 
 DECLARE v_done BOOLEAN DEFAULT FALSE;
 
@@ -334,14 +334,14 @@ IN v_mview_table_id INT,
 OUT v_uow_id BIGINT
 )
 BEGIN
-DECLARE v_select_clause TEXT;
-DECLARE v_from_clause TEXT;
-DECLARE v_where_clause TEXT;
-DECLARE v_group_clause TEXT;
+DECLARE v_select_clause TEXT CHARACTER SET UTF8;
+DECLARE v_from_clause TEXT CHARACTER SET UTF8;
+DECLARE v_where_clause TEXT CHARACTER SET UTF8;
+DECLARE v_group_clause TEXT CHARACTER SET UTF8;
 
-DECLARE v_sql TEXT default '';
-DECLARE v_mview_table_alias TEXT;
-DECLARE v_delta_table TEXT;
+DECLARE v_sql TEXT CHARACTER SET UTF8 default '';
+DECLARE v_mview_table_alias TEXT CHARACTER SET UTF8;
+DECLARE v_delta_table TEXT CHARACTER SET UTF8;
 
 SELECT CONCAT(mview_schema, '.', mview_name, '_delta')
   INTO v_delta_table
@@ -616,18 +616,18 @@ DROP FUNCTION IF EXISTS `get_delta_from` ;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION get_delta_from (
   v_depth INT
-) RETURNS TEXT CHARSET latin1
+)  RETURNS TEXT CHARACTER SET UTF8
     READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_table_name TEXT;
-DECLARE v_mview_table_alias TEXT;
-DECLARE v_mview_table_schema TEXT;
-DECLARE v_mview_join_condition TEXT;
-DECLARE v_from_clause TEXT default NULL;  
+DECLARE v_mview_table_name TEXT CHARACTER SET UTF8;
+DECLARE v_mview_table_alias TEXT CHARACTER SET UTF8;
+DECLARE v_mview_table_schema TEXT CHARACTER SET UTF8;
+DECLARE v_mview_join_condition TEXT CHARACTER SET UTF8;
+DECLARE v_from_clause TEXT CHARACTER SET UTF8 default NULL;  
 DECLARE v_uow_id_start BIGINT;
 DECLARE v_uow_id_end BIGINT;
-DECLARE v_mvlog_name varchar(250);
+DECLARE v_mvlog_name CHAR(40) CHARACTER SET UTF8;
 
 DECLARE cur_from CURSOR 
 FOR  
@@ -683,12 +683,12 @@ DROP FUNCTION IF EXISTS `get_delta_least_uowid` ;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION get_delta_least_uowid (
   v_depth INT
-) RETURNS TEXT CHARSET latin1
+)  RETURNS TEXT CHARACTER SET UTF8
     READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_table_alias TEXT;
-DECLARE v_list TEXT DEFAULT '';
+DECLARE v_mview_table_alias TEXT CHARACTER SET UTF8;
+DECLARE v_list TEXT CHARACTER SET UTF8 default '';
 DECLARE v_delta_cnt INT default 0;
 DECLARE v_mview_id INT;
 DECLARE cur_from CURSOR 
@@ -733,12 +733,12 @@ DROP FUNCTION IF EXISTS `get_delta_least_gsn` ;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION get_delta_least_gsn (
   v_depth INT
-) RETURNS TEXT CHARSET latin1
+)  RETURNS TEXT CHARACTER SET UTF8
     READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_table_alias TEXT;
-DECLARE v_list TEXT DEFAULT '';
+DECLARE v_mview_table_alias TEXT CHARACTER SET UTF8;
+DECLARE v_list TEXT CHARACTER SET UTF8 default '';
 DECLARE v_delta_cnt INT default 0;
 DECLARE v_mview_id INT;
 DECLARE cur_from CURSOR 
@@ -785,17 +785,17 @@ DROP FUNCTION IF EXISTS `get_delta_aliases`;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION `get_delta_aliases`(  
 v_mview_id INT, 
-v_prefix TEXT, 
+v_prefix TEXT CHARACTER SET UTF8, 
 v_only_groupby BOOLEAN
 )
-RETURNS TEXT 
+ RETURNS TEXT CHARACTER SET UTF8 
 READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_expr_type TEXT;
-DECLARE v_mview_expression TEXT;
-DECLARE v_mview_alias TEXT;
-DECLARE v_select_list TEXT default '';  
+DECLARE v_mview_expr_type TEXT CHARACTER SET UTF8;
+DECLARE v_mview_expression TEXT CHARACTER SET UTF8;
+DECLARE v_mview_alias TEXT CHARACTER SET UTF8;
+DECLARE v_select_list TEXT CHARACTER SET UTF8 default '';  
 DECLARE cur_select CURSOR 
 FOR  
 SELECT IF(mview_expr_type='COLUMN' and v_only_groupby = true,'GROUP',mview_expr_type) ,
@@ -852,16 +852,16 @@ CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_delta_select(
 v_mview_id INT,
 v_method INT,
 v_mview_table_id INT )
-RETURNS TEXT 
+ RETURNS TEXT CHARACTER SET UTF8 
 READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_expr_type TEXT;
-DECLARE v_mview_expression TEXT;
-DECLARE v_mview_alias TEXT;
-DECLARE v_select_list TEXT default '';  
-DECLARE v_dml_type TEXT;
-DECLARE v_mview_table_alias TEXT;
+DECLARE v_mview_expr_type TEXT CHARACTER SET UTF8;
+DECLARE v_mview_expression TEXT CHARACTER SET UTF8;
+DECLARE v_mview_alias TEXT CHARACTER SET UTF8;
+DECLARE v_select_list TEXT CHARACTER SET UTF8 default '';  
+DECLARE v_dml_type TEXT CHARACTER SET UTF8;
+DECLARE v_mview_table_alias TEXT CHARACTER SET UTF8;
 DECLARE cur_select CURSOR 
 FOR  
 SELECT mview_expr_type, 
@@ -954,15 +954,15 @@ DROP FUNCTION IF EXISTS flexviews.get_delta_groupby;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_delta_groupby(
   v_mview_id INT
-) RETURNS TEXT CHARSET latin1
+)  RETURNS TEXT CHARACTER SET UTF8
     READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_expr_type varchar(100);  
-DECLARE v_mview_expression varchar(100); 
-DECLARE v_mview_alias varchar(100);  
-DECLARE v_group_list TEXT default '';  
-DECLARE v_mview_alias_prefixed varchar(150);
+DECLARE v_mview_expr_type TINYTEXT CHARACTER SET UTF8;  
+DECLARE v_mview_expression TINYTEXT CHARACTER SET UTF8; 
+DECLARE v_mview_alias TINYTEXT CHARACTER SET UTF8;  
+DECLARE v_group_list MEDIUMTEXT CHARACTER SET UTF8 default '';  
+DECLARE v_mview_alias_prefixed TINYTEXT CHARACTER SET UTF8;
 DECLARE cur_select CURSOR 
 FOR  
 SELECT mview_expr_type, 
@@ -1002,17 +1002,17 @@ DROP FUNCTION IF EXISTS get_insert;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION  get_insert (
   v_mview_id INT,
-  v_select_stmt TEXT
-) RETURNS TEXT
+  v_select_stmt TEXT CHARACTER SET UTF8
+)  RETURNS TEXT CHARACTER SET UTF8
 READS SQL DATA
 BEGIN
-DECLARE v_mview_name TEXT;
-DECLARE v_mview_schema TEXT; 
-DECLARE v_sql TEXT;
-DECLARE v_mview_expr_type TEXT;
-DECLARE v_mview_alias TEXT;
-DECLARE v_mview_expression TEXT;
-DECLARE v_set_clause TEXT DEFAULT '';
+DECLARE v_mview_name TEXT CHARACTER SET UTF8;
+DECLARE v_mview_schema TEXT CHARACTER SET UTF8; 
+DECLARE v_sql TEXT CHARACTER SET UTF8;
+DECLARE v_mview_expr_type TEXT CHARACTER SET UTF8;
+DECLARE v_mview_alias TEXT CHARACTER SET UTF8;
+DECLARE v_mview_expression TEXT CHARACTER SET UTF8;
+DECLARE v_set_clause TEXT CHARACTER SET UTF8 default '';
 DECLARE v_done BOOLEAN DEFAULT FALSE;
 DECLARE v_only_agg BOOLEAN DEFAULT FALSE;
 DECLARE cur_expr CURSOR 
@@ -1111,15 +1111,15 @@ IN v_id INT
 ) 
 BEGIN
 DECLARE v_mview_id INT;
-DECLARE v_mview_refresh_type TEXT;
-DECLARE v_mview_definition TEXT;
+DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
+DECLARE v_mview_definition TEXT CHARACTER SET UTF8;
 DECLARE v_incremental_hwm BIGINT;
 DECLARE v_mview_enabled BOOLEAN DEFAULT TRUE;
 DECLARE v_refreshed_to_uow_id BIGINT;
 DECLARE v_has_count_star BOOLEAN;
-DECLARE v_message TEXT DEFAULT '';
+DECLARE v_message TEXT CHARACTER SET UTF8 default '';
 DECLARE v_leave_loop BOOLEAN DEFAULT FALSE;
-DECLARE v_sql TEXT;
+DECLARE v_sql TEXT CHARACTER SET UTF8;
 DECLARE v_error BOOLEAN DEFAULT FALSE;
 
 -- this 'loop' gives us an easy way to only do the necessary checks
@@ -1202,7 +1202,7 @@ END LOOP;
 END;;
 
 DROP PROCEDURE IF EXISTS flexviews.rlog;;
-CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.rlog(v_message TEXT)
+CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.rlog(v_message TEXT character set utf8)
 BEGIN
 DECLARE v_tstamp DATETIME;
   IF @fv_rlog = TRUE THEN
@@ -1215,16 +1215,16 @@ DROP FUNCTION IF EXISTS flexviews.get_child_select;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_child_select(  
 v_mview_id INT, 
-v_alias TEXT
+v_alias TEXT CHARACTER SET UTF8
 )
-RETURNS TEXT 
+ RETURNS TEXT CHARACTER SET UTF8
 READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_expr_type TEXT;
-DECLARE v_mview_expression TEXT;
-DECLARE v_mview_alias TEXT;
-DECLARE v_select_list TEXT default '';  
+DECLARE v_mview_expr_type TEXT CHARACTER SET UTF8;
+DECLARE v_mview_expression TEXT CHARACTER SET UTF8;
+DECLARE v_mview_alias TEXT CHARACTER SET UTF8;
+DECLARE v_select_list TEXT CHARACTER SET UTF8 default '';  
 DECLARE v_percentile int default null;
 
 DECLARE cur_select CURSOR 
@@ -1283,7 +1283,7 @@ DROP FUNCTION IF EXISTS `get_delta_join`;;
 CREATE DEFINER=flexviews@localhost FUNCTION `get_delta_join`(  
 v_mview_id INT 
 )
-  RETURNS TEXT
+   RETURNS TEXT CHARACTER SET UTF8
   NOT DETERMINISTIC
   READS SQL DATA
 BEGIN  

@@ -20,15 +20,15 @@ DELIMITER ;;
 
 DROP FUNCTION IF EXISTS flexviews.`get_select`;;
 
-CREATE DEFINER=flexviews@localhost FUNCTION flexviews.`get_select`(  v_mview_id INT, v_mode varchar(10), v_prefix varchar(50)) RETURNS TEXT CHARSET latin1
+CREATE DEFINER=flexviews@localhost FUNCTION flexviews.`get_select`(  v_mview_id INT, v_mode TINYTEXT CHARACTER SET UTF8, v_prefix TINYTEXT CHARACTER SET UTF8) RETURNS TEXT CHARSET latin1
     READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_expr_type varchar(100);  
-DECLARE v_mview_expression TEXT; 
-DECLARE v_mview_alias varchar(100);  
-DECLARE v_select_list TEXT default NULL;  
-DECLARE v_mview_alias_prefixed TEXT; 
+DECLARE v_mview_expr_type TINYTEXT CHARACTER SET UTF8;  
+DECLARE v_mview_expression TEXT CHARACTER SET UTF8; 
+DECLARE v_mview_alias TINYTEXT CHARACTER SET UTF8;  
+DECLARE v_select_list TEXT CHARACTER SET UTF8 default NULL;  
+DECLARE v_mview_alias_prefixed TEXT CHARACTER SET UTF8; 
 DECLARE v_percentile INT;
 
 DECLARE cur_select CURSOR 

@@ -26,12 +26,12 @@ CREATE DEFINER=flexviews@localhost PROCEDURE  `star_transform`(
 )
 body: BEGIN
   DECLARE v_has_star tinyint;
-  DECLARE v_column TEXT;
-  DECLARE v_table_alias TEXT;
+  DECLARE v_column TEXT CHARACTER SET UTF8;
+  DECLARE v_table_alias TEXT CHARACTER SET UTF8;
   DECLARE v_cnt smallint;
   DECLARE v_done BOOLEAN DEFAULT FALSE;
-  DECLARE v_expr TEXT;
-  DECLARE v_alias TEXT;
+  DECLARE v_expr TEXT CHARACTER SET UTF8;
+  DECLARE v_alias TEXT CHARACTER SET UTF8;
 
   DECLARE cur_columns CURSOR
   FOR

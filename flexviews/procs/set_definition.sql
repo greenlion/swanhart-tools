@@ -44,7 +44,7 @@ DROP PROCEDURE IF EXISTS `flexviews`.`set_definition`;;
 */
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `flexviews`.`set_definition`(
   IN v_mview_id INT,
-  IN v_definition_sql TEXT
+  IN v_definition_sql TEXT CHARACTER SET UTF8
 )
 BEGIN
  UPDATE flexviews.mview

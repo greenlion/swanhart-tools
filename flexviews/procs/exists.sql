@@ -43,7 +43,7 @@ DROP FUNCTION IF EXISTS `flexviews`.`schema_exists`;;
  *     call flexviews.schema_exists('test');
 ******
 */
-CREATE DEFINER=`flexviews`@`localhost` FUNCTION `flexviews`.`schema_exists`(v_schema VARCHAR(64))
+CREATE DEFINER=`flexviews`@`localhost` FUNCTION `flexviews`.`schema_exists`(v_schema VARCHAR(64) CHARACTER SET UTF8)
     RETURNS BOOLEAN
     NOT DETERMINISTIC
     READS SQL DATA
@@ -72,7 +72,7 @@ DROP FUNCTION IF EXISTS `flexviews`.`table_exists`;;
  *     call flexviews.schema_exists('information_schema', 'SCHEMATA');
 ******
 */
-CREATE DEFINER=`flexviews`@`localhost` FUNCTION `flexviews`.`table_exists`(v_schema VARCHAR(64), v_table VARCHAR(64))
+CREATE DEFINER=`flexviews`@`localhost` FUNCTION `flexviews`.`table_exists`(v_schema VARCHAR(64) CHARACTER SET UTF8, v_table VARCHAR(64) CHARACTER SET UTF8)
     RETURNS BOOLEAN
     NOT DETERMINISTIC
     READS SQL DATA

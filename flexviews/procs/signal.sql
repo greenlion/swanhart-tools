@@ -21,7 +21,7 @@ DELIMITER ;;
 DROP PROCEDURE IF EXISTS flexviews.signal;;
 
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`signal`( 
-  IN in_errortext VARCHAR(255)
+  IN in_errortext TINYTEXT CHARACTER SET UTF8
 )
 BEGIN
    /*!50404

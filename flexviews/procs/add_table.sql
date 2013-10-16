@@ -51,10 +51,10 @@ DROP PROCEDURE IF EXISTS flexviews.`add_table` ;;
 */
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `flexviews`.`add_table`(
   IN v_mview_id INT,
-  IN v_mview_table_schema TEXT,
-  IN v_mview_table_name TEXT, 
-  IN v_mview_table_alias TEXT,
-  IN v_mview_join_condition TEXT
+  IN v_mview_table_schema TEXT CHARACTER SET UTF8,
+  IN v_mview_table_name TEXT CHARACTER SET UTF8, 
+  IN v_mview_table_alias TEXT CHARACTER SET UTF8,
+  IN v_mview_join_condition TEXT CHARACTER SET UTF8
 )
 BEGIN
 

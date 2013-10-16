@@ -22,15 +22,15 @@ DROP FUNCTION IF EXISTS flexviews.get_delta_groupby;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_delta_groupby(
   v_mview_id INT
-) RETURNS TEXT CHARSET latin1
+) RETURNS TEXT CHARACTER SET UTF8
     READS SQL DATA
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
-DECLARE v_mview_expr_type varchar(100);  
-DECLARE v_mview_expression varchar(100); 
-DECLARE v_mview_alias varchar(100);  
-DECLARE v_group_list TEXT default '';  
-DECLARE v_mview_alias_prefixed varchar(150);
+DECLARE v_mview_expr_type TINYTEXT CHARACTER SET UTF8;  
+DECLARE v_mview_expression TINYTEXT CHARACTER SET UTF8; 
+DECLARE v_mview_alias TINYTEXT CHARACTER SET UTF8;  
+DECLARE v_group_list TEXT CHARACTER SET UTF8 default '' ;
+DECLARE v_mview_alias_prefixed TINYTEXT CHARACTER SET UTF8;
 DECLARE cur_select CURSOR 
 FOR  
 SELECT mview_expr_type, 

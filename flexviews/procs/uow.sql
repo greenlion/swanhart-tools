@@ -84,7 +84,7 @@ END;;
 
 DROP PROCEDURE IF EXISTS flexviews.uow_execute;;
 
-CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.uow_execute(IN v_sql TEXT, OUT v_uow_id BIGINT)
+CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.uow_execute(IN v_sql TEXT CHARACTER SET UTF8, OUT v_uow_id BIGINT)
 BEGIN
   DECLARE v_signal_id INT;
   START TRANSACTION;

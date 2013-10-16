@@ -39,8 +39,8 @@ DROP FUNCTION IF EXISTS flexviews.get_id;;
 
 
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_id (
-  v_mview_schema TEXT,
-  v_mview_name TEXT
+  v_mview_schema TEXT CHARACTER SET UTF8,
+  v_mview_name TEXT CHARACTER SET UTF8
 )
 RETURNS INT UNSIGNED
 NOT DETERMINISTIC

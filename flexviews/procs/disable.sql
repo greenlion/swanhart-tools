@@ -49,8 +49,8 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`disable`(
   COMMENT 'Disable a materialized view'
 BEGIN
   -- DECLARE v_mview_enabled tinyint(1);
-  DECLARE v_mview_name TEXT;
-  DECLARE v_mview_schema TEXT;
+  DECLARE v_mview_name TEXT character set utf8;
+  DECLARE v_mview_schema TEXT character set utf8;
   DECLARE v_mview_enabled INT;
 
   DECLARE v_child_mview_id INT;

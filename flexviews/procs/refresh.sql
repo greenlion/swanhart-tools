@@ -59,11 +59,16 @@ DROP PROCEDURE IF EXISTS flexviews.refresh ;;
 */
 CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.refresh(
   IN v_mview_id INT,
-  IN v_mode TEXT,
+  IN v_mode ENUM('AUTO','COMPLETE','FULL','BOTH','COMPUTE','APPLY'),
   IN v_uow_id BIGINT 
 )
 BEGIN
-DECLARE v_mview_refresh_type TEXT;
+DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
+
+-- TODO: If COMPLETE is used on a INCREMENTAL view, then rebuild it from
+-- scratch and swap, as if it was a COMPLETE view.  This is to fix 
+-- broken or updated INCREMENTAL views
+-- Implement this along with the APPEND mode
 
 DECLARE v_mview_last_refresh DATETIME default NULL;
 DECLARE v_mview_refresh_period INT;
@@ -72,12 +77,12 @@ DECLARE v_incremental_hwm BIGINT;
 DECLARE v_refreshed_to_uow_id BIGINT;
 DECLARE v_current_uow_id BIGINT;
 DECLARE v_child_mview_id INT DEFAULT NULL;
-DECLARE v_sql TEXT DEFAULT '';
+DECLARE v_sql TEXT CHARACTER SET UTF8 DEFAULT '';
 DECLARE v_signal_id BIGINT DEFAULT NULL;
-DECLARE v_mview_schema TEXT;
-DECLARE v_mview_name TEXT;
+DECLARE v_mview_schema TEXT CHARACTER SET UTF8;
+DECLARE v_mview_name TEXT CHARACTER SET UTF8;
 DECLARE v_pos INT;
-DECLARE v_using_clause TEXT DEFAULT '';
+DECLARE v_using_clause TEXT CHARACTER SET UTF8 DEFAULT '';
 
 SET v_mode = UPPER(v_mode);
 SET max_sp_recursion_depth=255;
@@ -269,8 +274,8 @@ END IF;
      -- this will apply unapplied deltas up to v_current_uow_id
 
      BEGIN 
-     DECLARE v_child_mview_name TEXT;
-     DECLARE v_agg_set TEXT;
+     DECLARE v_child_mview_name TEXT CHARACTER SET UTF8;
+     DECLARE v_agg_set TEXT CHARACTER SET UTF8;
 
       SET @now := UNIX_TIMESTAMP(NOW());
       CALL flexviews.apply_delta(v_mview_id, v_current_uow_id);

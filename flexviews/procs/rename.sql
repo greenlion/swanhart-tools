@@ -46,15 +46,15 @@ DROP PROCEDURE IF EXISTS `rename`;;
 */
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `rename`(
   IN v_mview_id INT,
-  IN v_mview_schema_new TEXT,
-  IN v_mview_name_new TEXT 
+  IN v_mview_schema_new TEXT CHARACTER SET UTF8,
+  IN v_mview_name_new TEXT CHARACTER SET UTF8
 )
 BEGIN
   DECLARE v_mview_enabled tinyint(1);
-  DECLARE v_mview_name TEXT DEFAULT NULL; 
-  DECLARE v_mview_schema TEXT;
+  DECLARE v_mview_name TEXT CHARACTER SET UTF8 DEFAULT NULL; 
+  DECLARE v_mview_schema TEXT CHARACTER SET UTF8;
 
-  DECLARE v_sql TEXT;
+  DECLARE v_sql TEXT CHARACTER SET UTF8;
 
   DECLARE EXIT HANDLER
     FOR 1062

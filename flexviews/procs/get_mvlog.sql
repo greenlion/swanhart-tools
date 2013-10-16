@@ -41,13 +41,13 @@ DROP FUNCTION IF EXISTS flexviews.get_mvlog;;
 
 
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_mvlog (
-  v_table_schema TEXT,
-  v_table_name TEXT
+  v_table_schema TEXT character set utf8,
+  v_table_name TEXT character set utf8
 )
-RETURNS TEXT
+RETURNS TEXT character set utf8
 READS SQL DATA
 BEGIN
-DECLARE v_mvlog_name TEXT;
+DECLARE v_mvlog_name TEXT character set utf8;
 DECLARE v_active_flag BOOLEAN;
   SELECT mvlog_name, 
          active_flag

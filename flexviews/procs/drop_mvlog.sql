@@ -37,11 +37,11 @@ DROP PROCEDURE IF EXISTS flexviews.`drop_mvlog` ;;
 ******
 */
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`drop_mvlog`(
-   IN v_schema_name VARCHAR(100),
-   IN v_table_name VARCHAR(50) 
+   IN v_schema_name TINYTEXT CHARACTER SET UTF8,
+   IN v_table_name TINYTEXT CHARACTER SET UTF8
 )
 BEGIN
-  DECLARE v_mvlog_name TEXT;
+  DECLARE v_mvlog_name TEXT CHARACTER SET UTF8;
 
   -- suppress DROP IF EXISTS warnings
   DECLARE CONTINUE HANDLER FOR 1051

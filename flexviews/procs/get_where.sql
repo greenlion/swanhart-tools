@@ -21,12 +21,12 @@ DELIMITER ;;
 DROP FUNCTION IF EXISTS flexviews.get_where;;
 
 CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_where(v_mview_id INT)
-RETURNS TEXT
+RETURNS TEXT character set utf8
 READS SQL DATA
 BEGIN
 DECLARE v_done BOOLEAN DEFAULT FALSE;
-DECLARE v_where_clause TEXT DEFAULT '';
-DECLARE v_mview_expression TEXT;
+DECLARE v_where_clause TEXT character set utf8 DEFAULT '';
+DECLARE v_mview_expression TEXT character set utf8;
 DECLARE cur_expr CURSOR
 FOR
 SELECT mview_expression
