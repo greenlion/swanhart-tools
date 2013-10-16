@@ -1,6 +1,6 @@
 [flexcdc]
 ;location of mysqlbinlog.  path will be searched if this path is not provided
-mysqlbinlog=/usr/bin/mysqlbinlog
+mysqlbinlog=/usr/local/mysql/bin/mysqlbinlog
 
 ;The database in which to write changelogs and in which to store the state tables (see the next section).  If you are using Flexviews, then you MUST NOT change this value.
 database=flexviews
@@ -25,6 +25,13 @@ log_retention_interval="10 DAY"
 ;since flexcdc uses row-based replication, you don't have to worry about cross database changes 
 
 ;only_databases=flexviews,db1,db2,db3
+;
+
+;FlexCDC normally records "before" images for updates (recorded as a DELETE).  This can be disabled
+;by setting skip_before_update=true.  In that case, only an INSERT will be written.
+;SETTING THIS OPTION *IS NOT COMPATIBLE WITH FLEXVIEWS MATERIALIZED VIEWS*!!!!!!!!!
+;ONLY SET THIS OPTION IF USING FLEXCDC STANDALONE AND YOU KNOW WHAT YOU ARE DOING
+skip_before_update=false
 
 ;Automatically create changelog tables and enable changelogging for ALL tables.
 ;You might not want to use this option if any of the following is true:

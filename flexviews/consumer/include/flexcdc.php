@@ -113,6 +113,8 @@ EOREGEX
 	protected $binlogServerId=1;
 
 	protected $gsn_hwm;
+
+	protected $skip_before_update = false;
 	
 	public  $raiseWarnings = false;
 	
@@ -165,6 +167,8 @@ EOREGEX
 				$this->onlyDatabases[] = trim($val);
 			}
 		}
+
+		if(!empty($settings['flexcdc']['skip_before_update'])) $this->skip_before_update = $settings['flexcdc']['skip_before_update'];
 
 		if(!empty($settings['flexcdc']['mvlogs'])) $this->mvlogs=$settings['flexcdc']['mvlogs'];
 		if(!empty($settings['flexcdc']['binlog_consumer_status'])) $this->binlog_consumer_status=$settings['flexcdc']['binlog_consumer_status'];
@@ -605,6 +609,7 @@ EOREGEX
     
     /* Called when a transaction commits */
 	function commit_transaction() {
+
 		//Handle bulk insertion of changes
 		if(!empty($this->inserts) || !empty($this->deletes)) {
 			$this->process_rows();
@@ -814,6 +819,7 @@ EOREGEX
 			#ignore SET and USE for now.  I don't think we need it for anything.
 			case 'SET':
 				break;
+
 			case 'USE':
 				$this->activeDB = trim($args);	
 				$this->activeDB = str_replace($this->delimiter,'', $this->activeDB);
@@ -823,6 +829,7 @@ EOREGEX
 			case 'BEGIN':
 				$this->start_transaction();
 				break;
+
 			#END OF BINLOG, or binlog terminated early, or mysqlbinlog had an error
 			case 'ROLLBACK':
 				$this->rollback_transaction();
@@ -915,10 +922,8 @@ EOREGEX
 				}
 						
 				break;
-			#ALTER we can deal with via some clever regex, when I get to it.  Need a test case
-			#with some complex alters
+
 			case 'ALTER':
-				/* TODO: If the table is not being logged, ignore ALTER on it...  If it is being logged, modify ALTER appropriately and apply to the log.*/
 				$tokens = FlexCDC::split_sql($sql);
 				$is_alter_table = -1;
 				foreach($tokens as $key => $token) {
@@ -1059,6 +1064,7 @@ EOREGEX
 		#in another procedure which also reads from $proc, and we
 		#can't seek backwards, so this function returns the next line to process
 		#In this case we use that line instead of reading from the file again
+		$this->current_dml = null;
 		while( !feof($proc) || $lastLine !== '') {
 			if($lastLine) {
 				#use a previously saved line (from process_rowlog)
@@ -1090,7 +1096,8 @@ EOREGEX
 				} else {
 					#decoded RBR changes are prefixed with ###				
 					if($prefix == "### I" || $prefix == "### U" || $prefix == "### D") {
-						if(preg_match('/### (UPDATE|INSERT INTO|DELETE FROM)\s([^.]+)\.(.*$)/', $line, $matches)) {
+						if(preg_match('/### (UPDATE|INSERT|DELETE)(?: INTO| FROM| )\s*([^.]+)\.(.*$)/', $line, $matches)) {
+							$this->DML = $matches[1];
 							$this->db          = trim($matches[2],'`');
 							$this->base_table  = trim($matches[3],'`');
 
@@ -1151,7 +1158,7 @@ EOREGEX
 				if(!empty($this->row)) {
 					switch($mode) {
 						case -1:
-							$this->delete_row();
+							if( $this->DML == "DELETE" || (!$this->skip_before_update && $this->DML == "UPDATE"))$this->delete_row();
 							break;
 						case 1:
 							$this->insert_row();
@@ -1168,7 +1175,7 @@ EOREGEX
 				if(!empty($this->row)) {
 					switch($mode) {
 						case -1:
-							$this->delete_row();
+							if( $this->DML == "DELETE" || (!$this->skip_before_update && $this->DML == "UPDATE"))$this->delete_row();
 							break;
 						case 1:
 							$this->insert_row();
@@ -1194,7 +1201,7 @@ EOREGEX
 				if(!$skip_rows) {
 					switch($mode) {
 						case -1:
-							$this->delete_row();
+							if( $this->DML == "DELETE" || (!$this->skip_before_update && $this->DML == "UPDATE"))$this->delete_row();
 							break;
 						case 1:
 							$this->insert_row();
