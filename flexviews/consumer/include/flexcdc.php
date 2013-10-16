@@ -241,7 +241,7 @@ EOREGEX
 			return $cache[$key];
 		} 
 
-		$log_name = $schema . '_' . $table;
+		$log_name = 'mvlog_' . md5(md5($schema) . md5($table));
 		$table  = mysql_real_escape_string($table, $this->dest);
 		$pos	= mysql_real_escape_string($pos);
 
@@ -268,7 +268,7 @@ EOREGEX
 			return $cache[$key];
 		} 
 
-		$log_name = $schema . '_' . $table;
+		$log_name = 'mvlog_' . md5(md5($schema) .md5($table));
 		$table  = mysql_real_escape_string($table, $this->dest);
 		$pos	= mysql_real_escape_string($pos);
 		$sql = 'select column_type like "%%unsigned%%" is_unsigned from information_schema.columns where table_schema="%s" and table_name="%s" and ordinal_position=%d';
@@ -713,7 +713,6 @@ EOREGEX
 							$col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
 							
 						}
-					
 						$datatype = $this->table_ordinal_datatype($this->tables[$table]['schema'],$this->tables[$table]['table'],$pos+1);
 						switch(trim($datatype)) {
 							case 'int':
@@ -751,6 +750,8 @@ EOREGEX
 							break;
 
 							default:
+							echo "INVALID DATA TYPE DETECTED\n";
+								exit;
 								if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
 							break;
 						}
