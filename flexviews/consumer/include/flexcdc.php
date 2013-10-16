@@ -42,7 +42,7 @@ function echo1($message) {
 
 }
 
-function my_mysql_query($a, $b=NULL, $debug=true) {
+function my_mysql_query($a, $b=NULL, $debug=false) {
 	if($debug) echo "$a\n";
 
 	if($b) {
@@ -750,9 +750,8 @@ EOREGEX
 							break;
 
 							default:
-							echo "INVALID DATA TYPE DETECTED\n";
-								exit;
-								if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
+								die1("INVALID DATA TYPE DETECTED\n");
+							//	if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
 							break;
 						}
 
