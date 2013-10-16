@@ -847,7 +847,6 @@ EOREGEX
 				break;
 
 			case 'RENAME':
-
 				
 				#TODO: Find some way to make atomic rename atomic.  split it up for now
 				$tokens = FlexCDC::split_sql($sql);
@@ -882,7 +881,7 @@ EOREGEX
 						$old_schema = $s[0];
 						$old_base_table = $s[1];
 					}
-					$old_log_table = str_replace('.','_',$old_table);
+					$old_log_table = 'mvlog_' . md5(md5($old_schema) . md5($old_base_table));
 					
 					$new_table = $tokens[4];
 					if(strpos($new_table, '.') === false) {
@@ -896,11 +895,10 @@ EOREGEX
 						$new_base_table = $s[1];
 					}
 					
-					$new_log_table = str_replace('.', '_', $new_table);
+					$new_log_table = 'mvlog_' . md5(md5($new_schema) . md5($new_base_table));
 										
 					$clause = "$old_log_table TO $new_log_table";
 							
-					
 					$sql = "DELETE from `" . $this->mvlogs . "` where table_name='$old_base_table' and table_schema='$old_schema'";
 					
 					my_mysql_query($sql, $this->dest) or die1($sql . "\n" . mysql_error($this->dest) . "\n");
@@ -908,12 +906,11 @@ EOREGEX
 					my_mysql_query($sql, $this->dest) or die1($sql . "\n" . mysql_error($this->dest) . "\n");
 					
 					$sql = 'RENAME TABLE ' . $clause;
-					@my_mysql_query($sql, $this->dest);# or die1('DURING RENAME:\n' . $new_sql . "\n" . mysql_error($this->dest) . "\n");
+					@my_mysql_query($sql, $this->dest) or die1('DURING RENAME:\n' . $new_sql . "\n" . mysql_error($this->dest) . "\n");
 					my_mysql_query('commit', $this->dest);					
 				
 					$this->mvlogList = array();
 					$this->refresh_mvlog_cache();
-					
 					
 				}
 						
@@ -947,7 +944,7 @@ EOREGEX
 				}
 				unset($table);
 				
-				$old_log_table = $s[0] . '_' . $s[1];
+				$old_log_table = 'mvlog_' . md5(md5($old_schema) . md5($old_base_table));
 				
 				#IGNORE ALTER TYPES OTHER THAN TABLE
 				if($is_alter_table>-1) {
@@ -986,15 +983,14 @@ EOREGEX
 								}
 								
 								if(strpos($tokens[1], '.') !== false) {
-									$new_log_table = $tokens[1];
 									$s = explode(".", $tokens[1]);
 									$new_schema = $s[0];
 									$new_base_table = $s[1];
 								} else {
 									$new_base_table = $tokens[1];
-									$new_log_table = $this->activeDB . '.' . $tokens[1];
+									$new_schema = $this->activeDB;
 								}
-								$new_log_table = str_replace('.', '_', $new_log_table);
+								$new_log_table = 'mvlog_' . md5(md5($new_schema) . md5($new_base_table));
 								$clause = "RENAME TO $new_log_table";
 																			
 							}
