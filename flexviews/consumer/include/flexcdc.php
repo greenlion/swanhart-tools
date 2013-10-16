@@ -238,7 +238,7 @@ EOREGEX
 
 		$key = $schema . $table . $pos;
 		if(!empty($cache[$key])) {
-			return $cache[$key];
+			return $cache[$key][0];
 		} 
 
 		$log_name = 'mvlog_' . md5(md5($schema) . md5($table));
@@ -261,27 +261,19 @@ EOREGEX
 
 	public function table_ordinal_is_unsigned($schema,$table,$pos) {
 		/* NOTE: we look at the LOG table to see the structure, because it might be different from the source if the consumer is behind and an alter has happened on the source*/
-		static $cache;
-
-		$key = $schema . $table . $pos;
-		if(!empty($cache[$key])) {
-			return $cache[$key];
-		} 
 
 		$log_name = 'mvlog_' . md5(md5($schema) .md5($table));
 		$table  = mysql_real_escape_string($table, $this->dest);
 		$pos	= mysql_real_escape_string($pos);
-		$sql = 'select column_type like "%%unsigned%%" is_unsigned from information_schema.columns where table_schema="%s" and table_name="%s" and ordinal_position=%d';
+		$sql = 'select (column_type like "%%unsigned%%") as is_unsigned from information_schema.columns where table_schema="%s" and table_name="%s" and ordinal_position=%d';
 
 		$sql = sprintf($sql, $this->mvlogDB, $log_name, $pos+4);
 
 		$stmt = my_mysql_query($sql, $this->dest);
 		if($row = mysql_fetch_array($stmt) ) {
-			$cache[$key] = $row[0];	
 			return($row[0]);
 		}
 		return false;
-			
 		
 	}
 	
@@ -714,7 +706,11 @@ EOREGEX
 							
 						}
 						$datatype = $this->table_ordinal_datatype($this->tables[$table]['schema'],$this->tables[$table]['table'],$pos+1);
+						if(strtoupper($col) === "NULL") $datatype="NULL";
 						switch(trim($datatype)) {
+							case 'NULL':
+								break;
+
 							case 'int':
 							case 'tinyint':
 							case 'mediumint':
@@ -750,8 +746,7 @@ EOREGEX
 							break;
 
 							default:
-								die1("INVALID DATA TYPE DETECTED\n");
-							//	if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
+								if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
 							break;
 						}
 
