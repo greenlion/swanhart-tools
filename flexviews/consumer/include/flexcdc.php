@@ -113,8 +113,10 @@ EOREGEX
 	protected $binlogServerId=1;
 
 	protected $gsn_hwm;
+	protected $dml_type;
 
 	protected $skip_before_update = false;
+	protected $mark_updates = false;
 	
 	public  $raiseWarnings = false;
 	
@@ -152,7 +154,7 @@ EOREGEX
 	public function __construct($settings = NULL, $no_connect = false) {
 		if(!$settings) {
 			$settings = $this->read_settings();
-		} 
+		}
 		$this->settings = $settings;
 		if(!$this->cmdLine) $this->cmdLine = `which mysqlbinlog`;
 		if(!$this->cmdLine) {
@@ -169,12 +171,17 @@ EOREGEX
 		}
 
 		if(!empty($settings['flexcdc']['skip_before_update'])) $this->skip_before_update = $settings['flexcdc']['skip_before_update'];
+		if(!empty($settings['flexcdc']['mark_updates'])) $this->mark_updates = $settings['flexcdc']['mark_updates'];
 
 		if(!empty($settings['flexcdc']['mvlogs'])) $this->mvlogs=$settings['flexcdc']['mvlogs'];
 		if(!empty($settings['flexcdc']['binlog_consumer_status'])) $this->binlog_consumer_status=$settings['flexcdc']['binlog_consumer_status'];
 		if(!empty($settings['flexcdc']['mview_uow'])) $this->mview_uow=$settings['flexcdc']['mview_uow'];
 
 		if(!empty($settings['flexcdc']['log_retention_interval'])) $this->log_retention_interval=$settings['flexcdc']['log_retention_interval'];
+		
+		foreach($settings['flexcdc'] as $kdisp => $vdisp) {
+			echo "{$kdisp}={$vdisp}\n";
+		}
 		
 		#the mysqlbinlog command line location may be set in the settings
 		#we will autodetect the location if it is not specified explicitly
@@ -209,8 +216,6 @@ EOREGEX
 		$this->settings = $settings;
 	    
 	}
-
-		
 
 	protected function initialize() {
 		if($this->source === false) $this->source = $this->get_source(true);
@@ -453,7 +458,6 @@ EOREGEX
 		}
 
 		return $settings;
-
 	}
 
 	
@@ -633,6 +637,7 @@ EOREGEX
 		if ( $this->bulk_insert ) {
 			if(empty($this->deletes[$key])) $this->deletes[$key] = array();
 			$this->row['fv$gsn'] = $this->gsn_hwm;
+			$this->row['fv$DML'] = $this->DML;
 			$this->deletes[$key][] = $this->row;
 			if(count($this->deletes[$key]) >= 10000) {
 				$this->process_rows();	
@@ -646,7 +651,12 @@ EOREGEX
 				$col = mysql_real_escape_string($col);
 				$row[] = "'$col'";
 			}
-			$valList = "(-1, @fv_uow_id, {$this->binlogServerId},{$this->gsn_hwm}," . implode(",", $row) . ")";
+      if( $this->DML == "UPDATE" && $this->mark_updates ) {
+        $this->dml_type=-2;
+      } else {
+        $this->dml_type=-1;
+      }
+			$valList = "({$this->dml_type}, @fv_uow_id, {$this->binlogServerId},{$this->gsn_hwm}," . implode(",", $row) . ")";
 			$sql = sprintf("INSERT INTO `%s`.`%s` VALUES %s", $this->mvlogDB, $this->mvlog_table, $valList );
 			my_mysql_query($sql, $this->dest) or die1("COULD NOT EXEC SQL:\n$sql\n" . mysql_error() . "\n");
 		}
@@ -660,6 +670,7 @@ EOREGEX
 		if ( $this->bulk_insert ) {
 			if(empty($this->inserts[$key])) $this->inserts[$key] = array();
 			$this->row['fv$gsn'] = $this->gsn_hwm;
+			$this->row['fv$DML'] = $this->DML;
 			$this->inserts[$key][] = $this->row;
 			if(count($this->inserts[$key]) >= 10000) {
 				$this->process_rows();	
@@ -673,7 +684,12 @@ EOREGEX
 				$col = mysql_real_escape_string($col);
 				$row[] = "'$col'";
 			}
-			$valList = "(1, @fv_uow_id, $this->binlogServerId,{$this->gsn_hwm}," . implode(",", $row) . ")";
+      if( $this->DML == "UPDATE" && $this->mark_updates ) {
+        $this->dml_type=2;
+      } else {
+        $this->dml_type=1;
+      }
+			$valList = "({$this->dml_type}, @fv_uow_id, $this->binlogServerId,{$this->gsn_hwm}," . implode(",", $row) . ")";
 			$sql = sprintf("INSERT INTO `%s`.`%s` VALUES %s", $this->mvlogDB, $this->mvlog_table, $valList );
 			my_mysql_query($sql, $this->dest) or die1("COULD NOT EXEC SQL:\n$sql\n" . mysql_error() . "\n");
 		}
@@ -699,6 +715,8 @@ EOREGEX
 				foreach($rows as $the_row) {	
 					$row = array();
 					$gsn = $the_row['fv$gsn'];
+					$DML = $the_row['fv$DML'];
+					unset($the_row['fv$DML']);
 					unset($the_row['fv$gsn']);
 					foreach($the_row as $pos => $col) {
 						if($col[0] == "'") {
@@ -754,6 +772,10 @@ EOREGEX
 					}
 
 					if($valList) $valList .= ",\n";	
+
+  				if( $this->DML == "UPDATE" && $this->mark_updates ) {
+					  $mode=$mode*2;
+					}
 					$valList .= "($mode, @fv_uow_id, $this->binlogServerId,$gsn," . implode(",", $row) . ")";
 					$bytes = strlen($valList) + strlen($sql);
 					$allowed = floor($this->max_allowed_packet * .9);  #allowed len is 90% of max_allowed_packet	
@@ -1148,12 +1170,12 @@ EOREGEX
 		
 		while($line = fgets($proc)) {
 			$line = trim($line);	
-            #DELETE and UPDATE statements contain a WHERE clause with the OLD row image
+      #DELETE and UPDATE statements contain a WHERE clause with the OLD row image
 			if($line == "### WHERE") {
 				if(!empty($this->row)) {
 					switch($mode) {
 						case -1:
-							if( $this->DML == "DELETE" || (!$this->skip_before_update && $this->DML == "UPDATE"))$this->delete_row();
+						  if( $this->DML == "DELETE" || (!$this->skip_before_update && $this->DML == "UPDATE"))$this->delete_row();
 							break;
 						case 1:
 							$this->insert_row();
