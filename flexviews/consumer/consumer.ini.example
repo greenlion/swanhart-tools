@@ -33,6 +33,13 @@ log_retention_interval="10 DAY"
 ;ONLY SET THIS OPTION IF USING FLEXCDC STANDALONE AND YOU KNOW WHAT YOU ARE DOING
 skip_before_update=false
 
+;FlexCDC normally marks INSERTS as a dml_type=1 and DELETEDS as dml_type=-1.
+;Some ETLs need to know that a insert or delete is from an update statement.
+;set mark_updates=true if you want the dml_type for INSERTS to be 2 and for DELETES -2.
+;SETTING THIS OPTION *IS NOT COMPATIBLE WITH FLEXVIEWS MATERIALIZED VIEWS*!!!!!!!!!
+;ONLY SET THIS OPTION IF USING FLEXCDC STANDALONE AND YOU KNOW WHAT YOU ARE DOING
+mark_updates=true
+
 ;Automatically create changelog tables and enable changelogging for ALL tables.
 ;You might not want to use this option if any of the following is true:
 ;  you have lots of tables
