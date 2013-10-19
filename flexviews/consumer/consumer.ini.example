@@ -38,7 +38,7 @@ skip_before_update=false
 ;set mark_updates=true if you want the dml_type for INSERTS to be 2 and for DELETES -2.
 ;SETTING THIS OPTION *IS NOT COMPATIBLE WITH FLEXVIEWS MATERIALIZED VIEWS*!!!!!!!!!
 ;ONLY SET THIS OPTION IF USING FLEXCDC STANDALONE AND YOU KNOW WHAT YOU ARE DOING
-mark_updates=true
+mark_updates=false
 
 ;Automatically create changelog tables and enable changelogging for ALL tables.
 ;You might not want to use this option if any of the following is true:
@@ -66,6 +66,16 @@ bulk_insert=true
 ;recently committed.
 sleep_increment=.25
 sleep_maximum=5
+
+;How long consumer_safe.sh sleeps for between retries (default 30 seconds)
+failure_sleep_time=30
+
+;Where to write the consumer safe .ini file
+;make this is a symlink or hard link or a path
+failure_log_file=flex_cdc_log.log
+
+;where to send an email with a tail of the flexcdc.err file
+failure_email_address=root@localhost
 
 ;The SOURCE is where the change logs are read from.  This does not have to be the same as the local machine.
 ;this user requires "grant replication client,replication slave"
