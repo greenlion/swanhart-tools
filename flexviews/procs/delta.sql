@@ -959,7 +959,7 @@ CREATE DEFINER=flexviews@localhost FUNCTION flexviews.get_delta_groupby(
 BEGIN  
 DECLARE v_done boolean DEFAULT FALSE;  
 DECLARE v_mview_expr_type TINYTEXT CHARACTER SET UTF8;  
-DECLARE v_mview_expression TINYTEXT CHARACTER SET UTF8; 
+DECLARE v_mview_expression TEXT CHARACTER SET UTF8; 
 DECLARE v_mview_alias TINYTEXT CHARACTER SET UTF8;  
 DECLARE v_group_list MEDIUMTEXT CHARACTER SET UTF8 default '';  
 DECLARE v_mview_alias_prefixed TINYTEXT CHARACTER SET UTF8;
