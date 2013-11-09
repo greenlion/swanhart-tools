@@ -101,7 +101,7 @@ DROP PROCEDURE IF EXISTS flexviews.`add_expr` ;;
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`add_expr`(
   IN v_mview_id INT,
   IN v_mview_expr_type TINYTEXT CHARACTER SET UTF8,
-  IN v_mview_expression TINYTEXT CHARACTER SET UTF8,
+  IN v_mview_expression TEXT CHARACTER SET UTF8,
   IN v_mview_alias TINYTEXT CHARACTER SET UTF8
 )
 BEGIN
