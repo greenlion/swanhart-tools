@@ -272,11 +272,11 @@ class SQLrw {
 						$id = "expr_" . mt_rand(1, 100000);
 						
 						$this->task_query .= "," . $gb['base_expr'] . ' AS `' . $id . '`';
-						if ($this->task_group !== "") $this->task_group .= ',';
-						$this->task_group .= $gb['base_expr'];
-						
 						if ($this->final_group !== "") $this->final_group .= ',';
-						$this->final_group .= "`" . $id . "`";
+						$this->final_group .= $gb['base_expr'];
+						
+						if ($this->task_group !== "") $this->task_group .= ',';
+						$this->task_group .= "`" . $id . "`";
 					}
 				}
 			}
