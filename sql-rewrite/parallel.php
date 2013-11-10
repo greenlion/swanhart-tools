@@ -7,7 +7,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 	private $final_query = ""; //Query to send to the coordination node
 	private $group = array(); //list of positions which contain non-aggregate functions
 	private $group_aliases = array(); //list of group aliases which will be indexed on the aggregation temp table
-	private $final_odku = array();
+	private $task_odku = array();
 	private $non_distrib = false;
 	private $used_colrefs = array();
 	private $push_pos = 0;
@@ -84,7 +84,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 		$this->final_query = ""; //Query to send to the coordination node
 		$this->group = array(); //list of positions which contain non-aggregate functions
 		$this->group_aliases = array(); //list of group aliases which will be indexed on the aggregation temp table
-		$this->final_odku = array();
+		$this->task_odku = array();
 		$this->used_agg_func = 0;
 		$this->non_distrib = false;
 		$this->used_colrefs = array();
@@ -118,7 +118,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 		$this->create_sql .= " AS $create_subquery ";
 
 		foreach($this->task_sql as $idx => $sql) {
-			$this->task_sql[$idx] = "INSERT INTO " . $this->table_name . " " . $sql;
+			$this->task_sql[$idx] = "INSERT INTO {$this->table_name} ({$sql}) {$this->task_odku}";
 		}
 
 		/* the plan will be executed from the bottom to the top (0 is the bottom) and all queries at a given "level" are elgible to be executed in parallel */
@@ -294,19 +294,19 @@ class RewriteParallelRule extends RewriteBaseRule {
 								switch (strtoupper($o['base_expr'])) {
 									
 									case 'SUM':
-										$this->final_odku[] = "$expr_alias=$expr_alias + VALUES($expr_alias)";
+										$this->task_odku[] = "$expr_alias=$expr_alias + VALUES($expr_alias)";
 										break;
 									
 									case 'MIN':
-										$this->final_odku[] = "$expr_alias=IF($expr_alias < VALUES($expr_alias), VALUES($expr_alias),$expr_alias)";
+										$this->task_odku[] = "$expr_alias=IF($expr_alias < VALUES($expr_alias), VALUES($expr_alias),$expr_alias)";
 										break;
 									
 									case 'MAX':
-										$this->final_odku[] = "$expr_alias=IF($expr_alias > VALUES($expr_alias), VALUES($expr_alias), $expr_alias)";
+										$this->task_odku[] = "$expr_alias=IF($expr_alias > VALUES($expr_alias), VALUES($expr_alias), $expr_alias)";
 										break;
 									
 									case 'COUNT':
-										$this->final_odku[] = "$expr_alias=$expr_alias + VALUES($expr_alias)";
+										$this->task_odku[] = "$expr_alias=$expr_alias + VALUES($expr_alias)";
 										break;
 										
 								}
@@ -429,12 +429,14 @@ class RewriteParallelRule extends RewriteBaseRule {
 
 		if (empty($order_by)) $order_by = "";
 		if (empty($this->final_group)) $this->final_group = "";
-		if (empty($this->final_odku)) $this->final_odku = "";
 		if (empty($this->task_group)) $this->task_group = "";
 		$this->final_sql = $this->final_query . ' ' . $this->final_group . ' ' . $order_by;
 
-		if (!isset($this->final_odku) || empty($this->final_odku))
-			$this->final_odku = "";
+		if (!isset($this->task_odku) || empty($this->task_odku))
+			$this->task_odku = "";
+		else {
+			$this->task_odku = ' ON DUPLICATE KEY UPDATE ' . join(', ', $this->task_odku);
+		} 
 
 		$this->task_sql = $queries;
 		
@@ -443,8 +445,8 @@ class RewriteParallelRule extends RewriteBaseRule {
 		$explain = "Shard-Query optimizer messages:";
 		if ($this->agg_key_cols) {
 			$explain .= "\n	* The following projections may be selected for a UNIQUE CHECK on the storage node operation:\n	{$this->agg_key_cols}\n";
-			if ($this->final_odku)
-				$explain .= "\n	* storage node result set merge optimization enabled:\n	ON DUPLICATE KEY UPDATE\n\t" . join(",\n\t", $this->final_odku);
+			if ($this->task_odku)
+				$explain .= "\n	* storage node result set merge optimization enabled:\n	ON DUPLICATE KEY UPDATE\n\t" . join(",\n\t", $this->task_odku);
 		}
 		
 		if (isset($this->messages)) {
@@ -708,7 +710,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 							
 							if (empty($this->used_colrefs[trim($new_expr)])) {
 								$this->task_query .= "$new_expr AS $new_alias";
-								$this->final_odku[] = "$new_alias=VALUES($new_alias)";
+								$this->task_odku[] = "$new_alias=VALUES($new_alias)";
 								$this->group_aliases[] = $new_alias;
 							}
 							
@@ -720,13 +722,13 @@ class RewriteParallelRule extends RewriteBaseRule {
 							switch ($function) {
 								case 'SUM':
 								case 'COUNT':
-									$this->final_odku[] = "$new_alias=$new_alias + VALUES($new_alias)";
+									$this->task_odku[] = "$new_alias=$new_alias + VALUES($new_alias)";
 									break;
 								case 'MIN':
-									$this->final_odku[] = "$new_alias=IF($new_alias < VALUES($new_alias), VALUES($new_alias),$new_alias)";
+									$this->task_odku[] = "$new_alias=IF($new_alias < VALUES($new_alias), VALUES($new_alias),$new_alias)";
 									break;
 								case 'MAX':
-									$this->final_odku[] = "$new_alias=IF($new_alias > VALUES($new_alias), VALUES($new_alias), $new_alias)";
+									$this->task_odku[] = "$new_alias=IF($new_alias > VALUES($new_alias), VALUES($new_alias), $new_alias)";
 									break;
 							}
 							if($function == 'COUNT') {
@@ -750,7 +752,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 							$new_expr = join(" ", $expr_info);
 							if (empty($this->used_colrefs[trim($new_expr)])) {
 								$this->task_query .= "$new_expr AS $alias";
-								$this->final_odku[] = "$alias=VALUES($alias)";
+								$this->task_odku[] = "$alias=VALUES($alias)";
 								$this->group_aliases[] = $alias;
 							}
 
@@ -764,7 +766,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 							
 							//need to push a COUNT expression into the SELECT clause
 							$this->push_select[] = "COUNT({$base_expr}) as {$alias_cnt}";
-							$this->final_odku[] = "{$alias_cnt} = {$alias_cnt} + VALUES({$alias_cnt})";
+							$this->task_odku[] = "{$alias_cnt} = {$alias_cnt} + VALUES({$alias_cnt})";
 							
 						}
 						
