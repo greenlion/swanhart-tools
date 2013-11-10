@@ -1,15 +1,8 @@
 <?php
 require_once('PHP-SQL-Parser/php-sql-parser.php');
-require_once('rewriter.php');
+require_once('rewriteengine.php');
 
 class RewriteParallelRule extends RewriteBaseRule {
-	var $messages = array();
-	var $warnings = array();
-	var $info = array();
-	var $queries = array();
-	var $plan = array();
-	var $errors = array();
-
 	private $task_query = ""; //Query to send to each shard
 	private $final_query = ""; //Query to send to the coordination node
 	private $group = array(); //list of positions which contain non-aggregate functions
@@ -30,27 +23,63 @@ class RewriteParallelRule extends RewriteBaseRule {
 	private $used_distinct = false;
 	private $task_sql = array();
 	private $create_sql = "";
+	private $settings = array();
 
-	private $caps = array ( 'MULTI_INPUT' => FALSE, 'MULTI_OUTPUT'=>TRUE, 'RULE_NAME' => 'BASE_RULE' );
-	private $defaults=array('engine', 'MYISAM');
-
-	public function __construct($table_info, $process_info) {
-		parent::__construct($table_info, $process_info);
+	public function __construct($settings=null) {
+		$this->settings=array('engine'=>'MyISAM');
+		if(!isset($settings)) $this->settings=array_merge($this->settings, $settings);
+		$this->set_capability('MULTI_INPUT', TRUE);
+		$this->set_capability('MULTI_OUTPUT', TRUE);
+		$this->set_capability('RULE_NAME', 'PARALLEL_RULE');
 	}
 
-	public function rewrite($sql, $table_info, $process_info, $settings = array()) {
-		$this->process_info = $process_info;
+	public function rewrite($sql, $table_info, $process_info) {
+		if(!isset($table_info)) $table_info = $this->table_info;
+		if(!isset($process_info)) $process_info = $this->process_info;
 		$this->table_info = $table_info;
-		unset($table_info);
-		unset($process_info);
+		$this->process_info = $process_info;
 
-		/* remove comments */
-		$sql = preg_replace( array("%-- [^\\n](?:\\n|$)%", "%/\\*.*\\*/%"), '', $sql );
-		$this->sql = $sql;
-		unset($sql);
+		/* Handle MULTI_INPUT plans */
+		if(is_array($sql)) {
+			$out_plan = array();	
+			$has_rewrites = 0;
+			foreach($sql['plan'] as $sub_sql) {
+				$THIS_CLASS=get_class($this);
+				$sub_rewrite = new $THIS_CLASS($this->settings);
+				$plan = $sub_rewrite->rewrite($sub_sql, $table_info, $process_info);
+
+				/* can't proceed with filtering if any of the queries return errors */
+				if(!empty($plan['has_errors'])) {
+					$this->errors[] = $plan->errors;
+					return(array('has_rewrites'=>0, 'plan'=>$sql));
+				}
+
+
+				/* keep the original SQL if there were no rewrites */
+				if($plan['has_rewrites'] == 1) {
+					$has_rewrites = 1;
+					$out_plan[] = $plan;
+				} else {
+					$out_plan[] = $sql;
+				}
+			}
+			return(array('has_rewrites'=>$has_rewrites, 'plan'=>$out_plan));
+		}
+
+		/* Handle single SQL (this can also come from a multi-plan that has recursed here */
 		
 		global $REWRITE_PARSER;
+		$this->sql = SELF::remove_comments($sql);
 		$this->parsed = $REWRITE_PARSER->parse($this->sql);
+
+		/* It is possible to get CREATE statements and INSERT .. SELECT, etc, from "upstream" filters, but they 
+		   are not handled by this filter.  Just return them as they are and don't raise any errors.
+		*/
+		if(!SELF::is_select($this->parsed)) {
+			return(array('has_rewrites' => 0, 'plan' => $sql));
+		}
+
+		/* Reset the private variables for this rewrite rule */
 		$this->task_query = ""; //Query to send to each shard
 		$this->final_query = ""; //Query to send to the coordination node
 		$this->group = array(); //list of positions which contain non-aggregate functions
@@ -65,16 +94,19 @@ class RewriteParallelRule extends RewriteBaseRule {
 		$this->used_agg_func = false;
 		$this->push_select = array();
 		$this->used_distinct = false;
-		
+		$this->no_pushdown_limit = false; //will be set if a rewrite forces us to abandon pushdown limit strategy
+
+		/* generate a unique "signature" that will be used for subtables */
 		$sig = md5($this->sql . uniqid());
 		$this->table_name = "p" . $this->process_info['pid'] . "_agg_" . $sig;
-		
-		$this->no_pushdown_limit = false; //will be set if a rewrite forces us to abandon pushdown limit strategy
+	
+		/* this function actually does the heavy lifting, parsing each SQL clause*/	
 		if (!$this->process_sql()) {
 			$this->plan=false;
 			return false;
 		}
 
+		/* put together a plan (I love it when a plan comes together) */
 		$this->create_sql = "CREATE TABLE IF NOT EXISTS {$this->table_name} ";
 		$create_subquery = str_replace('1=1','0=1', $this->task_sql[0]);
 	
@@ -82,7 +114,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 			if(!empty($this->agg_key_cols) && $this->agg_key_cols) $this->create_sql .= "(UNIQUE KEY gb_key (" . $this->agg_key_cols . "))";
 		}
 
-		$this->create_sql .= " ENGINE=". $this->get_setting('engine');
+		$this->create_sql .= " ENGINE=". $this->settings['engine'];
 		$this->create_sql .= " AS $create_subquery ";
 
 		foreach($this->task_sql as $idx => $sql) {
@@ -114,72 +146,12 @@ class RewriteParallelRule extends RewriteBaseRule {
 				"UNION ALL not supported"
 			);
 			return false;
-/*
-			$this->queries = array();
-			return false;
-
-			$queries = array();
-			$table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
-			$this->table_name = $table_name;
-			
-			$final_sql = "";
-			foreach ($this->parser->parsed['UNION ALL'] as $sub_tree) {
-				$sub_this = ShardQuery::new_this();
-				
-				//initialize the new this with a call to set_schema
-				$this->set_schema($this->schema_name, $sub_this);
-				$sub_this->tmp_shard = $this->tmp_shard;
-				$sub_table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
-				$sub_this->table_name = $sub_table_name;
-				$sub_this->DAL = SimpleDAL::factory($sub_this->tmp_shard);
-				$this->query($sub_tree, false, $sub_this, true, false);
-				$this->extra_tables[] = $sub_table_name;
-				$this->extra_tables = array_merge($this->extra_tables, $sub_this->extra_tables);
-				
-				if ($final_sql)
-					$final_sql .= " UNION ALL ";
-				$final_sql .= "( " . $sub_this->final_sql . " )";
-				$this->extra_tables[] = $sub_table_name;
-				
-			}
-			
-			$this->final_query = $final_sql;
-			unset($final_sql);
-*/
 		} elseif (!empty($parser_copy['UNION'])) {
 			$this->errors[] = array(
 				'Unsupported query',
 				"UNION not supported"
 			);
 			return false;
-/*
-			$queries = array();
-			$table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
-			$this->table_name = $table_name;
-			
-			$final_sql = "";
-			foreach ($this->parser->parsed['UNION'] as $sub_tree) {
-				$sub_this = ShardQuery::new_this();
-				
-				//initialize the new this with a call to set_schema
-				$this->set_schema($this->schema_name, $sub_this);
-				$sub_this->tmp_shard = $this->tmp_shard;
-				$sub_table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
-				$sub_this->table_name = $sub_table_name;
-				$sub_this->DAL = SimpleDAL::factory($sub_this->tmp_shard);
-				$this->query($sub_tree, false, $sub_this, true, false);
-				$this->extra_tables[] = $sub_table_name;
-				$this->extra_tables = array_merge($this->extra_tables, $sub_this->extra_tables);
-				
-				if ($final_sql)
-					$final_sql .= " UNION ";
-				$final_sql .= "( " . $sub_this->final_sql . " )";
-				
-			}
-			//UNION operation requires deduplication of the temporary table
-			$this->final_query = $final_sql;
-			unset($final_sql);
-*/
 		} else {
 			//reset the important variables 
 			$select = $from = $where = $this->group = $order_by = "";
