@@ -43,6 +43,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 		if(is_array($sql)) {
 			$out_plan = array();	
 			$has_rewrites = 0;
+			$explain = array();
 			foreach($sql['plan'] as $sub_sql) {
 				$THIS_CLASS=get_class($this);
 				$sub_rewrite = new $THIS_CLASS($this->settings);
@@ -58,12 +59,13 @@ class RewriteParallelRule extends RewriteBaseRule {
 				/* keep the original SQL if there were no rewrites */
 				if($plan['has_rewrites'] == 1) {
 					$has_rewrites = 1;
+					$explain[] = $plan['explain'];
 					$out_plan[] = $plan;
 				} else {
 					$out_plan[] = $sql;
 				}
 			}
-			return(array('has_rewrites'=>$has_rewrites, 'plan'=>$out_plan));
+			return(array('has_rewrites'=>$has_rewrites, 'plan'=>$out_plan, 'explain' => $explain));
 		}
 
 		/* Handle single SQL (this can also come from a multi-plan that has recursed here */
@@ -100,10 +102,10 @@ class RewriteParallelRule extends RewriteBaseRule {
 		$sig = md5($this->sql . uniqid());
 		$this->table_name = "p" . $this->process_info['pid'] . "_agg_" . $sig;
 	
-		/* this function actually does the heavy lifting, parsing each SQL clause*/	
+		/* this function actually does the heavy lifting, parsing each SQL clause, forming the basis for our plan*/	
+		/* if for some reason the rewrite can not continue, then abort the rewrite and return original SQL */
 		if (!$this->process_sql()) {
-			$this->plan=false;
-			return false;
+			return array('has_rewrites'=>0, 'plan'=>$sql);
 		}
 
 		/* put together a plan (I love it when a plan comes together) */
@@ -131,7 +133,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 		$plan[4] = "DROP TABLE IF EXISTS " . $this->table_name;
 
 		$this->plan = $plan;
-		return array('has_rewrites'=>true, 'plan'=>$plan);
+		return array('has_rewrites'=>true, 'plan'=>$this->plan, 'explain' => $this->explain);
 
 	}
 
@@ -442,11 +444,11 @@ class RewriteParallelRule extends RewriteBaseRule {
 		
 		$this->agg_key_cols = ltrim($this->task_group,'GROUP BY ');
 		
-		$explain = "Shard-Query optimizer messages:";
+		$explain = "Parallel rewrite optimizer messages:";
 		if ($this->agg_key_cols) {
 			$explain .= "\n	* The following projections may be selected for a UNIQUE CHECK on the storage node operation:\n	{$this->agg_key_cols}\n";
-			if ($this->task_odku)
-				$explain .= "\n	* storage node result set merge optimization enabled:\n	ON DUPLICATE KEY UPDATE\n\t" . join(",\n\t", $this->task_odku);
+			if ($this->task_odku !== "")
+				$explain .= "\n	* storage node result set merge optimization enabled:\n	ON DUPLICATE KEY UPDATE " . $this->task_odku;
 		}
 		
 		if (isset($this->messages)) {
