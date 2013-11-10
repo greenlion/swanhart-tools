@@ -1,5 +1,7 @@
 <?php
 require_once('rewriter.php');
+require_once('parallel.php');
+
 $sql = "select a, count(*) from some_table st join table2 t2 using(c1) where c2 = 'open' group by a /* having count(*) > 0*/;";
 $table_info = array(
 	't2' => array(),
@@ -11,5 +13,7 @@ $process_info = array(
 	'current_schema' => 'test'
 );
 
+$SETTINGS=array();
 echo "SQL: $sql\n";
-print_r(rewrite($sql, $table_info, $process_info));
+print_r(RewriteBaseRule::_ENTRY($sql, $table_info, $process_info,$SETTINGS));
+print_r(RewriteBaseRule::_ENTRY($sql, $table_info, $process_info,$SETTINGS,'RewriteParallelRule'));
