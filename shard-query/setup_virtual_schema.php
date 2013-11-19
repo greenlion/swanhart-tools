@@ -283,7 +283,14 @@ foreach($gearman as $server) {
 
 }
 
-$worker_count = `cat /proc/cpuinfo | grep processor | wc -l` ;
+// which OS is used
+$uname = `uname`;
+
+if(stripos($uname, 'freebsd') !== false) {
+	$worker_count = `sysctl -a | grep 'hw.ncpu' | awk '{print $2}'` ;
+} else {
+	$worker_count = `cat /proc/cpuinfo | grep processor | wc -l` ;
+}
 
 echo "* Populating gearman functions\n";
 $sql = "INSERT INTO gearman_functions(schema_id,function_name_id, worker_count, enabled)
