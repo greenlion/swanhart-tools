@@ -48,7 +48,7 @@ Make sure boost-devel, libevent-devel and mysql-devel and openssl-devel are inst
 Download the latest version of gearman-mysql-udf
 Compile and install the UDF
 Configure the UDF:
-select gman_set_servers('127.0.0.1:7001');
+select gman_servers_set('127.0.0.1:7001');
 
 Download and install MySQL proxy in /usr/local/mysql-proxy.
 Start the proxy and use the -s option to point the proxy to the Shard-Query LUA script:
