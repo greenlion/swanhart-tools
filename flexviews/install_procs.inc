@@ -47,6 +47,7 @@ USE flexviews;
 \. ./procs/rename.sql
 \. ./procs/set_definition.sql
 \. ./procs/signal.sql
+\. ./procs/fv_raise.sql
 \. ./procs/star_transform.sql
 \. ./procs/uow.sql
 \. ./procs/get_setting.sql
