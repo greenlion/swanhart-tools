@@ -18,11 +18,13 @@ DELIMITER ;;
     If not, see <http://www.gnu.org/licenses/>.
 */
 
-DROP PROCEDURE IF EXISTS flexviews.signal;;
+DROP PROCEDURE IF EXISTS flexviews.`signal`;;
 
 CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`signal`( 
   IN in_errortext TINYTEXT CHARACTER SET UTF8
 )
+   CONTAINS SQL
+   COMMENT 'To be removed; use fv_raise() instead'
 BEGIN
    /*!50404
         SIGNAL SQLSTATE '45000' SET
@@ -32,9 +34,9 @@ BEGIN
    SET @sql=CONCAT('UPDATE flexviews.mview SET `ERROR: ',
             in_errortext,
             '` = `', in_errortext, '`');
-   PREPARE my_signal_stmt FROM @sql;
-   EXECUTE my_signal_stmt;
-   DEALLOCATE PREPARE my_signal_stmt;
+   PREPARE fv_signal_stmt FROM @sql;
+   EXECUTE fv_signal_stmt;
+   DEALLOCATE PREPARE fv_signal_stmt;
 END;
 ;;
 
