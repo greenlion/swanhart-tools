@@ -59,11 +59,11 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `flexviews`.`add_table`(
 BEGIN
 
   IF v_mview_id IS NULL OR v_mview_id = 0 THEN
-    CALL flexviews.signal('INVALID_MVIEW_ID');
+    CALL flexviews.fv_raise('ERROR', 31001, '[flexviews.add_table] Invalid MVIEW id'); -- INVALID_MVIEW_ID
   END IF;
 
   IF flexviews.is_enabled(v_mview_id) = 1 THEN
-    CALL flexviews.signal('MAY_NOT_MODIFY_ENABLED_MVIEW');
+    CALL flexviews.fv_raise('ERROR', 31002, 'May not modify an enabled MVIEW'); -- MAY_NOT_MODIFY_ENABLED_MVIEW
   END IF;
 
   SET @v_exists = false;
@@ -76,7 +76,9 @@ BEGIN
    LIMIT 1;
 
   if @v_exists != true then
-    call flexviews.signal('NO_SUCH_TABLE'); 
+    -- NO_SUCH_TABLE
+    call flexviews.fv_raise('ERROR', 31003,
+      CONCAT_WS('', '[flexviews.add_table] No such table: ', v_mview_table_schema, '.', v_mview_table_name));
   end if;
 
   SET @v_exists = false;
@@ -90,7 +92,9 @@ BEGIN
    LIMIT 1;
 
   if @v_exists != true  then
-    call flexviews.signal('NO_CHANGELOG_ON_TABLE'); 
+    -- NO_CHANGELOG_ON_TABLE
+    call flexviews.fv_raise('ERROR', 31004,
+      CONCAT_WS('', '[flexviews.add_table] No ChangeLog on table: ', v_mview_table_schema, '.', v_mview_table_name));
   end if;
 
   INSERT INTO flexviews.mview_table
