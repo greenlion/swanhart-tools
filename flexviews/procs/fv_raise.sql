@@ -31,6 +31,12 @@ DROP PROCEDURE IF EXISTS `flexviews`.`fv_raise`;;
  *   Errors have a '45000' STASTATE (suggested value for custom exceptions).
  *   Error codes are SMALLINT UNSIGNED. Use high values if you want to avoid
  *   builtin codes.
+ *   CLASS_ORIGIN and SUBCLASS_ORIGIN are always 'Flexviews'.
+ *
+ *   Default error properties are used when NULL or empty value is passed:
+ *   level: ERROR
+ *   number: 31000
+ *   message: 'Flexviews error' / 'Flexviews warning'
  *
  *   On versions of the server not supporting SIGNAL, a 1146 ('42S02') error
  *   or a 1292 ('22007') warning is produced.
@@ -58,6 +64,14 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `flexviews`.`fv_raise`(
 	COMMENT 'SIGNALs a warning/error; for pre-5.5, see FV docs'
 `whole_proc`:
 BEGIN
+	-- default condition properties:
+	IF `in_mysql_errno` IS NULL OR `in_mysql_errno` = 0 THEN
+		SET `in_mysql_errno`:= 31000;
+	END IF;
+	IF `in_message_text` IS NULL OR `in_message_text` = '' THEN
+		SET `in_message_text`:= IF(`in_level` = 'WARNING', 'Flexviews warning', 'Flexviews error');
+	END IF;
+	
 	-- SQLSTATE cannot be set dynamically,
 	-- so we duplicate code and only allow 2 values.
 	-- '01000' means generic user-defined warning
@@ -65,8 +79,8 @@ BEGIN
 	IF `in_level` = 'WARNING' THEN
 		/*!50404
 			SIGNAL SQLSTATE '01000' SET
-				CLASS_ORIGIN     = 'FlexViews',
-				SUBCLASS_ORIGIN  = 'FlexViews',
+				CLASS_ORIGIN     = 'Flexviews',
+				SUBCLASS_ORIGIN  = 'Flexviews',
 				MYSQL_ERRNO      = `in_mysql_errno`,
 				MESSAGE_TEXT     = `in_message_text`;
 		*/
@@ -74,8 +88,8 @@ BEGIN
 	ELSE
 		/*!50404
 			SIGNAL SQLSTATE '45000' SET
-				CLASS_ORIGIN     = 'FlexViews',
-				SUBCLASS_ORIGIN  = 'FlexViews',
+				CLASS_ORIGIN     = 'Flexviews',
+				SUBCLASS_ORIGIN  = 'Flexviews',
 				MYSQL_ERRNO      = `in_mysql_errno`,
 				MESSAGE_TEXT     = `in_message_text`;
 		*/
@@ -90,7 +104,7 @@ BEGIN
 	IF `in_level` = 'WARNING' THEN
 		DO -'Flexviews error:  for info: CALL flexviews.show_errors()';
 	ELSE
-		SELECT `error` FROM `_`.`Flexviews error:  for info: CALL flexviews.show_errors()`;
+		SELECT `error` FROM `_`.`Flexviews error:  for info: CALL flexviews.show_warnings()`;
 	END IF;
 END;
 ;;
