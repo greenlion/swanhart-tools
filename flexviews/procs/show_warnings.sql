@@ -18,25 +18,29 @@ DELIMITER ;;
     If not, see <http://www.gnu.org/licenses/>.
 */
 
-DROP PROCEDURE IF EXISTS flexviews.`signal`;;
+DROP PROCEDURE IF EXISTS `flexviews`.`show_warnings`;;
 
-CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`signal`( 
-  IN in_errortext TINYTEXT CHARACTER SET UTF8
-)
-   CONTAINS SQL
-   COMMENT 'To be removed; use fv_raise() instead'
+/****f* SQL_API/show_warnings
+ * NAME
+ *   flexviews.show_warnings - shows last error/warning.
+ * SYNOPSIS
+ *   flexviews.show_warnings()
+ * FUNCTION
+ *   If the server does not support SIGNAL, and at least 1 condition
+ *   occurred, this procedure shows the last condition.
+ * RESULT
+ *   Same columns as SHOW WARNINGS.
+ *   Only 0 or 1 row can be returned; see fv_raise().
+ * EXAMPLE
+ *   mysql>
+ *    CALL flexviews.show_warnings();
+******
+*/
+CREATE DEFINER=`flexviews`@`localhost` PROCEDURE `flexviews`.`show_warnings`()
+	CONTAINS SQL
+	COMMENT 'If SIGNAL is not supported, returns Flexviews errors'
 BEGIN
-   /*!50404
-        SIGNAL SQLSTATE '45000' SET
-          CLASS_ORIGIN = 'FlexViews',
-          MESSAGE_TEXT = in_errortext;
-    */
-   SET @sql=CONCAT('UPDATE flexviews.mview SET `ERROR: ',
-            in_errortext,
-            '` = `', in_errortext, '`');
-   PREPARE fv_signal_stmt FROM @sql;
-   EXECUTE fv_signal_stmt;
-   DEALLOCATE PREPARE fv_signal_stmt;
+	SELECT @fv_level AS `Level`, @fv_errno AS `Code`, @fv_error AS `Message` FROM DUAL;
 END;
 ;;
 
