@@ -63,7 +63,7 @@ BEGIN
   END IF;
 
   IF flexviews.is_enabled(v_mview_id) = 1 THEN
-    CALL flexviews.fv_raise('ERROR', 31002, 'May not modify an enabled MVIEW'); -- MAY_NOT_MODIFY_ENABLED_MVIEW
+    CALL flexviews.fv_raise('ERROR', 31002, '[flexviews.add_table] May not modify an enabled MVIEW'); -- MAY_NOT_MODIFY_ENABLED_MVIEW
   END IF;
 
   SET @v_exists = false;
