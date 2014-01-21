@@ -58,7 +58,7 @@ BEGIN
   DECLARE v_mview_enabled INT;
   DECLARE v_child_mview_id INT;
   DECLARE v_parent_mview_id INT DEFAULT NULL;
-  DECLARE v_condition_level ENUM('WARNING', 'ERROR') DEFAULT IF(@fv_force = TRUE, 'ERROR', 'WARNING');
+  DECLARE v_condition_level ENUM('WARNING', 'ERROR') DEFAULT IF(@fv_force = TRUE, 'WARNING', 'ERROR');
   DECLARE v_force BOOL DEFAULT (@fv_force = TRUE);
 
   -- backup SESSION max_sp_recursion_depth
@@ -93,7 +93,7 @@ BEGIN
        CALL flexviews.fv_raise(v_condition_level, 31010,
          CONCAT_WS('', 'No such MVIEW: ', v_mview_id));
        LEAVE `this_proc`;
-     ELSEIF v_force = TRUE THEN
+     ELSEIF v_force IS NULL OR v_force <> TRUE THEN
        CALL flexviews.fv_raise('ERROR', 31011, 'TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE. DANGER: set @fv_force=true to actually DROP the objects if desired');
      END IF;
    END IF;
@@ -102,7 +102,7 @@ BEGIN
      IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
        CALL flexviews.fv_raise(v_condition_level, 31012, CONCAT_WS('', 'MVIEW is already disabled: ', v_mview_id));
        LEAVE `this_proc`;
-     ELSE
+     ELSEIF v_force IS NULL OR v_force <> TRUE THEN
        CALL flexviews.fv_raise('ERROR', 31011, 'TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE. DANGER: set @fv_force=true to actually DROP the objects if desired');
      END IF;
    END IF;
