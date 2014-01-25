@@ -110,6 +110,26 @@ CREATE TABLE `mview_apply_schedule` (
   PRIMARY KEY (`mview_id`)
 ) DEFAULT CHARSET=utf8;
 
+DROP TABLE IF EXISTS `fv_condition`;
+CREATE TABLE `fv_condition` (
+  `code` SMALLINT UNSIGNED NOT NULL COMMENT 'Error number',
+  `level` ENUM('WARNING', 'ERROR') NOT NULL COMMENT 'Error or Warning, like in SHOW WARNINGS',
+  `message` VARCHAR(128) NOT NULL COMMENT 'Error message',
+  PRIMARY KEY (`code`)
+) DEFAULT CHARSET=utf8
+  COMMENT 'flexviews conditions reference';
+
+LOAD DATA LOCAL INFILE 'errors.csv'
+	INTO TABLE `fv_condition`
+	CHARACTER SET utf8
+	COLUMNS
+		TERMINATED BY ','
+		OPTIONALLY ENCLOSED BY '"'
+		ESCAPED BY '\\'
+	LINES TERMINATED BY '\n'
+	IGNORE 1 LINES
+	(`code`, `level`, `message`);
+
 set @storage_engine = @_storage_engine;
 
 

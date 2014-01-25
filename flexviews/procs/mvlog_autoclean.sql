@@ -18,12 +18,12 @@ DELIMITER ;;
     If not, see <http://www.gnu.org/licenses/>.
 */
 
-DROP PROCEDURE IF EXISTS mview_mvlog_autoclean;;
+DROP PROCEDURE IF EXISTS `flexviews`.`mview_mvlog_autoclean`;;
 
-CREATE DEFINER=flexviews@localhost PROCEDURE mview_mvlog_autoclean() 
+CREATE DEFINER=flexviews@localhost PROCEDURE `flexviews`.`mview_mvlog_autoclean`() 
 BEGIN
   DECLARE v_mview_tstamp DATETIME;
-  DECLARE v_mvlog_name TEXT;
+  DECLARE v_mvlog_name VARCHAR(64);
   DECLARE v_done BOOLEAN DEFAULT FALSE;
   DECLARE cur_mvlog CURSOR
   FOR
@@ -56,26 +56,25 @@ BEGIN
       LEAVE mvlogLoop;
     END IF;
 
-    SET @v_sql = CONCAT('CREATE TEMPORARY TABLE mvlog_rows AS SELECT * FROM ',  v_mvlog_name, ' WHERE mview_tstamp >= ?');
-    SET @v_mview_tstamp = v_mview_tstamp;
-    PREPARE create_stmt FROM @v_sql;
-    EXECUTE create_stmt USING @v_mview_tstamp;
+    SET @fv_sql = CONCAT('CREATE TEMPORARY TABLE mvlog_rows AS SELECT * FROM ',  v_mvlog_name, ' WHERE mview_tstamp >= ', v_mview_tstamp);
+    PREPARE create_stmt FROM @fv_sql;
+    EXECUTE create_stmt;
     DEALLOCATE PREPARE create_stmt;
 
 
-    SET @v_sql = CONCAT('TRUNCATE TABLE ', v_mvlog_name);
-    PREPARE truncate_stmt FROM @v_sql;
+    SET @fv_sql = CONCAT('TRUNCATE TABLE ', v_mvlog_name);
+    PREPARE truncate_stmt FROM @fv_sql;
     EXECUTE truncate_stmt;
     DEALLOCATE PREPARE truncate_stmt;
 
   
-    SET @v_sql = CONCAT('INSERT INTO ', v_mvlog_name, ' SELECT * FROM mvlog_rows');
-    PREPARE insert_stmt FROM @v_sql;
+    SET @fv_sql = CONCAT('INSERT INTO ', v_mvlog_name, ' SELECT * FROM mvlog_rows');
+    PREPARE insert_stmt FROM @fv_sql;
     DEALLOCATE PREPARE insert_stmt;
 
     DROP TEMPORARY TABLE IF EXISTS mvlog_rows;
   END LOOP; 
-  SET v_done = TRUE;
+  SET @fv_sql = NULL;
 END;
 ;;
 

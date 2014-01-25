@@ -57,33 +57,34 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`create`(
   IN v_mview_name TEXT CHARACTER SET UTF8,
   IN v_mview_refresh_type ENUM('INCREMENTAL','COMPLETE')
 )
+  MODIFIES SQL DATA
+  COMMENT 'Create a MVIEW skeleton'
 BEGIN
   DECLARE EXIT HANDLER
     FOR 1062
   BEGIN
-    SET @fv_force = NULL;
-    CALL flexviews.signal(
-        CONCAT_WS('', 'Materialized view already exists: ', v_mview_name, ' in schema: ', v_mview_schema)
-      );
+    SET @fv_force := NULL;
+    CALL flexviews.fv_raise('ERROR', 31005,
+        CONCAT_WS('', 'Materialized view already exists: ', v_mview_name, '.', v_mview_schema));
   END;
   
   -- validate input:
   -- ENUM is not enforced if SQL_MODE is not strict
   IF v_mview_refresh_type IS NULL OR v_mview_refresh_type NOT IN ('INCREMENTAL', 'COMPLETE') THEN
-    SET @fv_force = NULL;
-	CALL flexviews.signal('Invalid refresh type');
+    SET @fv_force := NULL;
+	CALL flexviews.fv_raise('ERROR', 31006, 'Invalid refresh type');
   END IF;
   -- schema MUST exist
   IF NOT @fv_force <=> TRUE AND NOT `flexviews`.`schema_exists`(v_mview_schema) THEN
-    CALL flexviews.signal(
-        CONCAT_WS('', 'Schema not found: ', v_mview_schema)
-      );
+    SET @fv_force := NULL;
+    CALL flexviews.fv_raise('ERROR', 31007,
+        CONCAT_WS('', 'No such schema: ', v_mview_schema));
   END IF;
   -- table MUST NOT exist
   IF NOT @fv_force <=> TRUE AND `flexviews`.`table_exists`(v_mview_schema, v_mview_name) THEN
-    CALL flexviews.signal(
-        CONCAT_WS('', 'Table already exists: ', v_mview_name, ' in schema: ', v_mview_schema)
-      );
+    SET @fv_force := NULL;
+    CALL flexviews.fv_raise('ERROR', 31008,
+        CONCAT_WS('', 'Table exists: ', v_mview_name, '.', v_mview_schema));
   END IF;
 
   INSERT INTO flexviews.mview
@@ -99,13 +100,11 @@ BEGIN
 
   -- generic error
   IF NOT ROW_COUNT() = 1 THEN
-	SET @fv_force = NULL;
-	CALL flexviews.signal(
-        CONCAT_WS('', 'Could not create materialized view: ', v_mview_name)
-      );
+	SET @fv_force := NULL;
+	CALL flexviews.fv_raise('ERROR', 31009, CONCAT_WS('', 'Could not create materialized view: ', v_mview_name));
   END IF;
 
-  SET @fv_force = NULL;
+  SET @fv_force := NULL;
 END ;;
 
 DELIMITER ;

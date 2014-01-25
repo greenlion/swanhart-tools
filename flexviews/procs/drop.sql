@@ -50,6 +50,7 @@ CREATE DEFINER=`flexviews`@`localhost` PROCEDURE flexviews.`drop`(
 )
   MODIFIES SQL DATA
   COMMENT 'Physically remove the view and mark as disabled in metadata.'
+`this_proc`:
 BEGIN
   -- DECLARE v_mview_enabled tinyint(1);
   DECLARE v_mview_name TEXT character set utf8;
@@ -57,6 +58,8 @@ BEGIN
   DECLARE v_mview_enabled INT;
   DECLARE v_child_mview_id INT;
   DECLARE v_parent_mview_id INT DEFAULT NULL;
+  DECLARE v_condition_level ENUM('WARNING', 'ERROR') DEFAULT IF(@fv_force = TRUE, 'WARNING', 'ERROR');
+  DECLARE v_force BOOL DEFAULT (@fv_force = TRUE);
 
   -- backup SESSION max_sp_recursion_depth
   DECLARE bkp_max_sp_recursion_depth INT UNSIGNED DEFAULT @@session.max_sp_recursion_depth;
@@ -66,6 +69,7 @@ BEGIN
   BEGIN END;
 
   SET max_sp_recursion_depth := 255;
+  SET @fv_force := NULL;
 
   START TRANSACTION WITH CONSISTENT SNAPSHOT;
 
@@ -86,21 +90,20 @@ BEGIN
 
    IF v_mview_id IS NULL OR NOT EXISTS (SELECT TRUE FROM `flexviews`.`mview` WHERE `mview_id` = v_mview_id) THEN
      IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
-       SET @fv_force := NULL;
-       CALL flexviews.signal('The specified materialized view does not exist (NOTHING WAS DROPPED)');
-     ELSE
-       SET @fv_force := NULL;
-       CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
+       CALL flexviews.fv_raise(v_condition_level, 31010,
+         CONCAT_WS('', 'No such MVIEW: ', v_mview_id));
+       LEAVE `this_proc`;
+     ELSEIF v_force IS NULL OR v_force <> TRUE THEN
+       CALL flexviews.fv_raise('ERROR', 31011, 'TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE. DANGER: set @fv_force=true to actually DROP the objects if desired');
      END IF;
    END IF;
 
-   IF NOT @fv_force <=> TRUE AND (v_mview_enabled = FALSE OR v_mview_enabled IS NULL) THEN
+   IF NOT v_force <=> TRUE AND (v_mview_enabled = FALSE OR v_mview_enabled IS NULL) THEN
      IF NOT flexviews.table_exists(v_mview_schema, v_mview_name) THEN
-       SET @fv_force := NULL;
-       CALL flexviews.signal('This materialized view is already disabled (NOTHING WAS DROPPED)');
-     ELSE
-       SET @fv_force := NULL;
-       CALL flexviews.signal('TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE.  DANGER:set @fv_force=true to actually DROP the objects if desired');
+       CALL flexviews.fv_raise(v_condition_level, 31012, CONCAT_WS('', 'MVIEW is already disabled: ', v_mview_id));
+       LEAVE `this_proc`;
+     ELSEIF v_force IS NULL OR v_force <> TRUE THEN
+       CALL flexviews.fv_raise('ERROR', 31011, 'TABLE EXISTS. POSSIBLE METADATA SYNC ISSUE. DANGER: set @fv_force=true to actually DROP the objects if desired');
      END IF;
    END IF;
 
@@ -133,7 +136,6 @@ BEGIN
 
    IF v_parent_mview_id IS NOT NULL THEN
      SELECT 'The view, the view delta and the child views (if any) have now been removed' as `MESSAGE` from dual;
-     SET @fv_force := NULL;
    END IF;
  
    -- restore SESSION max_sp_recursion_depth
