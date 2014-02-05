@@ -1304,7 +1304,7 @@ class ShardQuery {
             $alias = '`' . $alias . '`';
         if ($alias != "`dual`") {
             $bare = trim($alias, '`');
-            if($state->mysql_version['supports_partition_hint']) {
+            if($tables[0]['expr_type'] != 'subquery' && $state->mysql_version['supports_partition_hint']) {
                 $alias = " %p$bare AS $alias ";
             } else {
                 $alias = " AS $alias";
@@ -1354,7 +1354,7 @@ class ShardQuery {
             }
             $bare = trim($alias,'`');
             if ($alias != "`dual`") {
-                if($state->mysql_version['supports_partition_hint'] == 1) {
+                if($tables[$i]['expr_type'] != 'subquery' && $state->mysql_version['supports_partition_hint'] == 1) {
                     $alias = " %p$bare AS $alias";
                 } else {
                     $alias = " AS $alias";
