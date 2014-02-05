@@ -1271,6 +1271,7 @@ class ShardQuery {
                                  */
                                 $table_name = $possible_table_name;
                                 $is_virtual = true;
+                                $tables[$key]['real_name'] = $table_name;
                             }
                             
                         }
@@ -1304,6 +1305,7 @@ class ShardQuery {
             $alias = '`' . $alias . '`';
         if ($alias != "`dual`") {
             $bare = trim($alias, '`');
+            if(!empty($tables[0]['real_name'])) $bare = $tables[0]['real_name'];
             if($tables[0]['expr_type'] != 'subquery' && $state->mysql_version['supports_partition_hint']) {
                 $alias = " %p$bare AS $alias ";
             } else {
@@ -1355,6 +1357,7 @@ class ShardQuery {
             $bare = trim($alias,'`');
             if ($alias != "`dual`") {
                 if($tables[$i]['expr_type'] != 'subquery' && $state->mysql_version['supports_partition_hint'] == 1) {
+                    if(!empty($tables[0]['real_name'])) $bare = $tables[0]['real_name'];
                     $alias = " %p$bare AS $alias";
                 } else {
                     $alias = " AS $alias";

@@ -90,7 +90,7 @@ function main() {
 			$stmt = $shard_query->query($sql);
 			$endtime = microtime(true);
 
-			if($verbose) echo $shard_query->state->explain . "\n";
+			if($verbose && isset($shard_query->state->explain)) echo $shard_query->state->explain . "\n";
 
 			if($stmt === false || !empty($shard_query->errors)) {
 				if(!empty($shard_query->errors)) {
