@@ -1,0 +1,29 @@
+#!/usr/bin/php
+<?php
+$cmdLine = join(" ", $argv);
+set_include_path(get_include_path() . PATH_SEPARATOR . '../include');
+require_once 'shard-query.php';
+while(1) {
+$SQ = new ShardQuery();
+$SQ->state->mapper->sweep_jobs();
+
+$sql = "select * from jobs where completion_percent < 100.00";
+$stmt = $SQ->state->mapper->conn->my_query($sql);
+$no_jobs=true;
+while($row=$SQ->state->mapper->conn->my_fetch_assoc($stmt)) {
+$no_jobs=false;
+if(strstr($cmdLine,'verbose')) print_r($row);
+}
+
+if($no_jobs) {
+echo "All jobs have completed\n";
+}
+
+if($no_jobs !== true && strstr($cmdLine, 'wait')) { sleep(5); continue; }
+
+break;
+}
+
+
+
+

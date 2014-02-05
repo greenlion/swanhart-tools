@@ -1,0 +1,111 @@
+#!/usr/bin/php
+<?php
+set_include_path(get_include_path() . PATH_SEPARATOR . '../include');
+require_once('common.php');
+require_once('shard-loader.php');
+require_once('shard-key-mapper.php');
+
+
+function main() {
+	$params = get_commandline(array("spec="));
+	if(has_short_opt(array('h','help'), $params)) {
+		shard_query_common_help();
+		loader_help();
+		exit;
+	}
+
+	if(empty($params['spec'])) $params['spec'] = 'loader.spec';
+
+	if(!file_exists($params['spec'])) {
+		shard_query_common_help();
+		loader_help();
+		echo "Could not find spec file: " . $params['spec'] . "\n";
+		exit;
+	}
+	$spec = load_spec($params['spec']);
+	
+	if(empty($spec)) {
+		echo "Loading of spec file failed.  Check for warnings.\n";
+		echo "Make sure you place delimiter characters like | or ; in quotes!\n";
+		echo "Example:\n delimiter=\"|\"\n";
+		exit;
+	}
+
+	if(!isset($spec['default'])) $spec['default'] = array();
+
+	/*
+	Set up the loader settings
+	*/
+	if(!empty($spec['default']['line_terminator'])) {
+		$line_terminator = str_replace(array("\\r","\\n","\\t"),array("\r","\n","\t"),$spec['default']['line_terminator']);
+	} else {
+		$line_terminator = "\n";
+	}
+
+	if(!empty($spec['default']['chunk_size'])) {
+		$chunk_size = $spec['default']['chunk_size'];
+	} else {
+		$chunk_size = DEFAULT_CHUNK_SIZE;
+	}
+
+	$loadspec = array_merge(array('delimiter'=>',','enclosure'=>''), $spec['default']);
+	unset($spec['default']['delimiter']);
+	unset($spec['default']['enclosure']);
+
+	$default = array();
+	if(!empty($spec['default'])) {
+		$default = array_merge($default, $spec['default']);
+	}
+	unset($spec['default']);
+
+	$SQ = new ShardQuery();
+	$SL = new ShardLoader($SQ, $loadspec['delimiter'], $loadspec['enclosure'], $line_terminator, true, $chunk_size);
+
+	/*
+	A spec file consists of sections.  Each section corresponds to one table.
+	Each section has a file specification.  This may match more than one file.
+	*/
+	foreach($spec as $section => $info) {
+		if(is_string($info)) continue;
+
+		/* by default the section header is the table name, but you can
+		override this with the table= option*/
+		if(!empty($info['table'])) {
+			$table = $info['table'];
+		} else {
+			$table = $section;
+		}	
+
+		if(empty($info) || empty($info['file'])) {
+			echo "skipping $section because file is not specified in the spec file\n";
+			continue;
+		}
+
+
+		if(is_string($info['file'])) $info['file'] = array($info['file']);
+
+		foreach($info['file'] as $files) {
+
+			if(strstr($files,'*') === false) { 
+				$files = array($files);
+			} else {
+				$files = glob($files);
+			}
+
+			foreach($files as $file) {
+				echo "Scheduling load of $file\n";
+				if(!trim($file)) continue;
+				$SL->load_gearman($file, $table);
+			}
+		}
+	}
+}
+
+
+function load_spec($specfile) {
+	$spec = parse_ini_file($specfile, true);
+	return $spec;
+}
+
+main();
+exit;
