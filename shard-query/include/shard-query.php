@@ -1048,8 +1048,8 @@ class ShardQuery {
                     if ($select)
                         $select .= ",";
                     
-                    
-                    $this->process_select_item($pos + 1, $clause, $select, $having, $push, $group_aliases, $group, $error, $skip_alias, $used_agg_func, $coord_odku, $state,"", null);
+                    $nothing = " "; 
+                    $this->process_select_item($pos + 1, $clause, $select, $having, $push, $group_aliases, $group, $error, $skip_alias, $used_agg_func, $coord_odku, $state,$nothing, null);
                     
                     break;
                 
