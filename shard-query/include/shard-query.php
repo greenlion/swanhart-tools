@@ -224,7 +224,7 @@ class ShardQuery {
         
         
         if (!isset($state->client)) {
-            $this->errors[] = "Could not connect to any of the specified gearman servers.";
+            $state->errors[] = "Could not connect to any of the specified gearman servers.";
             return false;
         }
         
@@ -261,7 +261,11 @@ class ShardQuery {
     
     function query($sql, $explain_only = false, $alt_state = null, $keep_result = false, $reset_state = true) {
         if($reset_state) {
-            $schema_name = $this->state->schema_name;
+            if($this->state) {
+                $schema_name = $this->state->schema_name;
+            } else {
+                $schema_name = $this->schema_name;
+            }
             unset($this->state);
             $this->state = $this->set_schema($schema_name);
         }
@@ -283,8 +287,14 @@ class ShardQuery {
         $state->insert_values = array();
         $state->got_rows = 0;
         $state->messages = array();
-        
+
+        if(empty($state->tmp_shard)) {
+            $this->errors[]="Initialization failed.  Check that gearman is running.";
+            return false;
+        }
+
         $start = microtime(true);
+
         $state->DAL = SimpleDAL::factory($state->tmp_shard);
 
         
@@ -717,14 +727,70 @@ class ShardQuery {
                         }
                         
                         break;
-                    
-                    case 'STDDEV':
-                    case 'STD':
-                    case 'STDDEV_POP':
-                    case 'STDDEV_SAMP':
+
                     case 'VARIANCE':
                     case 'VAR_POP':
+                    case 'VAR':
                     case 'VAR_SAMP':
+                      $alias_expr = trim($alias, '`');
+                      $alias_sum2 = "`{$alias_expr}_sum2`";
+                      $alias_sum = "`{$alias_expr}_sum`";
+                      $alias_cnt = "`{$alias_expr}_cnt`";
+                        
+                            
+                      //need to push expressions into the SELECT clause
+                      $shard_query .= "SUM({$base_expr}) as {$alias_sum}";
+                      $push_select[] = "COUNT({$base_expr}) as {$alias_cnt}";
+                      $push_select[] = "SUM(POW({$base_expr},2)) as {$alias_sum2}";
+                      $coord_odku[] = "{$alias_cnt}={$alias_cnt} +  VALUES({$alias_cnt})";
+                      $coord_odku[] = "{$alias_sum}={$alias_sum} +  VALUES({$alias_sum})";
+                      $coord_odku[] = "{$alias_sum2}={$alias_sum2} +  VALUES({$alias_sum2})";
+
+                      #$coord_query .= "SUM({$alias_sum})/SUM({$alias_cnt})" . (!$skip_alias ? " AS $alias" : "");
+                      switch($function) {
+                        case 'VAR_SAMP':
+                          #$coord_query .= "IF( $alias_cnt != 0, ((SUM({$alias_sum2})/SUM({$alias_cnt})) - POW((SUM({$alias_sum})/SUM($alias_cnt)),2)) *  ( ($alias_cnt/($alias_cnt-1) ) ), NULL)" . (!$skip_alias ? " AS $alias" : "");
+                          $coord_query .= "((SUM({$alias_sum2})/SUM({$alias_cnt})) - POW((SUM({$alias_sum})/SUM($alias_cnt)),2)) *  ( ($alias_cnt/($alias_cnt-1) ) )" . (!$skip_alias ? " AS $alias" : "");
+                          break;
+
+                        default:
+                          $coord_query .= "((SUM({$alias_sum2})/SUM({$alias_cnt})) - POW((SUM({$alias_sum})/SUM($alias_cnt)),2))" . (!$skip_alias ? " AS $alias" : ""); 
+                          break;
+                     }
+
+                    break;
+                    
+                    case 'STDDEV':
+                    case 'STD_POP':
+                    case 'STD':
+                    case 'STD_SAMP':
+                      $alias_expr = trim($alias, '`');
+                      $alias_sum2 = "`{$alias_expr}_sum2`";
+                      $alias_sum = "`{$alias_expr}_sum`";
+                      $alias_cnt = "`{$alias_expr}_cnt`";
+                        
+                            
+                      //need to push expressions into the SELECT clause
+                      $shard_query .= "SUM({$base_expr}) as {$alias_sum}";
+                      $push_select[] = "COUNT({$base_expr}) as {$alias_cnt}";
+                      $push_select[] = "SUM(POW({$base_expr},2)) as {$alias_sum2}";
+                      $coord_odku[] = "{$alias_cnt}={$alias_cnt} +  VALUES({$alias_cnt})";
+                      $coord_odku[] = "{$alias_sum}={$alias_sum} +  VALUES({$alias_sum})";
+                      $coord_odku[] = "{$alias_sum2}={$alias_sum2} +  VALUES({$alias_sum2})";
+
+                      #$coord_query .= "SUM({$alias_sum})/SUM({$alias_cnt})" . (!$skip_alias ? " AS $alias" : "");
+                      switch($function) {
+                        case 'STD_SAMP':
+                          $coord_query .= "POW( ((SUM({$alias_sum2})/SUM({$alias_cnt})) - POW((SUM({$alias_sum})/SUM($alias_cnt)),2)) *  ( ($alias_cnt/($alias_cnt-1) ) ),.5)" . (!$skip_alias ? " AS $alias" : "");
+                          break;
+
+                        default:
+                          $coord_query .= "POW( ((SUM({$alias_sum2})/SUM({$alias_cnt})) - POW((SUM({$alias_sum})/SUM($alias_cnt)),2)),.5)" . (!$skip_alias ? " AS $alias" : ""); 
+                          break;
+                     }
+                    break;
+
+
                     case 'GROUP_CONCAT':
                         $no_pushdown_limit = true;
                         $non_distrib = true;
