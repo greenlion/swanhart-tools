@@ -132,7 +132,7 @@ if(!empty($result)){
 	exit(1);
 }	
 //done
-write_line("Done!");
+#write_line("Done!");
 
 // Exit correctly
 exit(0);

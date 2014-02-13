@@ -1,4 +1,5 @@
 set foreign_key_checks=0;
+set storage_engine=INNODB;
 
 DROP TABLE IF EXISTS `column_sequences`;
 CREATE TABLE `column_sequences` (
@@ -12,7 +13,7 @@ CREATE TABLE `column_sequences` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `schema_id_2` (`schema_id`,`sequence_name`,`sequence_type`),
   CONSTRAINT `column_sequences_ibfk_1` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `gearman_function_names`;
 CREATE TABLE `gearman_function_names` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -20,7 +21,7 @@ CREATE TABLE `gearman_function_names` (
   `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `function_name` (`function_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `gearman_functions`;
 CREATE TABLE `gearman_functions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -35,7 +36,7 @@ CREATE TABLE `gearman_functions` (
   KEY `gearman_functions_ibfk_1` (`function_name_id`),
   CONSTRAINT `fk_gearmand_functions_schema_id` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `gearman_functions_ibfk_1` FOREIGN KEY (`function_name_id`) REFERENCES `gearman_function_names` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `gearman_job_servers`;
 CREATE TABLE `gearman_job_servers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -50,7 +51,7 @@ CREATE TABLE `gearman_job_servers` (
   UNIQUE KEY `hostname_port_unique` (`hostname`,`port`),
   KEY `schema_id` (`schema_id`),
   CONSTRAINT `gearman_job_servers_ibfk_1` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `gearman_workers`;
 CREATE TABLE `gearman_workers` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -60,7 +61,7 @@ CREATE TABLE `gearman_workers` (
   `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `function_id` (`function_name`,`pid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+)  DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `job_worker_status`;
 CREATE TABLE `job_worker_status` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -70,7 +71,7 @@ CREATE TABLE `job_worker_status` (
   `completion_message` text,
   `complete_time` timestamp,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `jobs`;
 CREATE TABLE `jobs` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -89,7 +90,7 @@ CREATE TABLE `jobs` (
   KEY `shard_id` (`shard_id`),
   KEY `completion_percent` (`completion_percent`),
   CONSTRAINT `jobs_ibfk_1` FOREIGN KEY (`shard_id`) REFERENCES `shards` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `schemata`;
 CREATE TABLE `schemata` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -99,7 +100,7 @@ CREATE TABLE `schemata` (
   `enabled` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   UNIQUE KEY `schema_name_UNIQUE` (`schema_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `schemata_config`;
 CREATE TABLE `schemata_config` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -111,13 +112,13 @@ CREATE TABLE `schemata_config` (
   UNIQUE KEY `schema_id` (`schema_id`,`var_name`),
   CONSTRAINT `schemata_config_ibfk_1` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`),
   CONSTRAINT `fk2` FOREIGN KEY (`var_name`) references `schemata_config_items`(`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1;
+)  AUTO_INCREMENT=4 DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `schemata_config_items`;
 CREATE TABLE `schemata_config_items` (
   `name` varchar(255) NOT NULL,
   `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+)  DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `shard_map`;
 CREATE TABLE `shard_map` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -132,7 +133,7 @@ CREATE TABLE `shard_map` (
   KEY `shard_id` (`shard_id`),
   CONSTRAINT `shard_map_ibfk_1` FOREIGN KEY (`shard_id`) REFERENCES `shards` (`id`),
   CONSTRAINT `shard_map_ibfk_2` FOREIGN KEY (`column_id`) REFERENCES `column_sequences` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+)  AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 DROP TABLE IF EXISTS `shard_range_map`;
 CREATE TABLE `shard_range_map` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -147,7 +148,7 @@ CREATE TABLE `shard_range_map` (
   KEY `column_id_3` (`column_id`,`key_value_max`),
   CONSTRAINT `shard_range_map_ibfk_1` FOREIGN KEY (`shard_id`) REFERENCES `shards` (`id`),
   CONSTRAINT `shard_range_map_ibfk_2` FOREIGN KEY (`column_id`) REFERENCES `column_sequences` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+)  DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `shards`;
 CREATE TABLE `shards` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -167,7 +168,7 @@ CREATE TABLE `shards` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `schema_id` (`schema_id`,`shard_name`),
   CONSTRAINT `shards_ibfk_1` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 INSERT INTO `gearman_function_names` VALUES (1,'shard_query_worker',now()),(2,'store_resultset',now()),(3,'custom_function',now()),(4,'loader',now());
 INSERT INTO `schemata_config_items` 
 VALUES ('between',now()),
