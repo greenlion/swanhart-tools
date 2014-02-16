@@ -582,7 +582,7 @@ class ShardQuery {
         return "`$alias`";
     }
     
-    protected function process_select_item($pos, &$clause, &$shard_query = "", &$coord_query = "", &$push_select = array(), &$group_aliases = array(), &$group = array(), &$error = array(), $skip_alias = false, &$used_agg_func, &$coord_odku, $prev_clause = null, &$state, $alias, $parent) {
+    protected function process_select_item($pos, &$clause, &$shard_query = "", &$coord_query = "", &$push_select = array(), &$group_aliases = array(), &$error = array(), $skip_alias = false, &$used_agg_func, &$coord_odku, $prev_clause = null, &$state, $alias, $parent,&$custom_functions) {
         $return = array();
         $no_pushdown_limit = true;
         $non_distrib = false;
@@ -629,7 +629,7 @@ class ShardQuery {
                         $shard_query .= ",";
                     }
 
-                    $this->process_select_item($pos, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $group, $error, true, $sub_used_agg_func, $coord_odku, $prev_clause,$state,"", $clause);
+                    $this->process_select_item($pos, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $sub_used_agg_func, $coord_odku, $prev_clause,$state,"", $clause);
                     
                 }
 
@@ -638,10 +638,43 @@ class ShardQuery {
                 break;
             
             case 'custom_function':
+		$function = $clause['base_expr'];
+
+                if (!empty(ShardQueryCustomFunctions::$list[$function]) && ShardQueryCustomFunctions::$list[$function]['unique_input'] === true) {
+                  $func_call_id = "agg_tmp_" . md5(uniqid());
+                  $custom_functions[$func_call_id] = array(
+                    'function' => $clause['base_expr'],
+                    'arg' => $clause['sub_tree'], 
+                    'colref_map' => array()
+                  );
+
+                  foreach($clause['sub_tree'] as $expr) {
+                    #TODO: support types of expressions other than colref
+                    if($expr['expr_type'] !== 'colref') continue;
+
+                    $c = trim($expr['base_expr']);
+
+                    if (!isset($state->used_colrefs[$c])) {
+                      $new_alias  = "expr$" . (count($state->used_colrefs));
+                      $state->used_colrefs[$c] = count($state->used_colrefs);
+                      $shard_query .= $c . " AS $new_alias";
+                      $group_aliases[$c] = array('alias'=>$new_alias,'pushed'=>true);
+		    } else {
+                      $new_alias = "expr$" . $state->used_colrefs[$c];
+                    }
+                    // The custom function gets input based on column name, this maps name to alias in the coord table
+                    $custom_functions[$func_call_id]['colref_map'][$c] = $new_alias;
+                  }          
+		  /* there is a string replace later which replaces #gb_hash# with the appropriate hash expression */
+                  $coord_query .= "MAX(( select retval from `$func_call_id` cfr where cfr.gb_hash = #gb_hash# limit 1 )) AS $alias";
+                  $used_agg_func = 1;
+              } else {
+                // since it doesn't take unique input, we have to be undistributable :(
                 $no_pushdown_limit = true;
                 $non_distrib = true;
+              }
                 
-                break;
+              break;
             
             case 'aggregate_function':
                 $used_agg_func = 1;
@@ -667,7 +700,7 @@ class ShardQuery {
                             if (empty($state->used_colrefs[trim($new_expr)])) {
                                 $shard_query .= "$new_expr AS $new_alias";
                                 $coord_odku[] = "$new_alias=VALUES($new_alias)";
-                                $group_aliases[] = $new_alias;
+                                $group_aliases[trim($new_expr)] = array('alias'=>$new_alias,'pushed'=>true);
                             }
                             
                             $state->used_colrefs[trim($new_expr)] = 1;
@@ -709,7 +742,7 @@ class ShardQuery {
                             if (empty($state->used_colrefs[trim($new_expr)])) {
                                 $shard_query .= "$new_expr AS $alias";
                                 $coord_odku[] = "$alias=VALUES($alias)";
-                                $group_aliases[] = $alias;
+                                $group_aliases[trim($new_expr)] = array('alias' => $alias, 'pushed'=>true);
                             }
 
                             $coord_query .= "{$function}(distinct $alias)" . (!$skip_alias ? " AS $alias" : "");
@@ -826,7 +859,7 @@ class ShardQuery {
                 $first = 0;
                 foreach ($clause['sub_tree'] as $sub_pos => $sub_clause) {
                     if ($sub_clause['expr_type'] == 'colref' || $sub_clause['expr_type'] == 'aggregate_function' || $sub_clause['expr_type'] == 'function') {
-                        $this->process_select_item($pos + 1, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $group, $error, true, $used_agg_func, $coord_odku, $clause, $state,"", $clause);
+                        $this->process_select_item($pos + 1, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $used_agg_func, $coord_odku, $clause, $state,"", $clause);
                     } else {
                         $coord_query .= " " . $sub_clause['base_expr'];
                     }
@@ -846,8 +879,8 @@ class ShardQuery {
                 if(!$parent) {
                     $coord_query .= $new_alias . ' AS ' . $alias;
                     $shard_query .= $clause['base_expr'] . ' AS ' . $new_alias;
-                    $group[] = $pos + 1;
-                    $group_aliases[] = $new_alias;
+                    //$group[] = $pos + 1;
+                    $group_aliases[$clause['base_expr']] = array('alias'=>$new_alias,'pushed'=>false);
                 } else  {
                     if (empty($state->used_colrefs[$base_expr])) {
                         $new_alias  = "expr$" . (count($state->used_colrefs));
@@ -856,7 +889,7 @@ class ShardQuery {
                             $shard_query .= ' AS ' . $new_alias;
                         } 
                         $shard_query .= ",";
-                        $group_aliases[] = $new_alias;
+                        $group_aliases[$base_expr] = array('alias'=>$new_alias, 'pushed'=>false);
                     } 
                     $coord_query .= " $new_alias";
                     #$coord_query .= ",";
@@ -904,11 +937,12 @@ class ShardQuery {
         
         $state->no_pushdown_limit = false; //will be set if a rewrite forces us to abandon pushdown limit strategy
         $prev_clause = false;
+	$custom_functions = array();
         foreach ($select as $pos => $clause) {
             //this will recurse and fill up the proper structures
             $alias = $this->make_alias($clause);
  
-            $this->process_select_item($pos, $clause, $shard_query, $coord_query, $push_select, $group_aliases, $group, $error, false, $used_agg_func, $coord_odku, null, $state, $alias,null);
+            $this->process_select_item($pos, $clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $used_agg_func, $coord_odku, null, $state, $alias,null, $custom_functions);
             if($pos+1 < count($select)) {
                 $shard_query = rtrim($shard_query, ", ");
                 $coord_query = rtrim($coord_query, ", ");
@@ -933,25 +967,43 @@ class ShardQuery {
         foreach ($push_select as $clause) {
             $shard_query .= "," . $clause;
         }
-        
-        $group_aliases = array_unique($group_aliases);
-        if ($used_agg_func) {
-            $state->used_agg_func = true;
-        } else {
-            $state->used_agg_func = false;
-            $group = array();
-            $group_aliases = array();
+
+	#take all the group by columns and use them on the shard
+       	$shard_group = join(',',array_keys($group_aliases));
+
+        #only non-pushed group items are sent to coordinator
+        #also put together the hash statements
+        $coord_group = $shard_hash = $coord_hash = "";
+        $all_aliases = "";
+        foreach($group_aliases as $col => $ary_alias) {
+          if($shard_hash) $shard_hash .= ",";  $shard_hash .= $col;
+          if($coord_hash) $coord_hash .= ",";  $coord_hash .= $ary_alias['alias'];
+          if($all_aliases) $all_aliases .= ",";  $all_aliases .= $ary_alias['alias'];
+          if($ary_alias['pushed'] != false) continue;
+          if($coord_group) $coord_group .= ',';
+          $coord_group .= $ary_alias['alias'];
         }
+        if($coord_group || $shard_group) $state->used_agg_func = true; else $state->used_agg_func = false;
+
+        if($shard_hash == "") $shard_hash = "'ONE_ROW_RESULTSET'";
+        if($coord_hash == "") $coord_hash = "'ONE_ROW_RESULTSET'";
+        //}
         
+        $shard_hash = "SHA1(CONCAT_WS('#'," . $shard_hash . "))";
+        $coord_hash = "SHA1(CONCAT_WS('#'," . $coord_hash . "))";
+        $coord_query = str_replace('#gb_hash#', $coord_hash, $coord_query);
+        $shard_query = trim($shard_query, ", ") . "," . $shard_hash . " as `gb_hash`";
+
         //we can't send pushed group by to the coord shard, so send the expression based 
         return array(
             'error' => $error,
             'shard_sql' => $shard_query,
             'coord_odku' => $coord_odku,
             'coord_sql' => $coord_query,
-            'shard_group' => join(',', $group_aliases),
-            'coord_group' => join(',', $group),
-            'group_aliases' => join(',', $group_aliases)
+            'shard_group' => $shard_group,
+            'coord_group' => $coord_group,
+            'group_aliases' => $all_aliases,
+            'custom_functions' => $custom_functions
         );
     }
     

@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class ShardQueryCustomFunctions {
 
 	static $list = array (
-		'percentile' => array( 'sort_input' => true ),
+		'percentile' => array( 'sort_input' => true, 'unique_input' => true ),
 	);
 
 	static function register_all(&$parser) {
