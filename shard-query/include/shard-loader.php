@@ -121,7 +121,7 @@ class ShardLoader {
         $jobs = array();
 
         $loadspec = array('line_terminator' => $this->line_terminator, 'enclosure' => $this->enclosure, 'delimiter' => $this->delimiter);
-        $job_id = $SQ->state->mapper->register_job(null, 0, 0, $table, "[LOAD DATA LOCAL]","load",count($info));
+        $job_id = $SQ->state->mapper->register_job(null, 0, 0, $table, "[LOAD DATA LOCAL] FILE:$path","load",count($info));
         foreach($info as $segment) {
             echo "  Table: $table\n   File: $path\nOffsets: from_pos: {$segment['start']}, to_pos: {$segment['end']}\n";
             $jobs[] = array( 'job_id' => $job_id, 'path' => $path, 'table' => $table, 'start' => $segment['start'], 'end' => $segment['end'], 'loadspec' => $loadspec );
