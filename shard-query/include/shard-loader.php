@@ -156,7 +156,7 @@ class ShardLoader {
         */
         $db = $SQ->tmp_shard['db'];
         $dal = SimpleDAL::factory($SQ->tmp_shard);
-        if($dal->my_error()) { echo $dal->my_error();  return false; }
+        if($dal->my_error()) { echo $dal->my_error(); $errors[]=array('error'=>"Could not get list of columns for table", 'file_pos'=>$start_pos); return $errors; }
 
         $table = $dal->my_real_escape_string($table);
         $db = $dal->my_real_escape_string($db);
@@ -225,7 +225,9 @@ class ShardLoader {
                 }
                 fclose($fifo['fh']);
             }
-            return $errors;
+
+            if(!empty($errors)) return $errors; else return true;
+	
         }
 
 
