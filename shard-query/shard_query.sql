@@ -84,7 +84,7 @@ CREATE TABLE `jobs` (
   `job_status` enum('starting','running','completed','error') NOT NULL DEFAULT 'starting',
   `job_result_sql` text NOT NULL,
   `completion_percent` decimal(5,2) DEFAULT '0.00',
-  `start_time` timestamp,
+  `start_time` TIMESTAMP default current_timestamp,
   `end_time` datetime,
   PRIMARY KEY (`id`),
   KEY `shard_id` (`shard_id`),
