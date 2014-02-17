@@ -645,6 +645,7 @@ class ShardQuery {
         break;
       
       case 'custom_function':
+        $state->need_hash = true;
         $function = $clause['base_expr'];
         
         if(!empty(ShardQueryCustomFunctions::$list[$function]) && ShardQueryCustomFunctions::$list[$function]['unique_input'] === true) {
@@ -963,6 +964,7 @@ class ShardQuery {
     $state->no_pushdown_limit = false; //will be set if a rewrite forces us to abandon pushdown limit strategy
     $prev_clause = false;
     $custom_functions = array();
+    $state->need_hash = false;
     foreach($select as $pos => $clause) {
       //this will recurse and fill up the proper structures
       $alias = $this->make_alias($clause);
@@ -1026,12 +1028,12 @@ class ShardQuery {
     if($coord_hash == "")
       $coord_hash = "'ONE_ROW_RESULTSET'";
     //}
-    
-    $shard_hash = "SHA1(CONCAT_WS('#'," . $shard_hash . "))";
-    $coord_hash = "SHA1(CONCAT_WS('#'," . $coord_hash . "))";
-    $coord_query = str_replace('#gb_hash#', $coord_hash, $coord_query);
-    $shard_query = trim($shard_query, ", ") . "," . $shard_hash . " as `gb_hash`";
-    
+    if($state->need_hash) { 
+      $shard_hash = "SHA1(CONCAT_WS('#'," . $shard_hash . "))";
+      $coord_hash = "SHA1(CONCAT_WS('#'," . $coord_hash . "))";
+      $coord_query = str_replace('#gb_hash#', $coord_hash, $coord_query);
+      $shard_query = trim($shard_query, ", ") . "," . $shard_hash . " as `gb_hash`";
+    }
     //we can't send pushed group by to the coord shard, so send the expression based 
     return array(
       'error' => $error,
@@ -1493,7 +1495,7 @@ class ShardQuery {
       $item = "";
       $this->concat_all_subtrees($tables[$i]['ref_clause'], $item);
       if($tables[$i]['ref_type'] == 'USING') {
-        $tables[$i]['ref_clause'] = "(" . trim($tables[$i]['base_expr']) . ")";
+        $tables[$i]['ref_clause'] = "(" . trim($tables[$i]['ref_clause'][0]['base_expr']) . ")";
       } elseif($tables[$i]['ref_type'] == 'ON') {
         $item = "";
         $this->concat_all_subtrees($tables[$i]['ref_clause'], $item);
