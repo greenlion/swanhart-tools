@@ -155,11 +155,17 @@ EOREGEX
 		if(!$settings) {
 			$settings = $this->read_settings();
 		}
-		$this->settings = $settings;
-		if(!$this->cmdLine) $this->cmdLine = `which mysqlbinlog`;
+		#the mysqlbinlog command line location may be set in the settings
+		#we will autodetect the location if it is not specified explicitly
+		if(!empty($settings['flexcdc']['mysqlbinlog'])) {
+			$this->cmdLine = $settings['flexcdc']['mysqlbinlog'];
+		} 
+		if(isset($this->cmdLine) && !file_exists($this->cmdLine)) $this->cmdLine = false;
+		if(!$this->cmdLine) $this->cmdLine = trim(`which mysqlbinlog`);
 		if(!$this->cmdLine) {
 			die1("could not find mysqlbinlog!",2);
 		}
+		$this->settings = $settings;
 		
 		
 		#only record changelogs from certain databases?
@@ -183,11 +189,6 @@ EOREGEX
 			echo "{$kdisp}={$vdisp}\n";
 		}
 		
-		#the mysqlbinlog command line location may be set in the settings
-		#we will autodetect the location if it is not specified explicitly
-		if(!empty($settings['flexcdc']['mysqlbinlog'])) {
-			$this->cmdLine = $settings['flexcdc']['mysqlbinlog'];
-		} 
 		
 		#build the command line from user, host, password, socket options in the ini file in the [source] section
 		foreach($settings['source'] as $k => $v) {
@@ -406,14 +407,15 @@ EOREGEX
 				if ($row['exec_master_log_pos'] < 4) $row['exec_master_log_pos'] = 4;
 				$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-position=%d %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_size'], $row['master_log_file']);
 				$execCmdLine .= " 2>&1";
-				echo  "-- $execCmdLine\n";
+				echo "-- $execCmdLine\n";
 				$proc = popen($execCmdLine, "r");
 				if(!$proc) {
 					die1('Could not read binary log using mysqlbinlog\n');
 				}
 
 				$line = fgets($proc);
-				if(preg_match('%/mysqlbinlog:|^ERROR:%', $line)) {
+
+				if(preg_match('%ERROR:%', $line)) {
 					die1('Could not read binary log: ' . $line . "\n");
 				}	
 
@@ -425,7 +427,7 @@ EOREGEX
 				pclose($proc);
 			}
 
-			if($processedLogs) ++$count;
+			if($processedLogs > 0) ++$count; else sleep(1);
 
 			#we back off further each time up to maximum
 			if(!empty($this->settings['flexcdc']['sleep_increment']) && !empty($this->settings['flexcdc']['sleep_maximum'])) {
@@ -1091,6 +1093,7 @@ EOREGEX
 				#read from the process
 				$line = trim(fgets($proc));
 			}
+			#if(preg_match('/^Warning: /', $line)) { continue; }
 
 			#echo "-- $line\n";
 			#It is faster to check substr of the line than to run regex
@@ -1098,7 +1101,9 @@ EOREGEX
 			$prefix=substr($line, 0, 5);
 			if($prefix=="ERROR") {
 				if(preg_match('/Got error/', $line)) 
+				sleep(1);echo "error from mysqlbinlog: $line\n";
 				die1("error from mysqlbinlog: $line");
+                              
 			}
 			$matches = array();
 
