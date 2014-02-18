@@ -344,8 +344,8 @@ EOREGEX
 						 `" . $this->binlog_consumer_status . "` (
   						 	`server_id` int not null, 
   							`master_log_file` varchar(100) NOT NULL DEFAULT '',
-  							`master_log_size` int(11) DEFAULT NULL,
-  							`exec_master_log_pos` int(11) default null,
+  							`master_log_size` bigint(11) DEFAULT NULL,
+  							`exec_master_log_pos` bigint(11) default null,
   							PRIMARY KEY (`server_id`, `master_log_file`)
 						  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
 			            , $this->dest) or die1('COULD NOT CREATE TABLE ' . $this->binlog_consumer_status . ': ' . mysql_error($this->dest) . "\n");
