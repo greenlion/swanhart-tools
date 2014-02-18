@@ -243,7 +243,7 @@ EOREGEX
 
 		$key = $schema . $table . $pos;
 		if(!empty($cache[$key])) {
-			return $cache[$key][0];
+			return $cache[$key];
 		} 
 
 		$log_name = 'mvlog_' . md5(md5($schema) . md5($table));
