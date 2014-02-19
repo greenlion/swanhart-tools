@@ -199,6 +199,43 @@ if(!empty($config['coord_shard'])) {
 }
 if(isset($config['is_default_schema'])) $is_default_schema = $config['is_default_schema'];
 
+if(empty($config['shared_path'])) {
+  write_line("Please enter a shared filesystem path available on all nodes (for s3 bucket use s3://bucketname): [/tmp]");
+  $shared_path = read_line();
+  if($shared_path == "") $shared_path = "/tmp";
+  $config['shared_path'] = $shared_path;
+} 
+
+/* NEW: config for S3 */
+$aws_access_key = "";
+$aws_secret_key = "";
+$used_s3 = false;
+if(strstr($config['shared_path'], "s3")) $used_s3 = true;
+echo "\033[2J\033[;H";
+if(empty($config['aws_access_key'])) {
+  if(!$used_s3) {
+    write_line("Do you want to enter an AWS access key? This will be used if you want to load from S3 later. (y/n) [n]");
+    $answer = read_line();
+  }
+  if($used_s3 || substr(strtolower(trim($answer)),0,1) == 'y') {
+    write_line("Enter AWS access key (you will be asked for the secret key in a moment): ");
+    $config['aws_access_key']=read_line();
+  }
+}
+
+if(empty($config['aws_secret_key'])) {
+  if(!$used_s3) {
+    write_line("Do you want to enter an AWS secret key? This will be used if you want to load from S3 later. (y/n) [n]");
+    $answer = read_line();
+  }
+  if($used_s3 || substr(strtolower(trim($answer)),0,1) == 'y') {
+    write_line("Enter AWS secret key: ");
+    $config['aws_secret_key']=read_line();
+    
+  }
+}
+
+
 unset($config['is_default_schema']);
 echo "* Creating/Updating configuration values\n";
 foreach($config as $var_name => $var_value) {
@@ -307,6 +344,7 @@ $config['default_virtual_schema'] = $config['schema_name'];
 unset($config['mapper']);
 #unset($config['mapper_type']);
 unset($config['schema_name']);
+
 
 //create config.in only when default schema
 if($is_default_schema == 1 || !file_exists('include/config.inc')){

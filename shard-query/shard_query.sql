@@ -182,25 +182,7 @@ VALUES ('between',now()),
 ('inlist_merge_size',now()),
 ('coord_engine',now()),
 ('gearmand_path', now()),
-('star_schema', now());
-
-create table is_tables 
-(
-schema_id int not null default 0, 
-key(schema_id, table_schema, table_name)
-) 
-as select * from information_schema.tables limit 0; 
-
-create table is_columns
-(
-schema_id int not null default 0, 
-key(schema_id, table_schema, table_name, column_name)
-) 
-as select * from information_schema.columns limit 0; 
-
-create table is_partitions
-(
-schema_id int not null default 0, 
-key(schema_id, table_schema, table_name)
-) 
-as select * from information_schema.partitions where table_name is null limit 0; 
+('star_schema', now()),
+('shared_path', now()),
+('aws_access_key', now()),
+('aws_secret_key', now());
