@@ -1883,6 +1883,130 @@ class ShardQuery {
     $this->errors[] = "Subquery factoring not yet supported (coming soon).\n";
     return false;
   }
+
+  protected function process_load_data($sql) {
+    $file_name = false;
+    $table_name = "";
+    $delimiter = ",";
+    $fields_termianted_by = ",";
+    $lines_terminated_by = "\\n";
+    $fields_escaped_by = "\\";
+    $fields_optionally_enclosed =  false;
+    $fields_enclosed_by = '';
+    $copy_to_shared = false;
+    $charset = "latin1";
+
+    $regex = "/[A-Za-z_.]+\(.*?\)+|\(.*?\)+|\"(?:[^\"]|\"|\"\")*\"+|'[^'](?:|\'|'')*'+|`(?:[^`]|``)*`+|[^ ,]+ |,/x"; $regex = trim($regex);
+    preg_match_all($regex, $sql, $matches, PREG_OFFSET_CAPTURE);
+    $tokens = $matches[0];
+
+    if(strtolower($tokens[0][0]) != 'load') {
+      $this->errors[]='Malformed LOAD DATA statement.  LOAD is missing.'; 
+      return false;
+    }
+    $skip_next = false; 
+    $line_options = false;
+    $field_options = false;
+
+    $ignore_lines = 0;
+ 
+    $set_pos_at = 0;
+    
+    foreach($tokens as $key => $token) {
+      if($token[0] == "'") continue;
+
+      if($skip_next) { $skip_next = false; continue; }
+      $token = $token[0];
+      switch(strtolower($token)) {
+        case 'load':
+        case 'data':
+        case 'low_priority':
+        case 'concurrent':
+          break;
+
+        case 'replace':
+          $replace = true;
+          break;
+ 
+        case 'ignore':
+          $ignore = true;
+          break;
+
+        case 'character':
+          $charset = $tokens[$key+2][0];
+          $skip_next = true;
+          break;
+
+        case 'local':
+          $copy_to_shared = true;
+          break;
+
+        case 'infile':
+          $file_name = $tokens[$key+1][0];
+          $skip_next = true;
+          break;
+       
+        case 'into':
+         break;
+
+        case 'table':
+          $table_name = $tokens[$key+1][0];
+          $skip_next = true;
+          break;
+
+        case 'fields':
+        case 'columns':
+          $field_options = true;
+          break;
+
+        case 'terminated':
+          if($line_options) {
+            $lines_terminated_by = $tokens[$key+2][0];
+          } else {
+            $fields_terminated_by = $tokens[$key+2][0];
+          }
+          break;
+
+        case 'by':
+          $skip_next = true;
+          break;
+
+        case 'optionally':
+          $fields_optionally_enclosed=true;
+          break;
+
+        case 'enclosed':
+          $fields_enclosed_by = $tokens[$key+2][0];
+          break;
+
+        case 'lines':
+          $line_options = true;
+          $field_options = false;
+          break;
+
+        case 'starting':
+          if($line_options) {
+            $lines_starting_by = $tokens[$key+2][0];
+          } 
+          break;
+
+        case 'ignore':
+          $ignore_lines = $tokens[$key+2][0];
+          break;
+
+        case 'set':
+          $set_pos_at = $token[1];
+          break 2; #leave for loop
+
+      }
+    }
+
+    if($set_pos_at) $set_clause = substr($sql, $set_pos_at); else $set_clause = "";
+   
+    $this->errors[] = "LOAD DATA is not (yet) supported.";
+    return false;
+
+  }
   
   /* if $sql is an Array(), then it is assumed it is already parsed */
   protected function process_sql($sql, &$state) {
@@ -1919,6 +2043,11 @@ class ShardQuery {
         if(!$sql) { 
 	  return false;
         }
+      }
+
+      if(strtolower(substr($sql,0,4)) == 'load') {
+        $result = $this->process_load_data($sql);
+        if(!$result) return false;
       }
 
       $blacklist = '/(?:create|drop|alter)\s+database|last_insert_id|sql_calc_found_rows|row_count|:=|connection_id|' . 'current_user|session_user|user\(\)|mysql\.|system_user|found_rows|get_lock|free_lock|' . 'is_free_lock|is_used_lock|load_file|infile|master_pos_wait|name_const|release_lock|^show\s+(?:master|slave)|' . '^show\s+bin|^show\s+create\s+database|^show\s+databases|^show\s+logs|^show\s+mutex|' . '^show\s+engine|^show\s+innodb|^show\s+open|^show\s+privileges|^show\s+(?:status|variables)|^lock\s+table|' . '^check\s+table|^checksum\s+table|^backup|^repair|^restore|^call|^handler|^begin|^start\s+transaction|^commit|' . '^rollback|^set transaction|savepoint|^xa\s+(?:start|begin|end|prepare|commit|rollback|recover)/i';
@@ -2102,8 +2231,7 @@ class ShardQuery {
       }
       
       /*This will process the SELECT clause, doing any SQL rewrites needed for aggregation at the shard level
-      The $this->non_distrib flag will be set if the query contains any non-distributable aggregate functions
-      such as STDDEV(some_col).
+      The $this->non_distrib flag will be set if the query contains any non-distributable aggregate functions (none currently)
       
       If non-distributable aggregate functions are detected, we will throw this work away and instead use
       $this->process_undistributable_select() [below]
@@ -2123,6 +2251,11 @@ class ShardQuery {
       } else {
         $select = $this->process_undistributable_select($state->parsed['SELECT'], $straight_join, $distinct);
         unset($state->parsed['SELECT']);
+      }
+
+      if(!empty($select['error'])) {
+        $this->errors[] = $select['error'];
+        return false;
       }
       
       if(!empty($state->parsed['GROUP']) && empty($select['coord_group'])) {
