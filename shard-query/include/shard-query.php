@@ -1878,6 +1878,11 @@ class ShardQuery {
     
     return array_values($out_queries);
   }
+
+  protected function process_subquery_factoring($sql) {
+    $this->errors[] = "Subquery factoring not yet supported (coming soon).\n";
+    return false;
+  }
   
   /* if $sql is an Array(), then it is assumed it is already parsed */
   protected function process_sql($sql, &$state) {
@@ -1895,21 +1900,33 @@ class ShardQuery {
     $error = array();
     
     $select = null;
-    
+
     if(!is_array($sql)) {
+      #//we need to check the syntax
+      $sql = preg_replace(array(
+        "%-- [^\\n](?:\\n|$)%",
+        "%/\\*.*\\*/%"
+      ), '', trim($sql));
+
+      if(!$sql) { 
+        $this->errors[] = "SQL is empty\n";
+	return false;
+      }
+
+      if(strtolower(substr($sql,0,4)) == 'with') {
+        // handle the WITH clauses and rewrite the SQL to use the new table names
+        $sql = $this->process_subquery_factoring($sql);
+        if(!$sql) { 
+	  return false;
+        }
+      }
+
       $blacklist = '/(?:create|drop|alter)\s+database|last_insert_id|sql_calc_found_rows|row_count|:=|connection_id|' . 'current_user|session_user|user\(\)|mysql\.|system_user|found_rows|get_lock|free_lock|' . 'is_free_lock|is_used_lock|load_file|infile|master_pos_wait|name_const|release_lock|^show\s+(?:master|slave)|' . '^show\s+bin|^show\s+create\s+database|^show\s+databases|^show\s+logs|^show\s+mutex|' . '^show\s+engine|^show\s+innodb|^show\s+open|^show\s+privileges|^show\s+(?:status|variables)|^lock\s+table|' . '^check\s+table|^checksum\s+table|^backup|^repair|^restore|^call|^handler|^begin|^start\s+transaction|^commit|' . '^rollback|^set transaction|savepoint|^xa\s+(?:start|begin|end|prepare|commit|rollback|recover)/i';
       
       if(preg_match($blacklist, $sql, $matches)) {
         $this->errors[] = 'Unsupported SQL: ' . print_r($matches, true);
         return false;
       }
-      
-      
-      #//we need to check the syntax
-      $sql = preg_replace(array(
-        "%-- [^\\n](?:\\n|$)%",
-        "%/\\*.*\\*/%"
-      ), '', $sql);
       
       #version check is broken on ICE due to LIMIT 0 issue
       $version_check_sql = 'select @@version_comment c';
