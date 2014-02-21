@@ -34,6 +34,7 @@ define('SQ_DEBUG', false);
 /*This script requires PEAR Net_Gearman */
 /*It also requires Console_Getopt, but this should be installed by default with pear */
 require_once 'common.php';
+require_once 'shard-loader.php';
 //$params = get_commandline();
 
 class ShardQuery {
@@ -1887,14 +1888,18 @@ class ShardQuery {
   protected function process_load_data($sql) {
     $file_name = false;
     $table_name = "";
-    $delimiter = ",";
-    $fields_termianted_by = ",";
+    $fields_terminated_by = ",";
     $lines_terminated_by = "\\n";
     $fields_escaped_by = "\\";
     $fields_optionally_enclosed =  false;
     $fields_enclosed_by = '';
-    $copy_to_shared = false;
+    $local = false;
     $charset = "latin1";
+    $ignore = false;
+    $replace = false;
+    $columns_str = "";
+    $set_str = "";
+    $lines_starting_by = "";
 
     $regex = "/[A-Za-z_.]+\(.*?\)+|\(.*?\)+|\"(?:[^\"]|\"|\"\")*\"+|'[^'](?:|\'|'')*'+|`(?:[^`]|``)*`+|[^ ,]+ |,/x"; $regex = trim($regex);
     preg_match_all($regex, $sql, $matches, PREG_OFFSET_CAPTURE);
@@ -1911,9 +1916,16 @@ class ShardQuery {
     $ignore_lines = 0;
  
     $set_pos_at = 0;
-    
+    $past_infile=false; 
+
+    print_r($tokens);
+    // exit;
     foreach($tokens as $key => $token) {
       if($token[0] == "'") continue;
+      if($token[0] == "(") {
+        $columns_str = $token;
+        continue;
+      }
 
       if($skip_next) { $skip_next = false; continue; }
       $token = $token[0];
@@ -1929,7 +1941,11 @@ class ShardQuery {
           break;
  
         case 'ignore':
-          $ignore = true;
+          if($past_infile) {
+            $ignore_lines = $tokens[$key+2][0];
+          } else {
+            $ignore = true;
+          }
           break;
 
         case 'character':
@@ -1938,10 +1954,11 @@ class ShardQuery {
           break;
 
         case 'local':
-          $copy_to_shared = true;
+          $local = true;
           break;
 
         case 'infile':
+          $past_infile=true;
           $file_name = $tokens[$key+1][0];
           $skip_next = true;
           break;
@@ -1990,20 +2007,27 @@ class ShardQuery {
           } 
           break;
 
-        case 'ignore':
-          $ignore_lines = $tokens[$key+2][0];
-          break;
-
         case 'set':
-          $set_pos_at = $token[1];
+          $set_pos_at = $tokens[$key][1];
           break 2; #leave for loop
 
       }
     }
+    if($replace)$replace="REPLACE";else $replace="";
+    if($ignore)$ignore="IGNORE";else $ignore="";
+    if($set_pos_at) $set_str = substr($sql, $set_pos_at); else $set_str = "";
+#echo "LOAD DATA INFILE $file_name {$replace}{$ignore} INTO TABLE $table_name CHARACTER SET $charset FIELDS TERMINATED BY '$fields_terminated_by' OPTIONALLY ENCLOSED BY '$fields_enclosed_by' ESCAPED BY '$fields_escaped_by' LINES STARTING BY '$lines_starting_by' TERMINATED BY '$lines_terminated_by' $columns_str $set_str\n";
+#exit;
+    /* $fields_optionally_enclosed =  false; #not used */
 
-    if($set_pos_at) $set_clause = substr($sql, $set_pos_at); else $set_clause = "";
+    $SL = new ShardLoader($this, $fields_terminated_by, $fields_enclosed_by, $lines_terminated_by, true /*useFifo*/, 16 * 1024 * 1024, $charset, $ignore, $replace, $lines_starting_by, $fields_escaped_by);
+    if($local) {
+      $SL->load($file_name, $file_name, $table_name, $columns_str, $set_str);
+    } else {
+      $SL->load_gearman($file_name, $file_name, $table_name, $columns_str, $set_str);
+    }
+    unset($SL);
    
-    $this->errors[] = "LOAD DATA is not (yet) supported.";
     return false;
 
   }
