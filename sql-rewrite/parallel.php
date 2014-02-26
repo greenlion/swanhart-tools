@@ -17,10 +17,12 @@ class RewriteParallelRule extends RewriteBaseRule {
 	private $task_group = "";
 	private $final_group = "";
 	private $order_by = "";
+	private $with_rollup = "";
 	private $tables = array();
 	private $used_limit = false;
 	private $push_select = array();
 	private $used_distinct = false;
+	private $distinct = false;
 	private $task_sql = array();
 	private $create_sql = "";
 	private $settings = array();
@@ -71,13 +73,13 @@ class RewriteParallelRule extends RewriteBaseRule {
 		/* Handle single SQL (this can also come from a multi-plan that has recursed here */
 		
 		global $REWRITE_PARSER;
-		$this->sql = SELF::remove_comments($sql);
+		$this->sql = self::remove_comments($sql);
 		$this->parsed = $REWRITE_PARSER->parse($this->sql);
 
 		/* It is possible to get CREATE statements and INSERT .. SELECT, etc, from "upstream" filters, but they 
 		   are not handled by this filter.  Just return them as they are and don't raise any errors.
 		*/
-		if(!SELF::is_select($this->parsed)) {
+		if(!self::is_select($this->parsed)) {
 			return(array('has_rewrites' => 0, 'plan' => $sql));
 		}
 
@@ -387,7 +389,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 			}
 			
 			if ($this->final_group)
-				$this->final_group = ' GROUP BY ' . $this->final_group . $with_rollup;
+				$this->final_group = ' GROUP BY ' . $this->final_group . $this->with_rollup;
 
 			if ($this->task_group)
 				$this->task_group = ' GROUP BY ' . $this->task_group;
