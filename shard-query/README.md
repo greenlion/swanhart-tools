@@ -1,8 +1,5 @@
-Easy to use high performance OLAP scale-out (grid computing) for MySQL
+Shard-Query: Easy to use high performance OLAP scale-out (grid computing) for MySQL
 ==
-![Shard Query Logo](http://shard-query.googlecode.com/svn/trunk/doc/new-logo.gif)
-What is Shard-Query
---
 Shard-Query is a high performance MySQL query engine for which offers increased parallelism compared to stand-alone MySQL.  This increased parallelism is achieved by taking advantage of MySQL [partitioning](http://dev.mysql.com/doc/refman/5.5/en/partitioning.html partitioning), MySQL sharding, common MySQL query clauses like BETWEEN and IN, or some combination of the above.  
 
 The primary goal of Shard-Query is to enable low-latency query access to extremely large volumes of data utilizing commodity hardware and open source database software.  Shard-Query is a federated query engine which is designed to perform as much work in parallel as possible over a sharded MySQL dataset, that is one that is split over multiple servers (shards) or partitioned tables.
@@ -16,13 +13,11 @@ The primary goal of Shard-Query is to enable low-latency query access to extreme
   * You can run just about all SQL queries over your dataset: 
   * For SELECT queries: 
     * All aggregate functions are supported.
-      * SUM,COUNT,MIN,MAX and AVG are the fastest aggregate operations
-      * SUM/COUNT(DISTINCT ..) are supported, but are slower
-      * STD/VAR/etc are supported but aggregation is not pushed down at all (slowest)
-      * Custom aggregate functions are now also supported.
+      * SUM,COUNT,MIN,MAX,AVG,STD,VAR are the fastest aggregate operations
+      * SUM/COUNT/AVG(DISTINCT ..) are supported, but are slower
+      * Custom aggregate functions are also supported.
         * PERCENTILE(expr, N) - take a percentile, for example percentile(score,90)
-    
-    * JOINs are supported (no self joins, or joins of tables sharded by different keys)
+    * JOINs are supported (unshareded tables are duplicated on all nodes to support JOINS)
     * ORDER BY, GROUP BY, HAVING, WITH ROLLUP, and LIMIT are supported
   * Also upports INSERT, UPDATE, DELETE 
   * Also supports DDL such as CREATE TABLE, ALTER TABLE and DROP TABLE

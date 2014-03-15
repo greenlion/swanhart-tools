@@ -906,7 +906,8 @@ selectLoop: LOOP
     IF TRIM(v_mview_expression)  = '*' THEN
       SET v_mview_expression  = v_dml_type;
     ELSE
-      SET v_mview_expression  = CONCAT('IF(',v_mview_expression,' IS NULL,0,', v_dml_type);
+      -- SET v_mview_expression  = CONCAT('IF(',v_mview_expression,' IS NULL,0,', v_dml_type);
+      SET v_mview_expression  = CONCAT('IF(',v_mview_expression,' IS NULL,0,', v_dml_type,')');
     END IF;
     SET v_mview_expression = CONCAT('IFNULL(SUM(', v_mview_expression, '),0)');
   ELSEIF v_mview_expr_type = 'SUM' THEN

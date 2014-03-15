@@ -18,12 +18,13 @@ do
   if [ $? -eq 0 ]; then
     exit 0
   fi
+  sleep 1
 
-  if [ ! -z $FAILURE_EMAIL_ADDRESS ]; then
-    FAILURE_EMAIL_BODY=$(tail flexcdc.err)
-    echo $FAILURE_EMAIL_BODY | mail $FAILURE_EMAIL_ADDRESS
-  fi
+  #if [ ! -z $FAILURE_EMAIL_ADDRESS ]; then
+  #  FAILURE_EMAIL_BODY=$(tail flexcdc.err)
+  #  echo $FAILURE_EMAIL_BODY | mail $FAILURE_EMAIL_ADDRESS
+  #fi
 
-  echo "Restarting FlexCDC in $FAILURE_SLEEP_TIME seconds!"  
-  sleep $FAILURE_SLEEP_TIME
+  #echo "Restarting FlexCDC in $FAILURE_SLEEP_TIME seconds!"  
+  #sleep $FAILURE_SLEEP_TIME
 done

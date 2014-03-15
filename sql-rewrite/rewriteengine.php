@@ -30,7 +30,7 @@ class RewriteBaseRule {
  */
 	var $messages = array();
 /**
- A place for stronger messages from the optimizer
+ * A place for stronger messages from the optimizer
  * @var array
  */
 	var $warnings = array();
@@ -102,7 +102,7 @@ class RewriteBaseRule {
 			$plan = $s;
 			$RULES = explode(',', $RULE);
 			foreach($RULES as $new_rule) {
-				$plan = SELF::_ENTRY($plan, $t, $p, $settings, $new_rule);
+				$plan = self::_ENTRY($plan, $t, $p, $settings, $new_rule);
 			}	
 			return($plan);
 		}

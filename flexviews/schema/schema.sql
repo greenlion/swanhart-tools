@@ -119,7 +119,7 @@ CREATE TABLE `fv_condition` (
 ) DEFAULT CHARSET=utf8
   COMMENT 'flexviews conditions reference';
 
-LOAD DATA LOCAL INFILE 'errors.csv'
+LOAD DATA LOCAL INFILE 'schema/errors.csv'
 	INTO TABLE `fv_condition`
 	CHARACTER SET utf8
 	COLUMNS
