@@ -62,6 +62,8 @@ CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.refresh(
   IN v_mode ENUM('AUTO','COMPLETE','FULL','BOTH','COMPUTE','APPLY'),
   IN v_uow_id BIGINT 
 )
+  MODIFIES SQL DATA
+  COMMENT 'Apply changes since MVIEW creation'
 BEGIN
 DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
 
@@ -70,9 +72,6 @@ DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
 -- broken or updated INCREMENTAL views
 -- Implement this along with the APPEND mode
 
-DECLARE v_mview_last_refresh DATETIME default NULL;
-DECLARE v_mview_refresh_period INT;
-DECLARE v_got_lock TINYINT DEFAULT NULL;
 DECLARE v_incremental_hwm BIGINT;
 DECLARE v_refreshed_to_uow_id BIGINT;
 DECLARE v_current_uow_id BIGINT;
@@ -81,7 +80,6 @@ DECLARE v_sql TEXT CHARACTER SET UTF8 DEFAULT '';
 DECLARE v_signal_id BIGINT DEFAULT NULL;
 DECLARE v_mview_schema TEXT CHARACTER SET UTF8;
 DECLARE v_mview_name TEXT CHARACTER SET UTF8;
-DECLARE v_pos INT;
 DECLARE v_using_clause TEXT CHARACTER SET UTF8 DEFAULT '';
 
 SET v_mode = UPPER(v_mode);
@@ -106,18 +104,14 @@ IF v_mode = 'FULL' THEN SET v_mode = 'BOTH'; END IF;
 
 -- get the table name and schema of the given mview_id
 SELECT mview_refresh_type,
-       mview_last_refresh, 
        incremental_hwm,
        refreshed_to_uow_id,
-       mview_refresh_period,
        mview_schema, 
        mview_name,
        created_at_signal_id
   INTO v_mview_refresh_type,
-       v_mview_last_refresh,
        v_incremental_hwm,
        v_refreshed_to_uow_id,
-       v_mview_refresh_period, 
        v_mview_schema, 
        v_mview_name,
        v_signal_id
@@ -152,11 +146,9 @@ IF v_signal_id IS NOT NULL AND v_refreshed_to_uow_id IS NULL THEN
 
    -- refresh these variables as they may have been changed by our UPDATE statement
    SELECT 
-       mview_last_refresh, 
        incremental_hwm,
        refreshed_to_uow_id
-  INTO v_mview_last_refresh,
-       v_incremental_hwm,
+  INTO v_incremental_hwm,
        v_refreshed_to_uow_id
   FROM flexviews.mview
  WHERE mview_id = v_mview_id;
@@ -175,10 +167,6 @@ SELECT mview_id
   FROM mview
  WHERE parent_mview_id = v_mview_id;
 
--- TODO: remove the IF block.  
--- This used to be protected by a GET_LOCK(), but this is not necessary
--- with the external binlog consumer.
-IF TRUE THEN
  SET @v_start_time = NOW();
 
  
@@ -273,7 +261,7 @@ END IF;
    IF v_mode = 'BOTH' OR v_mode = 'APPLY' THEN
      -- this will apply unapplied deltas up to v_current_uow_id
 
-     BEGIN 
+     BEGIN
      DECLARE v_child_mview_name TEXT CHARACTER SET UTF8;
      DECLARE v_agg_set TEXT CHARACTER SET UTF8;
 
@@ -361,13 +349,6 @@ END IF;
  ELSE
    CALL flexviews.signal(' XYZ UNSUPPORTED REFRESH METHOD'); 
  END IF;
-ELSE
- IF v_got_lock = 1 THEN
-  SELECT CONCAT('Refresh period not exceeded.  no refresh performed') as "Message"; 
- ELSE
-  SELECT CONCAT('Could not obtain a refresh lock - refresh in progress or locking error') as "Message";
- END IF;
-END IF; 
 
 END ;;
 
