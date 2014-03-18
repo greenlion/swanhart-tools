@@ -67,289 +67,276 @@ CREATE DEFINER=flexviews@localhost PROCEDURE flexviews.refresh(
 BEGIN
 DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
 
--- TODO: If COMPLETE is used on a INCREMENTAL view, then rebuild it from
--- scratch and swap, as if it was a COMPLETE view.  This is to fix 
--- broken or updated INCREMENTAL views
--- Implement this along with the APPEND mode
+  -- TODO: If COMPLETE is used on a INCREMENTAL view, then rebuild it from
+  -- scratch and swap, as if it was a COMPLETE view.  This is to fix 
+  -- broken or updated INCREMENTAL views
+  -- Implement this along with the APPEND mode
 
-DECLARE v_incremental_hwm BIGINT;
-DECLARE v_refreshed_to_uow_id BIGINT;
-DECLARE v_current_uow_id BIGINT;
-DECLARE v_child_mview_id INT DEFAULT NULL;
-DECLARE v_sql TEXT CHARACTER SET UTF8 DEFAULT '';
-DECLARE v_signal_id BIGINT DEFAULT NULL;
-DECLARE v_mview_schema TEXT CHARACTER SET UTF8;
-DECLARE v_mview_name TEXT CHARACTER SET UTF8;
-DECLARE v_using_clause TEXT CHARACTER SET UTF8 DEFAULT '';
+  DECLARE v_incremental_hwm BIGINT;
+  DECLARE v_refreshed_to_uow_id BIGINT;
+  DECLARE v_current_uow_id BIGINT;
+  DECLARE v_child_mview_id INT DEFAULT NULL;
+  DECLARE v_signal_id BIGINT DEFAULT NULL;
+  DECLARE v_mview_schema TEXT CHARACTER SET UTF8;
+  DECLARE v_mview_name TEXT CHARACTER SET UTF8;
+  DECLARE v_using_clause TEXT CHARACTER SET UTF8 DEFAULT '';
 
-SET v_mode = UPPER(v_mode);
-SET max_sp_recursion_depth=255;
+  SET v_mode = UPPER(v_mode);
+  SET max_sp_recursion_depth=255;
 
-IF NOT flexviews.is_enabled(v_mview_id) = 1 THEN
+  IF NOT flexviews.is_enabled(v_mview_id) = 1 THEN
     CALL flexviews.signal('MV_NOT_ENABLED');
-END IF;
-
-IF v_mode IS NULL OR v_mode = 'AUTO' THEN
-  select IF(mview_refresh_type = 'COMPLETE', 'COMPLETE', 'BOTH')
-    INTO v_mode
-    from flexviews.mview 
-   where mview_id = v_mview_id;
-END IF;
-
-IF v_mode != 'COMPLETE' AND v_mode != 'FULL' AND v_mode != "BOTH" and v_mode != "COMPUTE" and v_mode != "APPLY" THEN
-  call flexviews.signal('INVALID_REFRESH_MODE');
-END IF;
-
-IF v_mode = 'FULL' THEN SET v_mode = 'BOTH'; END IF;
-
--- get the table name and schema of the given mview_id
-SELECT mview_refresh_type,
-       incremental_hwm,
-       refreshed_to_uow_id,
-       mview_schema, 
-       mview_name,
-       created_at_signal_id
-  INTO v_mview_refresh_type,
-       v_incremental_hwm,
-       v_refreshed_to_uow_id,
-       v_mview_schema, 
-       v_mview_name,
-       v_signal_id
-  FROM flexviews.mview
- WHERE mview_id = v_mview_id;
-
-SET @min_uow_id := NULL;
-#CUT
-IF v_signal_id IS NOT NULL AND v_refreshed_to_uow_id IS NULL THEN
-  START TRANSACTION;
-
-  SELECT MAX(uow_id)
-    INTO v_refreshed_to_uow_id
-    FROM flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1 as flexviews_mview_signal
-   WHERE signal_id = v_signal_id 
-     and `fv$server_id` = @@server_id 
-     and dml_type = 1;
-
-  IF v_refreshed_to_uow_id IS NULL THEN
-    CALL flexviews.signal('ERROR: SIGNAL ID NOT FOUND (FlexCDC consumer is likely behind)');
   END IF;
-   
-   UPDATE flexviews.mview mv
-     JOIN flexviews.mview_uow uow
-       ON uow.uow_id = v_refreshed_to_uow_id
-      AND mv.mview_id = v_mview_id
-      SET refreshed_to_uow_id = uow.uow_id,
-          incremental_hwm = uow.uow_id,
-          mview_last_refresh = uow.commit_time; 
 
-   COMMIT;
+  IF v_mode IS NULL OR v_mode = 'AUTO' THEN
+    SELECT IF(mview_refresh_type = 'COMPLETE', 'COMPLETE', 'BOTH')
+      INTO v_mode
+      FROM flexviews.mview 
+      WHERE mview_id = v_mview_id;
+  END IF;
 
-   -- refresh these variables as they may have been changed by our UPDATE statement
-   SELECT 
-       incremental_hwm,
-       refreshed_to_uow_id
-  INTO v_incremental_hwm,
-       v_refreshed_to_uow_id
-  FROM flexviews.mview
- WHERE mview_id = v_mview_id;
+  IF v_mode != 'COMPLETE' AND v_mode != 'FULL' AND v_mode != "BOTH" and v_mode != "COMPUTE" and v_mode != "APPLY" THEN
+    CALL flexviews.signal('INVALID_REFRESH_MODE');
+  END IF;
 
-END IF;
+  IF v_mode = 'FULL' THEN SET v_mode = 'BOTH'; END IF;
 
--- EXIT the refresh process if the consumer has not caught up to the point
--- where the view is possible to be refreshed
-
-IF v_refreshed_to_uow_id IS NULL AND v_mview_refresh_type = 'INCREMENTAL' THEN
-  call flexviews.signal(concat('ERROR: SIGNAL_ID not found(FlexCDC is not running or is behind) OR the specified mview:', v_mview_id, ' does not exist.'));
-END IF;
-
-SELECT mview_id
-  INTO v_child_mview_id
-  FROM mview
- WHERE parent_mview_id = v_mview_id;
-
- SET @v_start_time = NOW();
-
- 
- IF v_mview_refresh_type = 'COMPLETE' THEN
-   CALL flexviews.mview_refresh_complete(v_mview_id);
-
-   UPDATE flexviews.mview
-      SET mview_last_refresh=@v_start_time
+  -- get the table name and schema of the given mview_id
+  SELECT
+      mview_refresh_type,
+      incremental_hwm,
+      refreshed_to_uow_id,
+      mview_schema, 
+      mview_name,
+      created_at_signal_id
+    INTO
+      v_mview_refresh_type,
+      v_incremental_hwm,
+      v_refreshed_to_uow_id,
+      v_mview_schema, 
+      v_mview_name,
+      v_signal_id
+    FROM flexviews.mview
     WHERE mview_id = v_mview_id;
 
- ELSEIF v_mview_refresh_type = 'INCREMENTAL' THEN
- 
-   SET v_current_uow_id = v_uow_id;
+  SET @min_uow_id := NULL;
+  
+  #CUT
+  IF v_signal_id IS NOT NULL AND v_refreshed_to_uow_id IS NULL THEN
+    START TRANSACTION;
 
-   -- IF v_uow_id is null, then that means refresh to NOW.
-   -- You can't refresh backward in time (YET!) so refresh to NOW
-   -- if an older/invalid uow_id is given 
-   IF v_current_uow_id IS NULL OR v_current_uow_id < v_incremental_hwm THEN 
-     -- By default we refresh to the latest available unit of work
-     SELECT max(uow_id)
-       INTO v_current_uow_id
-       FROM flexviews.mview_uow;
-   END IF;
+    SELECT MAX(uow_id)
+      INTO v_refreshed_to_uow_id
+      FROM flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1 as flexviews_mview_signal
+      WHERE signal_id = v_signal_id 
+        AND `fv$server_id` = @@server_id 
+        AND dml_type = 1;
 
-   -- this will recursively populate the materialized view delta table
-   IF v_mode = 'BOTH' OR v_mode = 'COMPUTE' THEN
-     IF v_child_mview_id IS NOT NULL THEN
-       BEGIN
-       DECLARE v_incremental_hwm BIGINT;
+    IF v_refreshed_to_uow_id IS NULL THEN
+      CALL flexviews.signal('ERROR: SIGNAL ID NOT FOUND (FlexCDC consumer is likely behind)');
+    END IF;
 
-         -- The incremental high water mark of the dependent table may be different from 
-         -- the parent table, so explicity fetch it to make sure we don't push the wrong
-         -- values into the mview
-         SELECT incremental_hwm, created_at_signal_id, refreshed_to_uow_id
-           INTO v_incremental_hwm, v_signal_id, v_refreshed_to_uow_id
-           FROM mview
-          WHERE mview_id = v_child_mview_id;
-	 IF v_signal_id IS NOT NULL AND v_refreshed_to_uow_id IS NULL THEN
-  START TRANSACTION;
-
-  SELECT MAX(uow_id)
-    INTO v_refreshed_to_uow_id
-    FROM flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1 as flexviews_mview_signal
-   WHERE signal_id = v_signal_id 
-     and `fv$server_id` = @@server_id 
-     and dml_type = 1;
-
-  IF v_refreshed_to_uow_id IS NULL THEN
-    CALL flexviews.signal('ERROR: SIGNAL ID NOT FOUND, FlexCDC may not be caught up.');
-  END IF;
-   
-   UPDATE flexviews.mview mv
-     JOIN flexviews.mview_uow uow
-       ON uow.uow_id = v_refreshed_to_uow_id
-      AND mv.mview_id = v_child_mview_id
+    UPDATE flexviews.mview mv
+      JOIN flexviews.mview_uow uow
+      ON uow.uow_id = v_refreshed_to_uow_id
+        AND mv.mview_id = v_mview_id
       SET refreshed_to_uow_id = uow.uow_id,
           incremental_hwm = uow.uow_id,
           mview_last_refresh = uow.commit_time; 
 
-   COMMIT;
+    COMMIT;
 
-   -- refresh these variables as they may have been changed by our UPDATE statement
-SELECT incremental_hwm
-  INTO v_incremental_hwm
-  FROM flexviews.mview
- WHERE mview_id = v_child_mview_id;
-
-END IF;
-
-
-         SET @now := UNIX_TIMESTAMP(NOW());
-
-         CALL flexviews.execute_refresh(v_child_mview_id, v_incremental_hwm, v_current_uow_id, 1);
-         SET @compute_time = UNIX_TIMESTAMP(NOW()) - @now;
-
-         UPDATE flexviews.mview_compute_schedule
-            SET last_computed_at = now(),
-                last_compute_elapsed_seconds = @compute_time
-          WHERE mview_id = v_child_mview_id;
-
-        END;
-     END IF;
-     SET @now := UNIX_TIMESTAMP(NOW());
-     CALL flexviews.execute_refresh(v_mview_id, v_incremental_hwm, v_current_uow_id, 1);    
-     SET @compute_time = UNIX_TIMESTAMP(NOW()) - @now;
-     UPDATE flexviews.mview_compute_schedule
-        SET last_computed_at = now(),
-            last_compute_elapsed_seconds = @compute_time
+    -- refresh these variables as they may have been changed by our UPDATE statement
+    SELECT 
+        incremental_hwm,
+        refreshed_to_uow_id
+      INTO 
+        v_incremental_hwm,
+        v_refreshed_to_uow_id
+      FROM flexviews.mview
       WHERE mview_id = v_mview_id;
-   END IF;  
 
-   IF v_mode = 'BOTH' OR v_mode = 'APPLY' THEN
-     -- this will apply unapplied deltas up to v_current_uow_id
+  END IF;
 
-     BEGIN
-     DECLARE v_child_mview_name TEXT CHARACTER SET UTF8;
-     DECLARE v_agg_set TEXT CHARACTER SET UTF8;
+  -- EXIT the refresh process if the consumer has not caught up to the point
+  -- where the view is possible to be refreshed
 
+  IF v_refreshed_to_uow_id IS NULL AND v_mview_refresh_type = 'INCREMENTAL' THEN
+    CALL flexviews.signal(concat('ERROR: SIGNAL_ID not found(FlexCDC is not running or is behind) OR the specified mview:', v_mview_id, ' does not exist.'));
+  END IF;
+
+  SELECT mview_id
+    INTO v_child_mview_id
+    FROM mview
+    WHERE parent_mview_id = v_mview_id;
+
+  SET @v_start_time = NOW();
+ 
+  IF v_mview_refresh_type = 'COMPLETE' THEN
+    CALL flexviews.mview_refresh_complete(v_mview_id);
+
+    UPDATE flexviews.mview
+      SET mview_last_refresh=@v_start_time
+      WHERE mview_id = v_mview_id;
+  ELSEIF v_mview_refresh_type = 'INCREMENTAL' THEN
+    SET v_current_uow_id = v_uow_id;
+
+    -- IF v_uow_id is null, then that means refresh to NOW.
+    -- You can't refresh backward in time (YET!) so refresh to NOW
+    -- if an older/invalid uow_id is given 
+    IF v_current_uow_id IS NULL OR v_current_uow_id < v_incremental_hwm THEN 
+      -- By default we refresh to the latest available unit of work
+      SELECT max(uow_id)
+        INTO v_current_uow_id
+        FROM flexviews.mview_uow;
+    END IF;
+
+    -- this will recursively populate the materialized view delta table
+    IF v_mode = 'BOTH' OR v_mode = 'COMPUTE' THEN
+      IF v_child_mview_id IS NOT NULL THEN
+        BEGIN
+          DECLARE v_incremental_hwm BIGINT;
+
+          -- The incremental high water mark of the dependent table may be different from 
+          -- the parent table, so explicity fetch it to make sure we don't push the wrong
+          -- values into the mview
+          SELECT incremental_hwm, created_at_signal_id, refreshed_to_uow_id
+            INTO v_incremental_hwm, v_signal_id, v_refreshed_to_uow_id
+            FROM mview
+            WHERE mview_id = v_child_mview_id;
+          IF v_signal_id IS NOT NULL AND v_refreshed_to_uow_id IS NULL THEN
+            START TRANSACTION;
+
+            SELECT MAX(uow_id)
+              INTO v_refreshed_to_uow_id
+              FROM flexviews.mvlog_3b0cef8fb9788ab03163cf02b19918d1 as flexviews_mview_signal
+              WHERE signal_id = v_signal_id 
+                AND `fv$server_id` = @@server_id 
+                AND dml_type = 1;
+
+            IF v_refreshed_to_uow_id IS NULL THEN
+              CALL flexviews.signal('ERROR: SIGNAL ID NOT FOUND, FlexCDC may not be caught up.');
+            END IF;
+
+            UPDATE flexviews.mview mv
+              JOIN flexviews.mview_uow uow
+              ON uow.uow_id = v_refreshed_to_uow_id
+	        AND mv.mview_id = v_child_mview_id
+              SET refreshed_to_uow_id = uow.uow_id,
+                incremental_hwm = uow.uow_id,
+                mview_last_refresh = uow.commit_time; 
+            COMMIT;
+
+            -- refresh these variables as they may have been changed by our UPDATE statement
+            SELECT incremental_hwm
+              INTO v_incremental_hwm
+              FROM flexviews.mview
+              WHERE mview_id = v_child_mview_id;
+          END IF;
+
+          SET @now := UNIX_TIMESTAMP(NOW());
+
+          CALL flexviews.execute_refresh(v_child_mview_id, v_incremental_hwm, v_current_uow_id, 1);
+          SET @compute_time = UNIX_TIMESTAMP(NOW()) - @now;
+
+          UPDATE flexviews.mview_compute_schedule
+            SET last_computed_at = now(),
+              last_compute_elapsed_seconds = @compute_time
+            WHERE mview_id = v_child_mview_id;
+        END;
+      END IF;
+  
       SET @now := UNIX_TIMESTAMP(NOW());
-      CALL flexviews.apply_delta(v_mview_id, v_current_uow_id);
+      CALL flexviews.execute_refresh(v_mview_id, v_incremental_hwm, v_current_uow_id, 1);    
       SET @compute_time = UNIX_TIMESTAMP(NOW()) - @now;
+      UPDATE flexviews.mview_compute_schedule
+        SET last_computed_at = now(),
+          last_compute_elapsed_seconds = @compute_time
+        WHERE mview_id = v_mview_id;
+    END IF;
 
-       IF v_child_mview_id IS NOT NULL THEN
-       	 CALL flexviews.apply_delta(v_child_mview_id, v_current_uow_id);
+    IF v_mode = 'BOTH' OR v_mode = 'APPLY' THEN
+      -- this will apply unapplied deltas up to v_current_uow_id
 
-         UPDATE flexviews.mview
+      BEGIN
+        DECLARE v_child_mview_name TEXT CHARACTER SET UTF8;
+        DECLARE v_agg_set TEXT CHARACTER SET UTF8;
+
+        SET @now := UNIX_TIMESTAMP(NOW());
+        CALL flexviews.apply_delta(v_mview_id, v_current_uow_id);
+        SET @compute_time = UNIX_TIMESTAMP(NOW()) - @now;
+
+        IF v_child_mview_id IS NOT NULL THEN
+          CALL flexviews.apply_delta(v_child_mview_id, v_current_uow_id);
+
+          UPDATE flexviews.mview
             SET mview_last_refresh = (select commit_time from flexviews.mview_uow where uow_id = v_current_uow_id)
-          WHERE mview_id = v_child_mview_id;
+            WHERE mview_id = v_child_mview_id;
 
-         UPDATE flexviews.mview_apply_schedule
+          UPDATE flexviews.mview_apply_schedule
             SET last_applied_at = now(),
                 last_apply_elapsed_seconds = @compute_time
+            WHERE mview_id = v_mview_id;
+
+	  SELECT CONCAT(mview_schema, '.', mview_name)
+            INTO v_child_mview_name
+            FROM flexviews.mview
+            WHERE mview_id = v_child_mview_id;
+
+          SELECT group_concat(concat('`' , v_mview_name, '`.`',mview_alias,'` = `x_alias`.`',mview_alias, '`'),'\n')
+            INTO v_agg_set
+            FROM flexviews.mview_expression 
+            WHERE mview_id = v_mview_id
+              AND mview_expr_type in('MIN','MAX','COUNT_DISTINCT', 'STDDEV_POP','STDDEV_SAMP','VAR_SAMP','VAR_POP','BIT_AND','BIT_OR','BIT_XOR','GROUP_CONCAT','PERCENTILE');
+
+          SET @debug=v_agg_set;
+
+          SET v_using_clause := flexviews.get_delta_aliases(v_mview_id, '', true); 
+
+          IF (RIGHT(v_agg_set, 1) = ',') THEN
+            SET v_agg_set = LEFT(v_agg_set, LENGTH(v_agg_set)-1);
+          END IF;
+
+          SET @v_sql = CONCAT('UPDATE ', v_mview_schema, '.', v_mview_name, '\n',
+                           '  JOIN (\n', 
+                           'SELECT ', get_child_select(v_mview_id, 'cv'), '\n',
+                           '  FROM ', v_child_mview_name, ' as cv\n',
+                           '  JOIN ', v_mview_schema, '.', v_mview_name, '_delta as pv \n '); 
+                   --      '  JOIN ', v_mview_schema, '.', v_mview_name, ' as pv \n '); 
+
+	  IF v_using_clause != '' THEN 
+            SET @v_sql = CONCAT(@v_sql, ' USING (', v_using_clause, ')\n',  
+                               ' GROUP BY ', get_delta_aliases(v_mview_id, 'cv', true)); 
+	  END IF;
+
+          SET @v_sql = CONCAT(@v_sql, ') x_alias \n');
+
+          IF v_using_clause != '' THEN
+            SET @v_sql = CONCAT(@v_sql, ' USING (', get_delta_aliases(v_mview_id, '', true), ')\n');
+          END IF;
+
+          SET @v_sql = CONCAT(@v_sql,' SET ', v_agg_set , '\n');
+
+          SET @update = @v_sql;
+
+          PREPARE update_stmt from @v_sql;
+          EXECUTE update_stmt;   
+          DEALLOCATE PREPARE update_stmt;
+        END IF;
+
+        UPDATE flexviews.mview
+          SET mview_last_refresh = (select commit_time from flexviews.mview_uow where uow_id = v_current_uow_id)
           WHERE mview_id = v_mview_id;
 
-	 SELECT CONCAT(mview_schema, '.', mview_name)
-           INTO v_child_mview_name
-           FROM flexviews.mview
-          WHERE mview_id = v_child_mview_id;
-
-         SELECT group_concat(concat('`' , v_mview_name, '`.`',mview_alias,'` = `x_alias`.`',mview_alias, '`'),'\n')
-           INTO v_agg_set
-           FROM flexviews.mview_expression 
-          WHERE mview_id = v_mview_id
-            AND mview_expr_type in('MIN','MAX','COUNT_DISTINCT', 'STDDEV_POP','STDDEV_SAMP','VAR_SAMP','VAR_POP','BIT_AND','BIT_OR','BIT_XOR','GROUP_CONCAT','PERCENTILE');
-
-	 SET @debug=v_agg_set;
-       
-	 SET v_using_clause := flexviews.get_delta_aliases(v_mview_id, '', true); 
-
-         IF (RIGHT(v_agg_set, 1) = ',') THEN
-           SET v_agg_set = LEFT(v_agg_set, LENGTH(v_agg_set)-1);
-         END IF;
-
- 
-           SET v_sql = CONCAT('UPDATE ', v_mview_schema, '.', v_mview_name, '\n',
-                              '  JOIN (\n', 
-                              'SELECT ', get_child_select(v_mview_id, 'cv'), '\n',
-                              '  FROM ', v_child_mview_name, ' as cv\n',
-                              '  JOIN ', v_mview_schema, '.', v_mview_name, '_delta as pv \n '); 
-                        --      '  JOIN ', v_mview_schema, '.', v_mview_name, ' as pv \n '); 
-
-	   IF v_using_clause != '' THEN 
-             SET v_sql = CONCAT(v_sql, ' USING (', v_using_clause, ')\n',  
-                              ' GROUP BY ', get_delta_aliases(v_mview_id, 'cv', true)); 
-	   END IF;
-
-
-           SET v_sql = CONCAT(v_sql, ') x_alias \n');
-
-           IF v_using_clause != '' THEN
-              SET v_sql = CONCAT(v_sql, ' USING (', get_delta_aliases(v_mview_id, '', true), ')\n');
-           END IF;
-           
-           SET v_sql = CONCAT(v_sql,' SET ', v_agg_set , '\n');
-
-         SET @v_sql = v_sql;
-
-
-	 SET @update = v_sql;
-
-         PREPARE update_stmt from @v_sql;
-         EXECUTE update_stmt;   
-         DEALLOCATE PREPARE update_stmt;
-
-
-
-      END IF;
-
-      UPDATE flexviews.mview
-         SET mview_last_refresh = (select commit_time from flexviews.mview_uow where uow_id = v_current_uow_id)
-       WHERE mview_id = v_mview_id;
-   
-      UPDATE flexviews.mview_apply_schedule
-         SET last_applied_at = now(),
-             last_apply_elapsed_seconds = @compute_time
-       WHERE mview_id = v_mview_id;
-                            
-    END;
+        UPDATE flexviews.mview_apply_schedule
+          SET last_applied_at = now(),
+              last_apply_elapsed_seconds = @compute_time
+          WHERE mview_id = v_mview_id;
+      END;
+    END IF;
+  ELSE
+    CALL flexviews.signal(' XYZ UNSUPPORTED REFRESH METHOD'); 
   END IF;
- ELSE
-   CALL flexviews.signal(' XYZ UNSUPPORTED REFRESH METHOD'); 
- END IF;
-
 END ;;
 
 DELIMITER ;
