@@ -837,6 +837,7 @@ EOREGEX
 				
 			#ignore SET and USE for now.  I don't think we need it for anything.
 			case 'SET':
+				my_mysql_query($sql, $this->dest);	
 				break;
 
 			case 'USE':
