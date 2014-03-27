@@ -49,18 +49,15 @@ my_bool bcsum_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	} else {
  		scale = (long)*(args->args[0]);
 	}
-	printf("HERE! scale: %l\n", scale);
 
 	for(i=0;i<args->arg_count;++i) {
 		if(args->arg_type[i] != STRING_RESULT) {
 			args->arg_type[i] = STRING_RESULT; // make MySQL convert the arg to string for us
 		}
 	}
-	printf("HERE!\n");
 
 	bc_init_num(&num);
 	initid->ptr = (char *)&num;
-	printf("HERE!!!\n");
 	return 0;
 
 } 
@@ -79,7 +76,6 @@ void bcsum_clear(UDF_INIT *initid, char *is_null, char *error) {
 }
 
 void bcsum_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
-	printf("HERE:bcsum_add\n");
 	bc_num tmpnum1;
 	bc_num *tmpptr;
         bc_num dest;
@@ -90,7 +86,6 @@ void bcsum_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
 	scale = atoi(args->args[0]);
 	
 	for(i=1;i<args->arg_count;i++) {
-		printf("ARG[%d] %s\n", i, args->args[i]);
 		if(strcmp(args->args[i], "") == 0) { 
 			continue;
 		} else {
@@ -129,11 +124,11 @@ char *bcsum(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long length
 
 	if(length > 766) {
 		// use our pointer
-		result=strval;
-		return(result);
+		return(strval);
 	} else {
 		// use the preallocated space
-		strval = strcpy(result, strval);
+		memset(result,0,766);
+		strcpy(result, strval);
 		free(strval);
 		return result;
 	}
