@@ -40,8 +40,12 @@ my_bool bccomp_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 		
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
-		args->arg_type[i] = STRING_RESULT;
-	}
+        if(args->arg_type[i] != STRING_RESULT) {
+            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            return 1;
+        }
+    }
+
 	return 0;
 }
 
@@ -59,11 +63,6 @@ long long bccomp(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
 	bc_init_num(&tmpnum2);
 
 	str = args->args[1];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) { 
-			*(str+i)=0;
-		}
-	}
 
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum1, str, 0);
@@ -72,11 +71,6 @@ long long bccomp(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
 	}
 
 	str = args->args[2];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum2, str, 0);
@@ -109,8 +103,12 @@ my_bool bcadd_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 		
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
-		args->arg_type[i] = STRING_RESULT;
-	}
+        if(args->arg_type[i] != STRING_RESULT) {
+            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            return 1;
+        }
+    }
+
 	return 0;
 }
 
@@ -129,22 +127,12 @@ char *bcadd(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	bc_init_num(&resultnum);
 
 	str = args->args[1];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum1, str, 0);
 	} else {
 		bc_str2num(&tmpnum1, str, strlen(p+1));
 	}
 	str = args->args[2];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum2, str, 0);
 	} else {
@@ -187,19 +175,25 @@ my_bool bcpow_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 		
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
-		args->arg_type[i] = STRING_RESULT;
-	}
+        if(args->arg_type[i] != STRING_RESULT) {
+            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            return 1;
+        }
+    }
+
 	return 0;
 }
 
-char *bcpow (UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *length, char *is_null, char *error) {
+char *bcpow(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *length, char *is_null, char *error) {
 	bc_num tmpnum1;
 	bc_num tmpnum2;
 	bc_num resultnum;
+	char tempstr[255];
 	char *strval;
 	char *str;
 	char *p;
 	int i;
+	int need_free = 0;
 	bc_init_numbers();
 
 	bc_init_num(&tmpnum1);
@@ -207,34 +201,32 @@ char *bcpow (UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *leng
 	bc_init_num(&resultnum);
 
 	str = args->args[1];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum1, str, 0);
 	} else {
 		bc_str2num(&tmpnum1, str, strlen(p+1));
 	}
 
-	str = args->args[2];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
+	if(need_free) { 
+		need_free = 0; 
+		free(str); 
 	}
+
+	str = args->args[2];
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum2, str, 0);
 	} else {
 		bc_str2num(&tmpnum2, str, strlen(p+1));
 	}
 
+	if(need_free) { 
+		need_free = 0; 
+		free(str); 
+	}
 	bc_raise(tmpnum1,tmpnum2,&resultnum,(long)*(args->args[0])); 
 
 	strval = bc_num2str(resultnum);
 	*length = strlen(strval);
-	fprintf(stderr, "POW, length: %d\n", length);
 	if(*length <= 766) {
 		memset(result,0,766);
 		strncpy(result,strval,*length);
@@ -248,6 +240,7 @@ char *bcpow (UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *leng
 
 	return strval;
 }
+
 
 my_bool bcdiv_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	int i;
@@ -266,8 +259,12 @@ my_bool bcdiv_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
-		args->arg_type[i] = STRING_RESULT;
-	}
+        if(args->arg_type[i] != STRING_RESULT) {
+            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            return 1;
+        }
+    }
+
 	return 0;
 }
 
@@ -286,11 +283,6 @@ char *bcdiv(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	bc_init_num(&resultnum);
 
 	str = args->args[1];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum1, str, 0);
 	} else {
@@ -298,11 +290,6 @@ char *bcdiv(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	}
 
 	str = args->args[2];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum2, str, 0);
 	} else {
@@ -351,8 +338,12 @@ my_bool bcmul_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 		
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
-		args->arg_type[i] = STRING_RESULT;
-	}
+        if(args->arg_type[i] != STRING_RESULT) {
+            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            return 1;
+        }
+    }
+
 	return 0;
 }
 
@@ -371,11 +362,6 @@ char *bcmul(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	bc_init_num(&resultnum);
 
 	str = args->args[1];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum1, str, 0);
 	} else {
@@ -383,11 +369,6 @@ char *bcmul(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	}
 
 	str = args->args[2];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum2, str, 0);
 	} else {
@@ -429,8 +410,12 @@ my_bool bcsub_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 		
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
-		args->arg_type[i] = STRING_RESULT;
-	}
+        if(args->arg_type[i] != STRING_RESULT) {
+            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            return 1;
+        }
+    }
+
 	return 0;
 }
 
@@ -449,11 +434,6 @@ char *bcsub(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	bc_init_num(&resultnum);
 
 	str = args->args[1];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum1, str, 0);
 	} else {
@@ -461,11 +441,6 @@ char *bcsub(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	}
 
 	str = args->args[2];
-	for(i=0;i<strlen(str);++i) {
-		if(*(str+i) < 48 || *(str+i) > 57) {
-			*(str+i)=0;
-		}
-	}
 	if (!(p = strchr(str, '.'))) {
 		bc_str2num(&tmpnum2, str, 0);
 	} else {
@@ -509,11 +484,12 @@ my_bool bcsum_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
  		scale = (long)*(args->args[0]);
 	}
 
-	for(i=0;i<args->arg_count;++i) {
-		if(args->arg_type[i] != STRING_RESULT) {
-			args->arg_type[i] = STRING_RESULT; // make MySQL convert the arg to string for us
-		}
-	}
+	for(i=1;i<args->arg_count;i++) {
+        if(args->arg_type[i] != STRING_RESULT) {
+            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            return 1;
+        }
+    }
 
 	initid->ptr = NULL;
 	return 0;
