@@ -3,18 +3,13 @@
 #include <mysql.h>
 #include <config.h>
 #include <number.h>
-/* 
-Convert to bc_num detecting scale */
-/*static void strtonum(const bc_num* num, const char* str) {
-	char *p;
 
-	if (!(p = strchr(str, '.'))) {
-		bc_str2num(num, str, 0);
-		return;
-	}
-
-	bc_str2num(num, str, strlen(p+1));
-}*/
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
 
 void out_of_memory() {
 }
@@ -28,19 +23,396 @@ void rt_warn() {
 void rt_notice() {
 }
 
+my_bool bccomp_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
+	int i;
+	long scale;
+	if(args->arg_count != 3) {
+		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		return 1;
+	}
+
+	if (args->arg_type[0] != INT_RESULT) { 
+		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		return 1;
+	} else {
+ 		scale = (long)*(args->args[0]);
+	}
+		
+	initid->max_length = 1024 * 1024;
+	for(i=1;i<args->arg_count;i++) {
+		args->arg_type[i] = STRING_RESULT;
+	}
+	return 0;
+}
+
+long long bccomp(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
+	bc_num tmpnum1;
+	bc_num tmpnum2;
+	char *strval;
+	char *str;
+	char *p;
+	bc_init_numbers();
+	long long retval;
+	int i;
+
+	bc_init_num(&tmpnum1);
+	bc_init_num(&tmpnum2);
+
+	str = args->args[1];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) { 
+			*(str+i)=0;
+		}
+	}
+
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum1, str, 0);
+	} else {
+		bc_str2num(&tmpnum1, str, strlen(p+1));
+	}
+
+	str = args->args[2];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) {
+			*(str+i)=0;
+		}
+	}
+
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum2, str, 0);
+	} else {
+		bc_str2num(&tmpnum2, str, strlen(p+1));
+	}
+
+	retval = bc_compare(tmpnum1,tmpnum2);
+
+	bc_free_num(&tmpnum1);
+	bc_free_num(&tmpnum2);
+
+	return retval;
+}
+
+my_bool bcadd_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
+	int i;
+	long scale;
+	if(args->arg_count != 3) {
+		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		return 1;
+	}
+
+	if (args->arg_type[0] != INT_RESULT) { 
+		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		return 1;
+	} else {
+ 		scale = (long)*(args->args[0]);
+	}
+		
+	initid->max_length = 1024 * 1024;
+	for(i=1;i<args->arg_count;i++) {
+		args->arg_type[i] = STRING_RESULT;
+	}
+	return 0;
+}
+
+char *bcadd(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long length, char *is_null, char *error) {
+	bc_num tmpnum1;
+	bc_num tmpnum2;
+	bc_num resultnum;
+	char *strval;
+	char *str;
+	char *p;
+	int i;
+	bc_init_numbers();
+
+	bc_init_num(&tmpnum1);
+	bc_init_num(&tmpnum2);
+	bc_init_num(&resultnum);
+
+	str = args->args[1];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) {
+			*(str+i)=0;
+		}
+	}
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum1, str, 0);
+	} else {
+		bc_str2num(&tmpnum1, str, strlen(p+1));
+	}
+	str = args->args[2];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) {
+			*(str+i)=0;
+		}
+	}
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum2, str, 0);
+	} else {
+		bc_str2num(&tmpnum2, str, strlen(p+1));
+	}
+
+	bc_add(tmpnum1,tmpnum2,&resultnum,(long)*(args->args[0])); 
+
+	strval = bc_num2str(resultnum);
+	length = strlen(strval);
+	if(length <= 766) {
+		memset(result,0,766);
+		strncpy(result,strval,length);
+		free(strval);
+		strval  = result;
+	}
+
+	bc_free_num(&tmpnum1);
+	bc_free_num(&tmpnum2);
+	bc_free_num(&resultnum);
+
+	return strval;
+}
+
+my_bool bcdiv_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
+	int i;
+	long scale;
+	if(args->arg_count != 3) {
+		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		return 1;
+	}
+
+	if (args->arg_type[0] != INT_RESULT) { 
+		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		return 1;
+	} else {
+ 		scale = (long)*(args->args[0]);
+	}
+		
+	initid->max_length = 1024 * 1024;
+	for(i=1;i<args->arg_count;i++) {
+		args->arg_type[i] = STRING_RESULT;
+	}
+	return 0;
+}
+
+char *bcdiv(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long length, char *is_null, char *error) {
+	bc_num tmpnum1;
+	bc_num tmpnum2;
+	bc_num resultnum;
+	char *strval;
+	char *str;
+	char *p;
+	int i;
+	bc_init_numbers();
+
+	bc_init_num(&tmpnum1);
+	bc_init_num(&tmpnum2);
+	bc_init_num(&resultnum);
+
+	str = args->args[1];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) {
+			*(str+i)=0;
+		}
+	}
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum1, str, 0);
+	} else {
+		bc_str2num(&tmpnum1, str, strlen(p+1));
+	}
+
+	str = args->args[2];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) {
+			*(str+i)=0;
+		}
+	}
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum2, str, 0);
+	} else {
+		bc_str2num(&tmpnum2, str, strlen(p+1));
+	}
+
+	bc_divide(tmpnum1,tmpnum2,&resultnum,(long)*(args->args[0])); 
+
+	strval = bc_num2str(resultnum);
+	length = strlen(strval);
+	if(length <= 766) {
+		memset(result,0,766);
+		strncpy(result,strval,length);
+		free(strval);
+		strval  = result;
+	}
+
+	bc_free_num(&tmpnum1);
+	bc_free_num(&tmpnum2);
+	bc_free_num(&resultnum);
+
+	return strval;
+}
+
+my_bool bcmul_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
+	int i;
+	long scale;
+	if(args->arg_count != 3) {
+		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		return 1;
+	}
+
+	if (args->arg_type[0] != INT_RESULT) { 
+		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		return 1;
+	} else {
+ 		scale = (long)*(args->args[0]);
+	}
+		
+	initid->max_length = 1024 * 1024;
+	for(i=1;i<args->arg_count;i++) {
+		args->arg_type[i] = STRING_RESULT;
+	}
+	return 0;
+}
+
+char *bcmul(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long length, char *is_null, char *error) {
+	bc_num tmpnum1;
+	bc_num tmpnum2;
+	bc_num resultnum;
+	char *strval;
+	char *str;
+	char *p;
+	int i;
+	bc_init_numbers();
+
+	bc_init_num(&tmpnum1);
+	bc_init_num(&tmpnum2);
+	bc_init_num(&resultnum);
+
+	str = args->args[1];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) {
+			*(str+i)=0;
+		}
+	}
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum1, str, 0);
+	} else {
+		bc_str2num(&tmpnum1, str, strlen(p+1));
+	}
+
+	str = args->args[2];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) {
+			*(str+i)=0;
+		}
+	}
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum2, str, 0);
+	} else {
+		bc_str2num(&tmpnum2, str, strlen(p+1));
+	}
+
+	bc_multiply(tmpnum1,tmpnum2,&resultnum,(long)*(args->args[0])); 
+
+	strval = bc_num2str(resultnum);
+	length = strlen(strval);
+
+	if(length <= 766) {
+		memset(result,0,766);
+		strncpy(result,strval,length);
+		free(strval);
+		strval  = result;
+	}
+
+	bc_free_num(&tmpnum1);
+	bc_free_num(&tmpnum2);
+	bc_free_num(&resultnum);
+
+	return strval;
+}
+my_bool bcsub_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
+	int i;
+	long scale;
+	if(args->arg_count != 3) {
+		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		return 1;
+	}
+
+	if (args->arg_type[0] != INT_RESULT) { 
+		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		return 1;
+	} else {
+ 		scale = (long)*(args->args[0]);
+	}
+		
+	initid->max_length = 1024 * 1024;
+	for(i=1;i<args->arg_count;i++) {
+		args->arg_type[i] = STRING_RESULT;
+	}
+	return 0;
+}
+
+char *bcsub(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long length, char *is_null, char *error) {
+	bc_num tmpnum1;
+	bc_num tmpnum2;
+	bc_num resultnum;
+	char *strval;
+	char *str;
+	char *p;
+	int i;
+	bc_init_numbers();
+
+	bc_init_num(&tmpnum1);
+	bc_init_num(&tmpnum2);
+	bc_init_num(&resultnum);
+
+	str = args->args[1];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) {
+			*(str+i)=0;
+		}
+	}
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum1, str, 0);
+	} else {
+		bc_str2num(&tmpnum1, str, strlen(p+1));
+	}
+
+	str = args->args[2];
+	for(i=0;i<strlen(str);++i) {
+		if(*(str+i) < 48 || *(str+i) > 57) {
+			*(str+i)=0;
+		}
+	}
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&tmpnum2, str, 0);
+	} else {
+		bc_str2num(&tmpnum2, str, strlen(p+1));
+	}
+
+	bc_sub(tmpnum1,tmpnum2,&resultnum,(long)*(args->args[0])); 
+
+	strval = bc_num2str(resultnum);
+	length = strlen(strval);
+	if(length <= 766) {
+		memset(result,0,766);
+		strncpy(result,strval,length);
+		free(strval);
+		strval  = result;
+	}
+
+	bc_free_num(&tmpnum1);
+	bc_free_num(&tmpnum2);
+	bc_free_num(&resultnum);
+
+	return strval;
+}
 
 my_bool bcsum_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	
 	int i;
-	long long scale;
-	char *result;
+	long scale;
 	bc_init_numbers();
 	bc_num num;
-	initid->ptr = NULL;
 	initid->maybe_null = 1;
 	initid->max_length = 1024 * 1024;
 	if(args->arg_count < 2) {
-		strcpy(message,"This function requires at least two arguments.  bc_sum(scale, arg, ...");
+		strcpy(message,"This function requires at least two arguments.  bcsum(scale, arg, ...)");
 		return 1;
 	}
 	if (args->arg_type[0] != INT_RESULT) { 
@@ -56,14 +428,16 @@ my_bool bcsum_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 		}
 	}
 
-	bc_init_num(&num);
-	initid->ptr = (char *)&num;
+	initid->ptr = NULL;
 	return 0;
 
 } 
 
 void bcsum_deinit(UDF_INIT *initid) {
-	// if(initid->ptr != NULL) bc_free_num((bc_num*)(initid->ptr));
+	if(initid->ptr != NULL) { 
+		bc_free_num((bc_num*)(initid->ptr));
+		free(initid->ptr);
+	}
 }
 
 void bcsum_clear(UDF_INIT *initid, char *is_null, char *error) {
@@ -71,6 +445,7 @@ void bcsum_clear(UDF_INIT *initid, char *is_null, char *error) {
 		*is_null = 1;	
 	} else {
 		bc_free_num((bc_num*)(initid->ptr));
+		free(initid->ptr);
 		initid->ptr = NULL;
 	}
 }
@@ -78,7 +453,7 @@ void bcsum_clear(UDF_INIT *initid, char *is_null, char *error) {
 void bcsum_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
 	bc_num tmpnum1;
 	bc_num *tmpptr;
-        bc_num dest;
+	bc_num dest;
 	int i;
 	long scale;
 
@@ -128,7 +503,7 @@ char *bcsum(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long length
 	} else {
 		// use the preallocated space
 		memset(result,0,766);
-		strcpy(result, strval);
+		strncpy(result, strval,length);
 		free(strval);
 		return result;
 	}
