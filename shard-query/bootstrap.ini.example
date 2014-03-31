@@ -45,7 +45,7 @@ inlist_merge_size=64
 ;Shard-Query supports star schema optimization
 ;make sure you turn this on if you have a star
 ;schema! (defaults to false!)
-star_schema=true
+star_schema=false
 
 ;storage engine to use for the coordinator table
 ;myisam has lower concurrency but it is guaranteed
