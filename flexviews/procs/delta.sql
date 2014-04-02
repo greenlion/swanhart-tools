@@ -1171,7 +1171,7 @@ SET v_error=0;
 SET v_sql = CONCAT(flexviews.get_select(v_mview_id, 'CREATE',''), char(10));
 SET v_sql = CONCAT(v_sql, flexviews.get_from(v_mview_id, 'JOIN', ''));
 IF flexviews.get_where(v_mview_id) != "" THEN
-  SET v_sql = CONCAT(v_sql, ' WHERE ' , flexviews.get_where(v_mview_id));
+  SET v_sql = CONCAT(v_sql, flexviews.get_where(v_mview_id));
 END IF;
 
 IF flexviews.get_delta_groupby(v_mview_id) != "" THEN
