@@ -109,6 +109,15 @@ bc_init_numbers ()
   _two_->n_value[0] = 2;
 }
 
+/* Deinint the number package */
+void
+bc_deinit_numbers ()
+{ 
+  bc_free_num(&_zero_);
+  bc_free_num(&_one_);
+  bc_free_num(&_two_);
+}
+
 
 /* Make a copy of a number!  Just increments the reference count! */
 

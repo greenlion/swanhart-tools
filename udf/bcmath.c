@@ -27,12 +27,12 @@ my_bool bccomp_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	int i;
 	long scale;
 	if(args->arg_count != 3) {
-		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		strcpy(message,"This function requires at least three arguments. (scale, arg, arg)"); 
 		return 1;
 	}
 
 	if (args->arg_type[0] != INT_RESULT) { 
-		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		strcpy(message, "First argument must be an INTEGER which represents the scale.  The scale is the number of places past the decimal point.  Use 0 for integers.");
 		return 1;
 	} else {
  		scale = (long)*(args->args[0]);
@@ -41,7 +41,7 @@ my_bool bccomp_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
         if(args->arg_type[i] != STRING_RESULT) {
-            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
             return 1;
         }
     }
@@ -90,12 +90,12 @@ my_bool bcadd_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	int i;
 	long scale;
 	if(args->arg_count != 3) {
-		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		strcpy(message,"This function requires at least three arguments. (scale, arg, arg)"); 
 		return 1;
 	}
 
 	if (args->arg_type[0] != INT_RESULT) { 
-		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		strcpy(message, "First argument must be an INTEGER which represents the scale.  The scale is the number of places past the decimal point.  Use 0 for integers.");
 		return 1;
 	} else {
  		scale = (long)*(args->args[0]);
@@ -104,12 +104,16 @@ my_bool bcadd_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
         if(args->arg_type[i] != STRING_RESULT) {
-            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
             return 1;
         }
     }
 
 	return 0;
+}
+
+void bcdd_deinit(UDF_INIT *initid) { 
+	bc_deinit_numbers();
 }
 
 char *bcadd(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *length, char *is_null, char *error) {
@@ -162,12 +166,12 @@ my_bool bcpow_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	int i;
 	long scale;
 	if(args->arg_count != 3) {
-		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		strcpy(message,"This function requires at least three arguments. (scale, arg, arg)"); 
 		return 1;
 	}
 
 	if (args->arg_type[0] != INT_RESULT) { 
-		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		strcpy(message, "First argument must be an INTEGER which represents the scale.  The scale is the number of places past the decimal point.  Use 0 for integers.");
 		return 1;
 	} else {
  		scale = (long)*(args->args[0]);
@@ -176,7 +180,7 @@ my_bool bcpow_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
         if(args->arg_type[i] != STRING_RESULT) {
-            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
             return 1;
         }
     }
@@ -246,12 +250,12 @@ my_bool bcdiv_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	int i;
 	long scale;
 	if(args->arg_count != 3) {
-		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		strcpy(message,"This function requires at least three arguments. (scale, arg, arg)"); 
 		return 1;
 	}
 
 	if (args->arg_type[0] != INT_RESULT) { 
-		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		strcpy(message, "First argument must be an INTEGER which represents the scale.  The scale is the number of places past the decimal point.  Use 0 for integers.");
 		return 1;
 	} else {
  		scale = (long)*(args->args[0]);
@@ -260,7 +264,7 @@ my_bool bcdiv_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
         if(args->arg_type[i] != STRING_RESULT) {
-            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
             return 1;
         }
     }
@@ -325,12 +329,12 @@ my_bool bcmul_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	int i;
 	long scale;
 	if(args->arg_count != 3) {
-		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		strcpy(message,"This function requires at least three arguments. (scale, arg, arg)"); 
 		return 1;
 	}
 
 	if (args->arg_type[0] != INT_RESULT) { 
-		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		strcpy(message, "First argument must be an INTEGER which represents the scale.  The scale is the number of places past the decimal point.  Use 0 for integers.");
 		return 1;
 	} else {
  		scale = (long)*(args->args[0]);
@@ -339,7 +343,7 @@ my_bool bcmul_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
         if(args->arg_type[i] != STRING_RESULT) {
-            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
             return 1;
         }
     }
@@ -397,12 +401,12 @@ my_bool bcsub_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	int i;
 	long scale;
 	if(args->arg_count != 3) {
-		strcpy(message,"This function requires at least two arguments.  bcadd(scale, arg, arg)"); 
+		strcpy(message,"This function requires at least three arguments. (scale, arg, arg)"); 
 		return 1;
 	}
 
 	if (args->arg_type[0] != INT_RESULT) { 
-		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		strcpy(message, "First argument must be an INTEGER which represents the scale.  The scale is the number of places past the decimal point.  Use 0 for integers.");
 		return 1;
 	} else {
  		scale = (long)*(args->args[0]);
@@ -411,7 +415,7 @@ my_bool bcsub_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
         if(args->arg_type[i] != STRING_RESULT) {
-            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
             return 1;
         }
     }
@@ -478,7 +482,7 @@ my_bool bcsum_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 		return 1;
 	}
 	if (args->arg_type[0] != INT_RESULT) { 
-		strcpy(message, "First argument must be an INTEGER which represents the scale of the operation!");
+		strcpy(message, "First argument must be an INTEGER which represents the scale.  The scale is the number of places past the decimal point.  Use 0 for integers.");
 		return 1;
 	} else {
  		scale = (long)*(args->args[0]);
@@ -486,7 +490,7 @@ my_bool bcsum_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 
 	for(i=1;i<args->arg_count;i++) {
         if(args->arg_type[i] != STRING_RESULT) {
-            strcpy(message, "Please use strings for numbers.  Please cast columns to char(65534)");
+            strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
             return 1;
         }
     }
@@ -501,6 +505,7 @@ void bcsum_deinit(UDF_INIT *initid) {
 		bc_free_num((bc_num*)(initid->ptr));
 		free(initid->ptr);
 	}
+	bc_deinit_numbers();
 }
 
 void bcsum_clear(UDF_INIT *initid, char *is_null, char *error) {
