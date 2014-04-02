@@ -112,7 +112,22 @@ my_bool bcadd_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 	return 0;
 }
 
-void bcdd_deinit(UDF_INIT *initid) { 
+void bcadd_deinit(UDF_INIT *initid) { 
+	bc_deinit_numbers();
+}
+void bcsub_deinit(UDF_INIT *initid) { 
+	bc_deinit_numbers();
+}
+void bcmul_deinit(UDF_INIT *initid) { 
+	bc_deinit_numbers();
+}
+void bcdiv_deinit(UDF_INIT *initid) { 
+	bc_deinit_numbers();
+}
+void bccomp_deinit(UDF_INIT *initid) { 
+	bc_deinit_numbers();
+}
+void bcpow_deinit(UDF_INIT *initid) { 
 	bc_deinit_numbers();
 }
 
@@ -583,6 +598,68 @@ void bcsum_reset(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 
   bcsum_clear(initid, is_null, error);
   bcsum_add(initid, args, is_null, error);
+}
+
+my_bool bcsqrt_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
+	int i;
+	long scale;
+	if(args->arg_count != 2) {
+		strcpy(message,"This function requires two arguments. (scale, arg)"); 
+		return 1;
+	}
+
+	if (args->arg_type[0] != INT_RESULT) { 
+		strcpy(message, "First argument must be an INTEGER which represents the scale.  The scale is the number of places past the decimal point.  Use 0 for integers.");
+		return 1;
+	} else {
+ 		scale = (long)*(args->args[0]);
+	}
+		
+	initid->max_length = 1024 * 1024;
+	for(i=1;i<args->arg_count;i++) {
+        if(args->arg_type[i] != STRING_RESULT) {
+            strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
+            return 1;
+        }
+    }
+
+	return 0;
+}
+
+char *bcsqrt(UDF_INIT *initid, UDF_ARGS *args, char* rslt, unsigned long *length, char *is_null, char *error) {
+	bc_num result;
+	char *strval;
+	char *str;
+	char *p;
+	int i;
+	int need_free = 0;
+	bc_init_numbers();
+	bc_init_num(&result);
+
+	str = args->args[1];
+	if (!(p = strchr(str, '.'))) {
+		bc_str2num(&result, str, 0);
+	} else {
+		bc_str2num(&result, str, strlen(p+1));
+	}
+
+    if (bc_sqrt(&result, *(args->args[0])) == 0) {
+		*is_null = 1; 
+		return rslt;
+    }
+
+	strval = bc_num2str(result);
+	*length = strlen(strval);
+	if(*length <= 766) {
+		memset(rslt,0,766);
+		strncpy(rslt,strval,*length);
+		free(strval);
+		strval  = rslt;
+	}
+
+	bc_free_num(&result);
+
+	return strval;
 }
 
 /*
