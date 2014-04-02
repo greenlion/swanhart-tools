@@ -54,7 +54,11 @@ exprLoop: LOOP
   SET v_where_clause = CONCAT(v_where_clause, v_mview_expression);
 END LOOP;
 
-RETURN CONCAT(' WHERE ', v_where_clause);
+IF v_where_clause != '' THEN
+  SET v_where_clause := CONCAT(' WHERE ', v_where_clause);
+END IF;
+
+RETURN v_where_clause;
 
 END;;
 
