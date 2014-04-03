@@ -146,10 +146,16 @@ class ShardQuery {
     
     $params = $mapper->get_params($schema_name);
     $shards = $mapper->get_shards($schema_name);
-    
+
     $state->shards = $shards;
     
     $state->mapper =& $mapper;
+
+    if(!empty($params['shared_path')) {
+      $state->shared_path = $params['shared_path'];
+    } else {
+      $state->shared_path = "";
+    }
     
     if(in_array('verbose', array_keys($params))) {
       $state->verbose = true;
@@ -1897,8 +1903,8 @@ class ShardQuery {
     $charset = "latin1";
     $ignore = false;
     $replace = false;
-    $columns_str = "";
-    $set_str = "";
+    $columns_str = null;
+    $set_str = null;
     $lines_starting_by = "";
 
     $regex = "/[A-Za-z_.]+\(.*?\)+|\(.*?\)+|\"(?:[^\"]|\"|\"\")*\"+|'[^'](?:|\'|'')*'+|`(?:[^`]|``)*`+|[^ ,]+ |,/x"; $regex = trim($regex);
@@ -1918,8 +1924,6 @@ class ShardQuery {
     $set_pos_at = 0;
     $past_infile=false; 
 
-    print_r($tokens);
-    // exit;
     foreach($tokens as $key => $token) {
       if($token[0] == "'") continue;
       if($token[0] == "(") {
@@ -2020,11 +2024,13 @@ class ShardQuery {
 #exit;
     /* $fields_optionally_enclosed =  false; #not used */
 
+    $lines_terminated_by = str_replace("\\n", "\n", $lines_terminated_by);
+    #TODO: Handle setting the shard_key in the SET clause
     $SL = new ShardLoader($this, $fields_terminated_by, $fields_enclosed_by, $lines_terminated_by, true /*useFifo*/, 16 * 1024 * 1024, $charset, $ignore, $replace, $lines_starting_by, $fields_escaped_by);
     if($local) {
-      $SL->load($file_name, $file_name, $table_name, $columns_str, $set_str);
+      $SL->load($file_name, $table_name, null, null, $columns_str, $set_str);
     } else {
-      $SL->load_gearman($file_name, $file_name, $table_name, $columns_str, $set_str);
+      $SL->load_gearman($state->shared_path . '/' . $file_name, $table_name, null, null, $columns_str, $set_str);
     }
     unset($SL);
    

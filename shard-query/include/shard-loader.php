@@ -1,5 +1,5 @@
 <?php
-/* vim: set expandtab tabstop=4 shiftwidth=4 encoding=utf-8: */
+/* vim: set expandtab tabstop=4 shiftwidth=4 encoding=utf-8 */
 /* $Id: */
 /*
 Copyright (c) 2010, Justin Swanhart
@@ -87,7 +87,7 @@ class ShardLoader {
   /*
   Load a file.
   */
-  public function load($path, $table, $chunk_size = null, $segment_count = null) {
+  public function load($path, $table, $chunk_size = null, $segment_count = null, $columns_str = null, $set_str = null) {
     if (!isset($chunk_size)) {
       $chunk_size = $this->chunk_size;
     }
@@ -105,7 +105,7 @@ class ShardLoader {
     
     foreach ($info as $segment) {
       
-      $return = $this->load_segment($path, $table, $segment['start'], $segment['end']);
+      $return = $this->load_segment($path, $table, $segment['start'], $segment['end'], $columns_str, $set_str);
     }
     echo "done!\n";
     
@@ -116,7 +116,7 @@ class ShardLoader {
   Note that the file pointed to by $path must be available to the workers
   so you may have to put the files on an NFS mount point or use EBS snapshots, or S3, etc.
   */
-  public function load_gearman($path, $table, $chunk_size = null, $segment_count = null) {
+  public function load_gearman($path, $table, $chunk_size = null, $segment_count = null, $columns_str = null, $set_str = null) {
     $SQ = $this->SQ;
     if (!isset($chunk_size)) {
       $chunk_size = $this->chunk_size;
@@ -138,7 +138,9 @@ class ShardLoader {
     $loadspec = array(
       'line_terminator' => $this->line_terminator,
       'enclosure' => $this->enclosure,
-      'delimiter' => $this->delimiter
+      'delimiter' => $this->delimiter,
+      'columns_str' => $columns_str,
+      'set_str' => $set_str
     );
     $job_id   = $SQ->state->mapper->register_job(null, 0, 0, $table, "[LOAD DATA LOCAL] FILE:$path", "load", count($info));
     foreach ($info as $segment) {
@@ -158,7 +160,7 @@ class ShardLoader {
     
   }
   
-  public function load_segment($path, $table, $start_pos = 0, $end_pos = null) {
+  public function load_segment($path, $table, $start_pos = 0, $end_pos = null, $columns_str = null, $set_str = null) {
     $SQ             = $this->SQ;
     $shard_col_pos  = null;
     $errors         = array();
@@ -181,36 +183,38 @@ class ShardLoader {
     /*
     Get the column list for the given table.
     */
-    $db  = $SQ->tmp_shard['db'];
-    $dal = SimpleDAL::factory($SQ->tmp_shard);
-    if ($dal->my_error()) {
-      echo $dal->my_error();
-      $errors[] = array(
-        'error' => "Could not get list of columns for table",
-        'file_pos' => $start_pos
-      );
-      return $errors;
+    if(!$columns_str) {
+      $db  = $SQ->tmp_shard['db'];
+      $dal = SimpleDAL::factory($SQ->tmp_shard);
+      if ($dal->my_error()) {
+        echo $dal->my_error();
+        $errors[] = array(
+          'error' => "Could not get list of columns for table",
+          'file_pos' => $start_pos
+        );
+        return $errors;
+      }
+    
+      $table = $dal->my_real_escape_string($table);
+      $db    = $dal->my_real_escape_string($db);
+    
+      $sql  = "set group_concat_max_len=1024*1024*4;";
+      $stmt = $dal->my_query($sql);
+      if (!$stmt) {
+        throw new Exception($dal->my_error());
+      }
+    
+      $sql  = "select group_concat(column_name order by ordinal_position) columns_str from information_schema.columns where table_schema='$db' and table_name = '$table'";
+      $stmt = $dal->my_query($sql);
+      if (!$stmt) {
+        throw new Exception($dal->my_error());
+      }
+    
+      $row = $dal->my_fetch_assoc($stmt);
+      $columns_str = $row['columns_str'];
+      $loader_handles[$SQ->tmp_shard['shard_name']] = $dal;
+      $dal = null;
     }
-    
-    $table = $dal->my_real_escape_string($table);
-    $db    = $dal->my_real_escape_string($db);
-    
-    $sql  = "set group_concat_max_len=1024*1024*4;";
-    $stmt = $dal->my_query($sql);
-    if (!$stmt) {
-      throw new Exception($dal->my_error());
-    }
-    
-    $sql  = "select group_concat(column_name order by ordinal_position) columns_str from information_schema.columns where table_schema='$db' and table_name = '$table'";
-    $stmt = $dal->my_query($sql);
-    if (!$stmt) {
-      throw new Exception($dal->my_error());
-    }
-    
-    $row                                          = $dal->my_fetch_assoc($stmt);
-    $columns_str                                  = $row['columns_str'];
-    $loader_handles[$SQ->tmp_shard['shard_name']] = $dal;
-    $dal                                          = null;
     
     /*
     Try to find the shard column in the list of columns. (if it isn't found don't do anything)
@@ -243,7 +247,7 @@ class ShardLoader {
     */
     if (!isset($shard_col_pos)) {
       foreach ($all_shards as $shard_name => $shard) {
-        $fifo = $this->start_fifo($table, $shard, $columns_str);
+        $fifo = $this->start_fifo($table, $shard, $columns_str, $set_str);
         if (!$fifo) {
           $err      = "Could not start a FIFO to a destination database.  This will result in too many errors, so failing completely.\n";
           $errors[] = array(
@@ -318,7 +322,7 @@ class ShardLoader {
     }
     
     foreach ($out_data as $shard_name => $lines) {
-      $fifo = $this->start_fifo($table, $SQ->state->shards[$shard_name], $columns_str);
+      $fifo = $this->start_fifo($table, $SQ->state->shards[$shard_name], $columns_str, $set_str);
       if (!$fifo) {
         $err      = "Could not start a FIFO to a destination database.\n";
         $errors[] = array(
@@ -424,7 +428,7 @@ class ShardLoader {
     
     $load .= $sql;
 
-    $load .= $set_str;
+    $load .= $set_str == null ? '' : $set_str;
 
     $cmdline = "mysql -u{$shard['user']} -h{$shard['host']} -P{$shard['port']} {$shard['db']}";
     if (!empty($shard['password']) && trim($shard['password'])) {
