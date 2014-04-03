@@ -327,7 +327,7 @@ EOREGEX
 							`gsn_hwm` bigint NOT NULL DEFAULT 1,
 						  	PRIMARY KEY(`uow_id`),
 						  	KEY `commit_time` (`commit_time`)
-						) ENGINE=InnoDB DEFAULT CHARSET=latin1;"
+						) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
 				    , $this->dest) or die1('COULD NOT CREATE TABLE ' . $this->mview_uow . ': ' . mysql_error($this->dest) . "\n");
 
 			my_mysql_query("INSERT INTO `" . $this->mview_uow . "` VALUES (1, NULL, 1);", $this->dest) or die1('COULD NOT INSERT INTO:' . $this->mview_uow . "\n");
