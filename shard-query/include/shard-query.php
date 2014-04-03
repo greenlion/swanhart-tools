@@ -151,7 +151,7 @@ class ShardQuery {
     
     $state->mapper =& $mapper;
 
-    if(!empty($params['shared_path')) {
+    if(!empty($params['shared_path'])) {
       $state->shared_path = $params['shared_path'];
     } else {
       $state->shared_path = "";
