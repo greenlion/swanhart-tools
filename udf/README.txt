@@ -25,10 +25,9 @@ mysql> select bcsum(30,bcadd(30,cast(c1 as char(100)),cast(c2 as char(100)))) fr
 +-------------------------------------------------------+
 1 row in set (0.00 sec)
 
-You char(100) is large enough for any regular MySQL number (BIGINT, DOUBLE,
+You should find char(100) is large enough for any regular MySQL number (BIGINT, DOUBLE,
 DECIMAL,etc).
 
 If you want to be able to handle very large numbers, then cast intput for
 CHAR(65535) or convert the columns to one of the TEXT data types if you have
-very large numbers, that is numbers larger than 65535 characters(including
-sign and decimal point).
+very large numbers.
