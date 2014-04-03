@@ -2,3 +2,6 @@ This work, =MySQL BC math UDF= is Copyright 2014 Justin Swanhart.
 It heavily borrows from:
 BC Math
 Andi Gutmans
+
+BC Math is licensed under the GPL, and thus this UDF library is
+also GPL licensed by extension.

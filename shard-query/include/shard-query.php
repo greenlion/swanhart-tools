@@ -1,5 +1,4 @@
 <?php
-/* vim: set expandtab tabstop=4 shiftwidth=4 encoding=utf-8: */
 /* $Id: */
 /*
 Copyright (c) 2010, Justin Swanhart
@@ -91,7 +90,8 @@ class ShardQuery {
   function __construct($schema_name = null, $config_file = 'shard-query-config.php') {
     $this->parser = new PHPSQLParser();
     ShardQueryCustomFunctions::register_all($this->parser);
-    $this->state = $this->set_schema($schema_name, $state = ShardQuery::new_state(), $config_file);
+    $state = ShardQuery::new_state();
+    $this->state = $this->set_schema($schema_name, $state, $config_file);
   }
   
   function set_coordinator($shard_name = null) {
@@ -273,7 +273,7 @@ class ShardQuery {
       unset($this->state);
       $this->state = $this->set_schema($schema_name);
     }
-    
+
     if($this->async)
       $keep_result = true;
     if(isset($alt_state))

@@ -1,5 +1,5 @@
 <?php
-/* vim: set expandtab tabstop=4 shiftwidth=4 encoding=utf-8: */
+/* vim: set expandtab tabstop=4 shiftwidth=4 encoding=utf-8 */
 /* $Id: */
 /*
 Copyright (c) 2010, Justin Swanhart
@@ -50,8 +50,8 @@ function &get_commandline($more_longopts=array()) {
 
 	$longOpts = array_merge($longOpts, $more_longopts);
 
-	$params = $cg->getopt2($args, $shortOpts, $longOpts);
-	if (PEAR::isError($params)) {
+	@$params = $cg->getopt2($args, $shortOpts, $longOpts);
+	if (@PEAR::isError($params)) {
 	    echo 'Error: ' . $params->getMessage() . "\n";
 	    exit(1);
 	}

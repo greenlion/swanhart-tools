@@ -101,6 +101,8 @@ extern bc_num _two_;
 
 _PROTOTYPE(void bc_init_numbers, (void));
 
+_PROTOTYPE(void bc_deinit_numbers, (void));
+
 _PROTOTYPE(bc_num bc_new_num, (int length, int scale));
 
 _PROTOTYPE(void bc_free_num, (bc_num *num));

@@ -1,0 +1,5 @@
+*.ini
+*.err
+*log
+*.pid
+*.inc
