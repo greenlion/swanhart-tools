@@ -87,10 +87,12 @@ class ShardLoader {
   /*
   Load a file.
   */
-  public function load($path, $table, $chunk_size = null, $segment_count = null, $columns_str = null, $set_str = null) {
+  public function load($path, $table, $chunk_size = null, $segment_count = null, $columns_str = null, $set_str = null, $ignore ="", $replace = "") {
     if (!isset($chunk_size)) {
       $chunk_size = $this->chunk_size;
     }
+
+    $fh = fopen($path, "r");
     
     if (!isset($segment_count)) {
       $fs = filesize($path);
@@ -105,7 +107,7 @@ class ShardLoader {
     
     foreach ($info as $segment) {
       
-      $return = $this->load_segment($path, $table, $segment['start'], $segment['end'], $columns_str, $set_str);
+      $return = $this->load_segment($path, $table, $segment['start'], $segment['end'], $columns_str, $set_str, $ignore, $replace);
     }
     echo "done!\n";
     
@@ -116,16 +118,18 @@ class ShardLoader {
   Note that the file pointed to by $path must be available to the workers
   so you may have to put the files on an NFS mount point or use EBS snapshots, or S3, etc.
   */
-  public function load_gearman($path, $table, $chunk_size = null, $segment_count = null, $columns_str = null, $set_str = null) {
+  public function load_gearman($path, $table, $chunk_size = null, $segment_count = null, $columns_str = null, $set_str = null, $ignore= "", $replace="") {
     $SQ = $this->SQ;
     if (!isset($chunk_size)) {
       $chunk_size = $this->chunk_size;
     }
     
     if (!isset($segment_count)) {
-      $fs = filesize($path);
-      if (!$fs)
+      $fs = @filesize($path);
+      if (!$fs) {
+        $this->errors[] = "Could not read file: $path";
         return false;
+      }
       $segment_count = floor($fs / $chunk_size);
     }
     if ($segment_count === 0.0)
@@ -140,9 +144,12 @@ class ShardLoader {
       'enclosure' => $this->enclosure,
       'delimiter' => $this->delimiter,
       'columns_str' => $columns_str,
-      'set_str' => $set_str
+      'set_str' => $set_str,
+      'ignore' => $ignore,
+      'replace' => $replace
     );
     $job_id   = $SQ->state->mapper->register_job(null, 0, 0, $table, "[LOAD DATA LOCAL] FILE:$path", "load", count($info));
+    echo "Scheduling jobs for file chunks:\n";
     foreach ($info as $segment) {
       echo "  Table: $table\n   File: $path\nOffsets: from_pos: {$segment['start']}, to_pos: {$segment['end']}\n";
       $jobs[] = array(
@@ -156,11 +163,13 @@ class ShardLoader {
     }
     
     $set = $this->create_gearman_set($jobs);
+    echo "Running background jobs for loading\n";
     $this->run_set($SQ->state, $set);
+    return true;
     
   }
   
-  public function load_segment($path, $table, $start_pos = 0, $end_pos = null, $columns_str = null, $set_str = null) {
+  public function load_segment($path, $table, $start_pos = 0, $end_pos = null, $columns_str = null, $set_str = null, $ignore="", $replace="") {
     $SQ             = $this->SQ;
     $shard_col_pos  = null;
     $errors         = array();
@@ -247,7 +256,7 @@ class ShardLoader {
     */
     if (!isset($shard_col_pos)) {
       foreach ($all_shards as $shard_name => $shard) {
-        $fifo = $this->start_fifo($table, $shard, $columns_str, $set_str);
+        $fifo = $this->start_fifo($table, $shard, $columns_str, $set_str, $ignore, $replace);
         if (!$fifo) {
           $err      = "Could not start a FIFO to a destination database.  This will result in too many errors, so failing completely.\n";
           $errors[] = array(
@@ -322,7 +331,7 @@ class ShardLoader {
     }
     
     foreach ($out_data as $shard_name => $lines) {
-      $fifo = $this->start_fifo($table, $SQ->state->shards[$shard_name], $columns_str, $set_str);
+      $fifo = $this->start_fifo($table, $SQ->state->shards[$shard_name], $columns_str, $set_str, $ignore, $replace);
       if (!$fifo) {
         $err      = "Could not start a FIFO to a destination database.\n";
         $errors[] = array(
@@ -377,7 +386,7 @@ class ShardLoader {
     return true;
   }
   
-  protected function start_fifo($table, $shard, $columns_str="", $set_str="") {
+  protected function start_fifo($table, $shard, $columns_str="", $set_str="", $ignore = "", $replace = "") {
     #generate a safe unguessable name in a safe location
     $path = tempnam(sys_get_temp_dir(), mt_rand(1, 99999999));
     
@@ -388,8 +397,8 @@ class ShardLoader {
     if (!posix_mkfifo($path, '0444'))
       return false;
 
-    if($this->ignore === false) $ignore=""; else $ignore = "IGNORE";
-    if($this->replace === false) $replace=""; else $replace = "REPLACE";
+    if($ignore == "") $ignore=""; else $ignore = "IGNORE";
+    if($replace == "") $replace=""; else $replace = "REPLACE";
 
     #note $ignore and replace are mutually exclusive in the SQL grammar - putting them together produces a error if both are used which is good
     $load = "LOAD DATA LOCAL INFILE \"$path\" {$replace}{$ignore} INTO TABLE `{$shard['db']}`.`$table` CHARACTER SET {$this->charset}";
@@ -404,7 +413,7 @@ class ShardLoader {
       $sql .= "OPTIONALLY ENCLOSED BY \"" . $this->enclosure . "\" ";
     }
 
-    $sql .= "ESCAPED BY '" . $this->escape . "' ";
+    //$sql .= "ESCAPED BY '" . $this->escape . "' ";
 
     $line_terminator = str_replace(array(
       "\r",
@@ -422,7 +431,7 @@ class ShardLoader {
       "\\n"
     ), $this->line_starter);
 
-    $sql .= 'LINES STARTED BY "' . $line_starter . '" TERMINATED BY "' . $line_terminator . '" ';
+    $sql .= 'LINES TERMINATED BY "' . $line_terminator . '" ';
     
     if($columns_str) $sql .= "($columns_str)";
     
@@ -436,7 +445,8 @@ class ShardLoader {
     }
     $cmdline .= " -e '{$load}'";
     $pipes = null;
-    
+   
+ 
     #open the MySQL client reading from the FIFO
     $ph = proc_open($cmdline, array(), $pipes);
     if (!$ph)

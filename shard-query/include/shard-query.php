@@ -304,6 +304,7 @@ class ShardQuery {
     }
     
     $start = microtime(true);
+    $state->total_time = 0;
     
     $state->DAL = SimpleDAL::factory($state->tmp_shard);
     
@@ -1891,6 +1892,13 @@ class ShardQuery {
     return false;
   }
 
+  protected function clean_token($token) {
+    if($token[0] == '\'' || $token[0] == '"') {
+      $token = substr($token, 1, strlen($token)-2);
+    }
+    return $token;
+  }
+
   protected function process_load_data($sql) {
     $file_name = false;
     $table_name = "";
@@ -1963,7 +1971,7 @@ class ShardQuery {
 
         case 'infile':
           $past_infile=true;
-          $file_name = $tokens[$key+1][0];
+          $file_name = $this->clean_token($tokens[$key+1][0]);
           $skip_next = true;
           break;
        
@@ -1982,9 +1990,9 @@ class ShardQuery {
 
         case 'terminated':
           if($line_options) {
-            $lines_terminated_by = $tokens[$key+2][0];
+            $lines_terminated_by = $this->clean_token($tokens[$key+2][0]);
           } else {
-            $fields_terminated_by = $tokens[$key+2][0];
+            $fields_terminated_by = $this->clean_token($tokens[$key+2][0]);
           }
           break;
 
@@ -1997,7 +2005,7 @@ class ShardQuery {
           break;
 
         case 'enclosed':
-          $fields_enclosed_by = $tokens[$key+2][0];
+          $fields_enclosed_by = $this->clean_token($tokens[$key+2][0]);
           break;
 
         case 'lines':
@@ -2017,8 +2025,19 @@ class ShardQuery {
 
       }
     }
+    if($table_name === "") {
+      $this->errors[] = "LOAD DATA requires a table name";
+      return false;
+    }
+
+    if($file_name === "") {
+      $this->errors[] = "LOAD DATA requires a file name";
+      return false;
+    }
+
     if($replace)$replace="REPLACE";else $replace="";
     if($ignore)$ignore="IGNORE";else $ignore="";
+
     if($set_pos_at) $set_str = substr($sql, $set_pos_at); else $set_str = "";
 #echo "LOAD DATA INFILE $file_name {$replace}{$ignore} INTO TABLE $table_name CHARACTER SET $charset FIELDS TERMINATED BY '$fields_terminated_by' OPTIONALLY ENCLOSED BY '$fields_enclosed_by' ESCAPED BY '$fields_escaped_by' LINES STARTING BY '$lines_starting_by' TERMINATED BY '$lines_terminated_by' $columns_str $set_str\n";
 #exit;
@@ -2027,10 +2046,17 @@ class ShardQuery {
     $lines_terminated_by = str_replace("\\n", "\n", $lines_terminated_by);
     #TODO: Handle setting the shard_key in the SET clause
     $SL = new ShardLoader($this, $fields_terminated_by, $fields_enclosed_by, $lines_terminated_by, true /*useFifo*/, 16 * 1024 * 1024, $charset, $ignore, $replace, $lines_starting_by, $fields_escaped_by);
+
     if($local) {
-      $SL->load($file_name, $table_name, null, null, $columns_str, $set_str);
+      if(!$SL->load($file_name, $table_name, null, null, $columns_str, $set_str, $ignore, $replace)) {
+        $this->errors = $SL->errors;
+        return false;
+      }
     } else {
-      $SL->load_gearman($state->shared_path . '/' . $file_name, $table_name, null, null, $columns_str, $set_str);
+      $file_name = "{$this->state->shared_path}/{$file_name}";
+      if(!$SL->load_gearman($file_name, $table_name, null, null, $columns_str, $set_str, $ignore, $replace)) {
+        $this->errors = $SL->errors;
+      }
     }
     unset($SL);
    

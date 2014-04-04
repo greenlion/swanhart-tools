@@ -17,7 +17,7 @@ class Net_Gearman_Job_loader extends Net_Gearman_Job_Common
 	if(!isset($arg->use_fifo)) $arg->use_fifo = true;
 	$SL = new ShardLoader($SQ, $arg->loadspec['delimiter'], $arg->loadspec['enclosure'], $arg->loadspec['line_terminator'], $arg->use_fifo);
 
-	$result = $SL->load_segment($arg->path, $arg->table, $arg->start, $arg->end);
+	$result = $SL->load_segment($arg->path, $arg->table, $arg->start, $arg->end, $arg->loadspec['columns_str'], $arg->loadspec['set_str'], $arg->loadspec['ignore'], $arg->loadspec['replace']);
 	if(is_array($result)) {
 		register_completion($arg->job_id, 'loader', 'error', print_r($result, true));
 		return false;
