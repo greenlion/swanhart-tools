@@ -28,6 +28,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 require_once('chunkit.php');
+require_once("S3.php");
 if (!defined('SQ_DEBUG'))
   require_once('shard-query.php');
 
@@ -83,6 +84,46 @@ class ShardLoader {
       throw new Exception('Line terminator must end in newline.');
     }
   }
+
+  protected function curl_get_file_size( $url ) {
+    // Assume failure.
+    $result = -1;
+
+    $curl = curl_init( $url );
+
+    // Issue a HEAD request and follow any redirects.
+    curl_setopt( $curl, CURLOPT_NOBODY, true );
+    curl_setopt( $curl, CURLOPT_HEADER, true );
+    curl_setopt( $curl, CURLOPT_RETURNTRANSFER, true );
+    curl_setopt( $curl, CURLOPT_FOLLOWLOCATION, true );
+
+    $data = curl_exec( $curl );
+    curl_close( $curl );
+
+    if( $data ) {
+      $content_length = "unknown";
+      $status = "unknown";
+
+      if( preg_match( "/^HTTP\/1\.[01] (\d\d\d)/", $data, $matches ) ) {
+        $status = (int)$matches[1];
+      }
+
+      if( preg_match( "/Content-Length: (\d+)/", $data, $matches ) ) {
+        $content_length = (int)$matches[1];
+      }
+
+      // http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+      if( $status == 200 || ($status > 300 && $status <= 308) ) {
+        $result = $content_length;
+      }
+    }
+
+    return $result;
+  }
+  protected function extract_s3_path($url) {
+     if(preg_match("#s3://([^/]+)/(.*)#", $url, $matches)) return $matches;
+     return false;
+  }
   
   /*
   Load a file.
@@ -91,23 +132,47 @@ class ShardLoader {
     if (!isset($chunk_size)) {
       $chunk_size = $this->chunk_size;
     }
+    $fs = false;
+    $url = false;
 
-    $fh = fopen($path, "r");
-    
     if (!isset($segment_count)) {
-      $fs = filesize($path);
-      if (!$fs)
-        return false;
+      $chunker = new ChunkIt($this->line_terminator);
+      if(strstr($path, "s3://")) {
+        if(!isset($this->SQ->state->aws_access_key) || !isset($this->SQ->state->aws_secret_key)) {
+          $this->errors[] = "Missing AWS secret key or AWS access key.  Please set them in the schemata_config table";
+          return false;
+        }
+	$pathinfo = $this->extract_s3_path($path);
+        $bucket = $pathinfo[1]; 
+        $file = $pathinfo[2];
+        $s3 = new S3($this->SQ->state->aws_access_key, $this->SQ->state->aws_secret_key);
+	$info = @$s3->getObjectInfo($bucket, $file);
+        if(!$info) {
+          $this->errors[] = "Could not get S3 information for $path";
+          return false;
+        }
+        $segment_count = floor($info['size'] / $chunk_size);
+        echo "Getting file offsets (may take awhile)\n";
+        $info = $chunker->s3_find_offsets($s3, $bucket, $file,$info['size'],$chunk_size, $segment_count);
+
+      } else { /* NON-S3 load here */
+        $fs = @filesize($path);
+
+        if (!$fs) {
+          $this->errors[] = "Could not get size of $path";
+          return false;
+        }
       
-      $segment_count = floor($fs / $chunk_size);
+        $segment_count = floor($fs / $chunk_size);
+        $info    = $chunker->find_offsets($path, $segment_count);
+
+      }
+
     }
-    
-    $chunker = new ChunkIt($this->line_terminator);
-    $info    = $chunker->find_offsets($path, $segment_count);
     
     foreach ($info as $segment) {
       
-      $return = $this->load_segment($path, $table, $segment['start'], $segment['end'], $columns_str, $set_str, $ignore, $replace);
+      $return = $this->load_segment($pathinfo, $table, $segment['start'], $segment['end'], $columns_str, $set_str, $ignore, $replace);
     }
     echo "done!\n";
     
@@ -124,19 +189,45 @@ class ShardLoader {
       $chunk_size = $this->chunk_size;
     }
     
+
     if (!isset($segment_count)) {
-      $fs = @filesize($path);
-      if (!$fs) {
-        $this->errors[] = "Could not read file: $path";
-        return false;
+      $chunker = new ChunkIt($this->line_terminator);
+      if(strstr($path, "s3://")) {
+        if(!isset($this->SQ->state->aws_access_key) || !isset($this->SQ->state->aws_secret_key)) {
+          $this->errors[] = "Missing AWS secret key or AWS access key.  Please set them in the schemata_config table";
+          return false;
+        }
+	$pathinfo = $this->extract_s3_path($path);
+        $bucket = $pathinfo[1]; 
+        $file = $pathinfo[2];
+        $path = $pathinfo; 
+        $s3 = new S3($this->SQ->state->aws_access_key, $this->SQ->state->aws_secret_key);
+	$info = @$s3->getObjectInfo($bucket, $file);
+        if(!$info) {
+          $this->errors[] = "Could not get S3 information for $path";
+          return false;
+        }
+        $segment_count = floor($info['size'] / $chunk_size);
+        echo "Getting file offsets (may take awhile)\n";
+        $info = $chunker->s3_find_offsets($s3, $bucket, $file,$info['size'],$chunk_size, $segment_count);
+
+      } else { /* NON-S3 load here */
+        $fs = @filesize($path);
+
+        if (!$fs) {
+          $this->errors[] = "Could not get size of $path";
+          return false;
+        }
+      
+        $segment_count = floor($fs / $chunk_size);
+        $info    = $chunker->find_offsets($path, $segment_count);
+
       }
-      $segment_count = floor($fs / $chunk_size);
     }
+
     if ($segment_count === 0.0)
       $segment_count = 1;
-    $chunker = new ChunkIt($this->line_terminator);
-    $info    = $chunker->find_offsets($path, $segment_count);
-    
+
     $jobs = array();
     
     $loadspec = array(
@@ -151,7 +242,7 @@ class ShardLoader {
     $job_id   = $SQ->state->mapper->register_job(null, 0, 0, $table, "[LOAD DATA LOCAL] FILE:$path", "load", count($info));
     echo "Scheduling jobs for file chunks:\n";
     foreach ($info as $segment) {
-      echo "  Table: $table\n   File: $path\nOffsets: from_pos: {$segment['start']}, to_pos: {$segment['end']}\n";
+      echo "  Table: $table\n   File: " . print_r($path,true) . "\nOffsets: from_pos: {$segment['start']}, to_pos: {$segment['end']}\n";
       $jobs[] = array(
         'job_id' => $job_id,
         'path' => $path,
@@ -169,15 +260,23 @@ class ShardLoader {
     
   }
   
-  public function load_segment($path, $table, $start_pos = 0, $end_pos = null, $columns_str = null, $set_str = null, $ignore="", $replace="") {
+  public function load_segment($path, $table, $start_pos, $end_pos, $columns_str = null, $set_str = null, $ignore="", $replace="") {
     $SQ             = $this->SQ;
     $shard_col_pos  = null;
     $errors         = array();
     $loader_handles = array();
     $loader_fifos   = array();
-    
-    if (!trim($path))
-      throw new Exception('Empty path not supported');
+    $bucket = null; 
+    $file = null;
+
+    if(!is_array($path)) { 
+      if (!trim($path))
+        throw new Exception('Empty path not supported');
+    } else {
+      $bucket = $path[1];
+      $file = $path[2];
+    }
+
     $delimiter = $this->delimiter;
     $delimiter = str_replace('|', '\\|', $delimiter);
     if ($this->enclosure != "") {
@@ -237,18 +336,29 @@ class ShardLoader {
         }
       }
     }
-    
-    /*
-    Check the end parameter
-    */
-    if (!isset($end_pos) || $end_pos <= 0) {
-      $end_pos = filesize($path);
+
+    #handle s3
+    if($bucket != null) {
+      $fname = tempnam("/tmp", mt_rand(1,999999999));
+      unlink($fname);
+      echo "Fetching a chunk from S3 for loading (tempname: $fname)\n";
+      $s3 = new S3($SQ->state->aws_access_key, $SQ->state->aws_secret_key);
+      @$s3->getObject($bucket, $file, $fname, array($start_pos, $end_pos));
+
+      #because the chunks are in individual new files, reset the offsets for the small file
+      $start_pos = 0; $end_pos = filesize($fname);
+
+      if (!$fh = fopen($fname, 'rb')) {
+        $errors[] = "could not open input stream or S3 failure";
+        return $errors;
+      }
+      unlink($fname);
+    } else {
+      if (!$fh = fopen($path, 'rb')) {
+        $errors[] = "could not open input stream or S3 failure";
+        return $errors;
+      }
     }
-    if (!$end_pos)
-      throw new Exception('Could not get filesize of input file, or file is of zero length!');
-    
-    if (!$fh = fopen($path, 'rb'))
-      throw new Exception('could not open input stream\n');
     
     /*
     Since the table does not contain the shard key, LOAD DATA INFILE should just be used
@@ -258,6 +368,7 @@ class ShardLoader {
       foreach ($all_shards as $shard_name => $shard) {
         $fifo = $this->start_fifo($table, $shard, $columns_str, $set_str, $ignore, $replace);
         if (!$fifo) {
+echo "HERE :(\n";
           $err      = "Could not start a FIFO to a destination database.  This will result in too many errors, so failing completely.\n";
           $errors[] = array(
             'error' => $err,
@@ -271,6 +382,7 @@ class ShardLoader {
           $line   = fgets($fh);
           $result = fwrite($fifo['fh'], $line);
           if ($result === false) {
+echo "HERE 2 :(\n";
             $err      = "Could not write to a destination FIFO.  This will result in too many errors, so failing completely.\n";
             $errors[] = array(
               'error' => $err,
@@ -281,6 +393,8 @@ class ShardLoader {
         }
         fclose($fifo['fh']);
       }
+
+      fclose($fh); // this will also unlink the temporary file 
       
       if (!empty($errors))
         return $errors;
@@ -353,6 +467,8 @@ class ShardLoader {
       }
       fclose($fifo['fh']);
     }
+ 
+    fclose($fh);
     
     if (!empty($errors))
       return $errors;

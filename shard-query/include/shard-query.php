@@ -180,6 +180,14 @@ class ShardQuery {
         $state->star_opt = 1;
       }
     }
+
+    if(!empty($params['aws_access_key'])) {
+      $state->aws_access_key = $params['aws_access_key'];
+    }
+
+    if(!empty($params['aws_secret_key'])) {
+      $state->aws_secret_key = $params['aws_secret_key'];
+    }
     
     $state->engine = 'InnoDB';
     if(!empty($params['coord_engine'])) {
