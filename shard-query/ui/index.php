@@ -1,10 +1,4 @@
 <?php
-$issue=@file_get_contents('/etc/issue');
-if($issue && strpos($issue, 'Amazon') && !file_exists('protected/configured')) {
-echo "<script>document.location='awsconfig/configure.php';</script>";
-	exit;
-}
-
 #Add include folder for shard-query
 set_include_path(get_include_path() . PATH_SEPARATOR . '../include');
 
