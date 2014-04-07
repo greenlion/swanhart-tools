@@ -1,4 +1,4 @@
-Shard-Query: Easy to use high performance OLAP scale-out (grid computing) for MySQL
+Shard-Query: Easy to use massively parallel processing OLAP scale-out (grid computing) for MySQL
 ==
 Shard-Query is a high performance MySQL query engine for which offers increased parallelism compared to stand-alone MySQL.  This increased parallelism is achieved by taking advantage of MySQL [partitioning](http://dev.mysql.com/doc/refman/5.5/en/partitioning.html partitioning), MySQL sharding, common MySQL query clauses like BETWEEN and IN, or some combination of the above.  
 
