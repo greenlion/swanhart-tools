@@ -353,7 +353,7 @@ SELECT mview_table_alias
   FROM flexviews.mview_table
  WHERE mview_table_id = v_mview_table_id;
 
-SET v_where_clause = CONCAT('WHERE ', flexviews.get_delta_where(v_mview_id, v_depth));
+SET v_where_clause = flexviews.get_delta_where(v_mview_id, v_depth);
 SET @delta_where = v_where_clause;
 
 
