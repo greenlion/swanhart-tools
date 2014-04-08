@@ -65,11 +65,11 @@ selectLoop: LOOP
   ELSE      
     SET v_select_list = '';    
   END IF;    
-/*
+
   IF SUBSTR(v_mview_alias,1,1) != '`' THEN
      SET v_mview_alias = CONCAT('`',v_mview_alias,'`');
   END IF;
-*/
+
 
   IF v_prefix IS NOT NULL AND v_prefix != '' THEN
     SET v_mview_alias_prefixed = CONCAT(v_prefix, '.', v_mview_alias);

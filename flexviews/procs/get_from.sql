@@ -65,6 +65,10 @@ fromLoop: LOOP
     SET v_mview_table_name = CONCAT(v_mview_table_name, v_table_suffix);
   END IF;
 
+  IF(SUBSTR(v_mview_table_alias,1,1) != '`') THEN
+    SET v_mview_table_alias := CONCAT('`', v_mview_table_alias,'`');
+  END IF;
+
   SET v_from_clause = CONCAT(v_from_clause, ' ',
                              IF(v_mview_join_condition IS NULL AND v_from_clause = '' , '', v_join_type), ' ',
                              v_mview_table_schema, '.', v_mview_table_name, ' as ',
