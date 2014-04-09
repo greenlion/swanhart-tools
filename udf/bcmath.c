@@ -45,6 +45,7 @@ my_bool bccomp_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
             return 1;
         }
     }
+	bc_init_numbers();
 
 	return 0;
 }
@@ -55,7 +56,10 @@ long long bccomp(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
 	char *strval;
 	char *str;
 	char *p;
-	bc_init_numbers();
+	if(args->args[1] == NULL || args->args[2] == NULL) {
+		*is_null=1;
+		return 0;
+	} 
 	long long retval;
 	int i;
 
@@ -103,11 +107,12 @@ my_bool bcadd_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
 		
 	initid->max_length = 1024 * 1024;
 	for(i=1;i<args->arg_count;i++) {
-        if(args->arg_type[i] != STRING_RESULT) {
-            strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
-            return 1;
-        }
-    }
+        	if(args->arg_type[i] != STRING_RESULT) {
+            	strcpy(message, "Please use strings for all arguments except the first.  Please cast columns to a char of appropriate size.");
+            	return 1;
+        	}
+    	}
+	bc_init_numbers();
 
 	return 0;
 }
@@ -130,6 +135,9 @@ void bccomp_deinit(UDF_INIT *initid) {
 void bcpow_deinit(UDF_INIT *initid) { 
 	bc_deinit_numbers();
 }
+void bcsqrt_deinit(UDF_INIT *initid) { 
+	bc_deinit_numbers();
+}
 
 char *bcadd(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *length, char *is_null, char *error) {
 	bc_num tmpnum1;
@@ -139,11 +147,15 @@ char *bcadd(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	char *str;
 	char *p;
 	int i;
-	bc_init_numbers();
+	if(args->args[1] == NULL || args->args[2] == NULL) {
+		*is_null=1;
+		return result;
+	} 
 
 	bc_init_num(&tmpnum1);
 	bc_init_num(&tmpnum2);
 	bc_init_num(&resultnum);
+
 
 	str = args->args[1];
 	if (!(p = strchr(str, '.'))) {
@@ -199,6 +211,7 @@ my_bool bcpow_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
             return 1;
         }
     }
+	bc_init_numbers();
 
 	return 0;
 }
@@ -213,7 +226,10 @@ char *bcpow(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	char *p;
 	int i;
 	int need_free = 0;
-	bc_init_numbers();
+	if(args->args[1] == NULL || args->args[2] == NULL) {
+		*is_null=1;
+		return result;
+	} 
 
 	bc_init_num(&tmpnum1);
 	bc_init_num(&tmpnum2);
@@ -283,6 +299,7 @@ my_bool bcdiv_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
             return 1;
         }
     }
+	bc_init_numbers();
 
 	return 0;
 }
@@ -295,7 +312,10 @@ char *bcdiv(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	char *str;
 	char *p;
 	int i;
-	bc_init_numbers();
+	if(args->args[1] == NULL || args->args[2] == NULL) {
+		*is_null=1;
+		return result;
+	} 
 
 	bc_init_num(&tmpnum1);
 	bc_init_num(&tmpnum2);
@@ -362,6 +382,7 @@ my_bool bcmul_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
             return 1;
         }
     }
+	bc_init_numbers();
 
 	return 0;
 }
@@ -374,7 +395,10 @@ char *bcmul(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	char *str;
 	char *p;
 	int i;
-	bc_init_numbers();
+	if(args->args[1] == NULL || args->args[2] == NULL) {
+		*is_null=1;
+		return result;
+	} 
 
 	bc_init_num(&tmpnum1);
 	bc_init_num(&tmpnum2);
@@ -434,6 +458,7 @@ my_bool bcsub_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
             return 1;
         }
     }
+	bc_init_numbers();
 
 	return 0;
 }
@@ -446,7 +471,10 @@ char *bcsub(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long *lengt
 	char *str;
 	char *p;
 	int i;
-	bc_init_numbers();
+	if(args->args[1] == NULL || args->args[2] == NULL) {
+		*is_null=1;
+		return result;
+	} 
 
 	bc_init_num(&tmpnum1);
 	bc_init_num(&tmpnum2);
@@ -540,6 +568,10 @@ void bcsum_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error) {
 	int i;
 	long scale;
 
+	if(args->args[1] == NULL || args->args[2] == NULL) {
+		*is_null=1;
+		return;
+	} 
 
 	scale = atoi(args->args[0]);
 	
@@ -622,6 +654,7 @@ my_bool bcsqrt_init(UDF_INIT *initid, UDF_ARGS *args, char* message) {
             return 1;
         }
     }
+	bc_init_numbers();
 
 	return 0;
 }
@@ -633,7 +666,10 @@ char *bcsqrt(UDF_INIT *initid, UDF_ARGS *args, char* rslt, unsigned long *length
 	char *p;
 	int i;
 	int need_free = 0;
-	bc_init_numbers();
+	if(args->args[1] == NULL || args->args[2] == NULL) {
+		*is_null=1;
+		return rslt;
+	} 
 	bc_init_num(&result);
 
 	str = args->args[1];
@@ -846,11 +882,3 @@ PHP_FUNCTION(bcscale)
 
 #endif
 */
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: sw=4 ts=4 fdm=marker
- * vim<600: sw=4 ts=4
- */
