@@ -200,7 +200,7 @@ if(!empty($config['coord_shard'])) {
 if(isset($config['is_default_schema'])) $is_default_schema = $config['is_default_schema'];
 
 if(empty($config['shared_path'])) {
-  write_line("Please enter a shared filesystem path available on all nodes (for s3 bucket use s3://bucketname): [/tmp]");
+  write_line("Please enter a shared filesystem path available on all nodes (for a default s3 bucket use s3://bucketname): [/tmp]");
   $shared_path = read_line();
   if($shared_path == "") $shared_path = "/tmp";
   $config['shared_path'] = $shared_path;
@@ -214,7 +214,7 @@ if(strstr($config['shared_path'], "s3")) $used_s3 = true;
 echo "\033[2J\033[;H";
 if(empty($config['aws_access_key'])) {
   if(!$used_s3) {
-    write_line("Do you want to enter an AWS access key? This will be used if you want to load from S3 later. (y/n) [n]");
+    write_line("Do you want to enter an AWS access key? This will be used if you want to load from S3. (y/n) [n]");
     $answer = read_line();
   }
   if($used_s3 || substr(strtolower(trim($answer)),0,1) == 'y') {
@@ -225,7 +225,7 @@ if(empty($config['aws_access_key'])) {
 
 if(empty($config['aws_secret_key'])) {
   if(!$used_s3) {
-    write_line("Do you want to enter an AWS secret key? This will be used if you want to load from S3 later. (y/n) [n]");
+    write_line("Do you want to enter an AWS secret key? This will be used if you want to load from S3. (y/n) [n]");
     $answer = read_line();
   }
   if($used_s3 || substr(strtolower(trim($answer)),0,1) == 'y') {
