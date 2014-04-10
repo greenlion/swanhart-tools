@@ -101,7 +101,7 @@ body: BEGIN
    -- order of GROUP expressions in the table which may not be ideal for selecting, so care should be 
    -- taken if a PRIMARY KEY is not provided to present the GROUP expressions in a suitable order..
 
-   IF NOT flexviews.has_aggregates(v_mview_id) THEN
+   IF NOT flexviews.has_aggregates(v_mview_id) AND v_mview_refresh_type != 'COMPLETE' THEN
       -- CONVERT a SELECT * into a proper list of columns
       call flexviews.star_transform(v_mview_id);
       DELETE from flexviews.mview_expression where mview_expr_type = 'KEY' and mview_id = v_mview_id and mview_alias = 'mview$hash_key'; 
