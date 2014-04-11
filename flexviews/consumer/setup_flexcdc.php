@@ -12,10 +12,6 @@ function &get_commandline() {
         $longOpts  = array('ini=','force==');
 
         $params = $cg->getopt2($args, $shortOpts, $longOpts);
-        if (PEAR::isError($params)) {
-            echo 'Error: ' . $params->getMessage() . "\n";
-            exit(1);
-        }
         $new_params = array();
         foreach ($params[0] as $param) {
                 $param[0] = str_replace('--','', $param[0]);
