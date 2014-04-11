@@ -2198,14 +2198,14 @@ class ShardQuery {
       
       $coord_sql = "";
       foreach($state->parsed['UNION'] as $sub_tree) {
-        $sub_state = ShardQuery::new_state();
+        $sub_state = shardquery::new_state();
         
         //initialize the new state with a call to set_schema
         $this->set_schema($this->schema_name, $sub_state);
         $sub_state->tmp_shard = $state->tmp_shard;
         $sub_table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
         $sub_state->table_name = $sub_table_name;
-        $sub_state->DAL = SimpleDAL::factory($sub_state->tmp_shard);
+        $sub_state->dal = simpledal::factory($sub_state->tmp_shard);
         $this->query($sub_tree, false, $sub_state, true, false);
         $state->extra_tables[] = $sub_table_name;
         $state->extra_tables = array_merge($state->extra_tables, $sub_state->extra_tables);
@@ -2717,74 +2717,56 @@ class ShardQuery {
       
       
     } elseif(!empty($state->parsed['INSERT'])) {
-      if(!empty($state->parsed['SELECT'])) {
-        $state->broadcast_query = $state->orig_sql;
-      } else {
-        $table_name = $state->parsed['INSERT']['table'];
-        
-        if($state->parsed['INSERT']['columns'] == '') {
-          if(empty($this->col_metadata_cache[$table_name])) {
-            $sql = "select column_name 
-                              from information_schema.columns 
-                             where table_name='{$table_name}'
-                               and table_schema='{$this->tmp_shard['db']}' 
-                                 order by ordinal_position;";
-            
-            if(!$stmt = $state->DAL->my_query($sql)) {
-              $this->errors[] = $state->DAL->my_error();
-            }
-            
-            $cols = array();
-            $col_list = "";
-            while($row = $state->DAL->my_fetch_assoc($stmt)) {
-              if($col_list)
-                $col_list .= ",";
-              $col_list .= $row['column_name'];
-              $cols[] = $row['column_name'];
-            }
-            if(count($cols) == 0) {
-              $this->errors[] = 'Table not found in data dictionary';
-              return false;
-            }
-            $this->col_metadata_cache[$table_name] = array(
-              'cols' => $cols,
-              'col_list' => $col_list
-            );
-          } else {
-            $cols = $this->col_metadata_cache[$table_name]['cols'];
-            $col_list = $this->col_metadata_cache[$table_name]['col_list'];
-          }
-          
-        } else {
-          //FIXME: this can't be right
-          $cols = $state->parsed['INSERT']['columns'];
-          $out = array();
-          $col_list = "";
-          foreach($cols as $expr) {
-            $out[] = $expr['base_expr'];
-            if($col_list)
-              $col_list .= ",";
-            $col_list .= $expr['base_expr'];
-          }
-          $cols = $out;
-          unset($out);
+      $to_table = $state->parsed['INSERT']['table'];
+      $result = $this->get_insert_cols($state);
+      if($result === false) return false;
+      $cols = $result[0];
+      $col_list = $result[1];
+
+      $shard_column_pos = false;
+      foreach($cols as $pos => $col) {
+        if(trim($col, '` ') == $this->shard_column) {
+          $shard_column_pos = $pos;
+          break;
         }
-        
-        $shard_column_pos = false;
-        if(empty($this->table_is_sharded_cache[$table_name])) {
-          foreach($cols as $pos => $col) {
-            if(trim($col, '` ') == $this->shard_column) {
-              $shard_column_pos = $pos;
+      }
+
+      if(!empty($state->parsed['SELECT'])) {
+        $parsed = $state->parsed;
+        $ignore = "";
+        $replace = "";
+        if(!empty($parsed['OPTIONS'])) {
+          foreach($parsed['OPTIONS'] as $option) {
+            if(strtolower($option) == 'ignore') {
+              $ignore = 'ignore';
               break;
             }
           }
-          
-          $this->table_is_sharded_cache[$table_name] = $shard_column_pos;
-        } else {
-          $shard_column_pos = $this->table_is_sharded_cache[$table_name];
         }
+        unset($parsed['INSERT']);
+        unset($parsed['OPTIONS']);
+
+        $sub_state = shardquery::new_state();
+        $this->set_schema($this->schema_name, $sub_state);
+        $sub_state->tmp_shard = $state->tmp_shard;
+        $sub_table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
+        $sub_state->table_name = $sub_table_name;
+        $sub_state->dal = simpledal::factory($sub_state->tmp_shard);
+        $this->query($parsed, false, $sub_state, true, false);
+        $state->extra_tables[] = $sub_table_name;
+        $state->extra_tables = array_merge($state->extra_tables, $sub_state->extra_tables);
+
+        $result = $this->load_from_table($sub_state, $to_table, $col_list, $shard_column_pos, $ignore, $replace);
+        if($result) {
+          $this->state->coord_sql = "select 'INSERT .. SELECT completed ok' as message from dual"; 
+          return true;
+        } else {
+          return false;
+        }
+
+      } else {
         
-        $sql = "INSERT INTO `" . $state->parsed['INSERT']['table'] . "` ({$col_list}) VALUES ";
+        $sql = "INSERT INTO `" . trim($state->parsed['INSERT']['table'],'`') . "` ({$col_list}) VALUES ";
         $values = array();
         $val_count = 0;
         
@@ -2800,7 +2782,7 @@ class ShardQuery {
               return false;
             }
             $shard_id = $this->map_shard($this->shard_column, $record['data'][$shard_column_pos]['base_expr'], $this->state->schema_name, '=', true);
-            $shard_id = array_pop(array_keys(array_pop($shard_id)));
+            $shard_id = @array_pop(array_keys(array_pop($shard_id)));
             
             if(empty($values[$shard_id])) {
               $values[$shard_id] = $vals;
@@ -2833,6 +2815,7 @@ class ShardQuery {
       return true;
       
     } else {
+      print_r($state->parsed); exit;
       //This query should be broadcast to all nodes
       $state->broadcast_query = $state->orig_sql;
       return true;
@@ -3629,5 +3612,191 @@ class ShardQuery {
       }
     }
   }
-  
+
+  protected function get_insert_cols(&$state) {
+    $parsed = $state->parsed;
+    $table_name = $parsed['INSERT']['table'];
+    if($parsed['INSERT']['columns'] == '') {
+      if(empty($this->col_metadata_cache[$table_name])) {
+        $sql = "select column_name 
+                          from information_schema.columns 
+                         where table_name='{$table_name}'
+                           and table_schema='{$this->tmp_shard['db']}' 
+                             order by ordinal_position;";
+        
+        if(!$stmt = $state->DAL->my_query($sql)) {
+          $this->errors[] = $state->DAL->my_error();
+        }
+        
+        $cols = array();
+        $col_list = "";
+        while($row = $state->DAL->my_fetch_assoc($stmt)) {
+          if($col_list)
+            $col_list .= ",";
+          $col_list .= $row['column_name'];
+          $cols[] = $row['column_name'];
+        }
+        if(count($cols) == 0) {
+          $this->errors[] = 'Table not found in data dictionary';
+          return false;
+        }
+        $this->col_metadata_cache[$table_name] = array(
+          'cols' => $cols,
+          'col_list' => $col_list
+        );
+      } else {
+        $cols = $this->col_metadata_cache[$table_name]['cols'];
+        $col_list = $this->col_metadata_cache[$table_name]['col_list'];
+      }
+      
+    } else {
+      $cols = $parsed['INSERT']['columns'];
+      $out = array();
+      $col_list = "";
+      foreach($cols as $expr) {
+        $out[] = $expr['base_expr'];
+        if($col_list)
+          $col_list .= ",";
+        $col_list .= $expr['base_expr'];
+      }
+      $cols = $out;
+    }
+
+    return array($cols, $col_list);
+  }
+
+  /* load using a table on a shard as the source */
+  protected function load_from_table(&$state, $to_table,  $columns_str, $shard_col_pos=false, $ignore="", $replace="") {
+    $dal = &$state->dal;
+    $from_table = "`" . trim($state->table_name,'`') . "`";
+    $to_table = "`" . trim($to_table, '`') . "`";
+    $sql = "select * from $from_table";
+
+    $dal->my_select_db($state->tmp_shard['db']);
+    $state->DAL->my_query($sql);
+
+    $insert_sql = "INSERT INTO $to_table ($columns_str) VALUES ";
+    $values = "";
+
+    if ($shard_col_pos===false) { /* load goes to all shards */
+      foreach ($this->shards as $shard_name => $shard) {
+        $stmt = $dal->my_query($sql);
+        $dal2 = SimpleDAL::factory($shard);
+        $dal2->my_query("select @@max_allowed_packet as map");
+        $row = $dal2->my_fetch_assoc();
+        $max_allowed_packet = $row['map'] - 16384;
+        $row = false;
+        $dal2->my_select_db($shard['db']);
+        while ($row = $dal->my_fetch_assoc($stmt)) {
+          if(strlen($values) >= $max_allowed_packet) {
+            $dal2->my_query($insert_sql . $values);
+            $values = "";
+          }  
+          if($values) $values .= ",";
+          $rowvals = ""; 
+          foreach($row as $key => $val) {
+            if(!is_numeric($val)) $val = "'" . $dal2->my_real_escape_string($val) . "'";
+            if($rowvals) $rowvals .= ",";
+            $rowvals .= $val;
+          }
+          $values .= "($rowvals)";
+        } 
+
+      }
+      if($values != "") {
+        $dal2->my_query($insert_sql . $values);
+      }
+      return true;
+    } else { /* load goes to specific shards */
+      $stmt = $dal->my_query($sql);
+      if($error = $dal->my_error()) {
+        $errors[] = $error;
+        return false;
+      }
+      $out_data = array(); // buffer the data for each shard in here
+      while ($row = $dal->my_fetch_assoc($stmt)) {
+        $row = array_values($row);
+        $info = $this->map_shard($this->shard_column, $row[$shard_col_pos], $this->state->current_schema, '=', true);
+      
+        if (!$info) {
+          $err      = "Discarded row because the partition mapper did not return a valid result.\n";
+          $errors[] = array(
+            'error' => $err,
+            'file_pos' => $line_start
+          );
+          continue;
+        }
+      
+        if (count($info) > 1) {
+          $err      = "Discarded row because the partition mapper returned more than one shard for this row.\n";
+          $errors[] = array(
+            'error' => $err,
+            'file_pos' => $line_start
+          );
+          continue;
+        }
+      
+        $shard_name = @array_pop(array_keys(array_pop($info)));
+      
+        if (empty($out_data[$shard_name]))
+        $out_data[$shard_name] = array();
+        $line = "";
+        foreach($row as $key => $val) {
+          $rowvals = "";
+          foreach($row as $key => $val) {
+            if(!is_numeric($val)) $val = "'" . $dal2->my_real_escape_string($val) . "'";
+            if($rowvals) $rowvals .= ",";
+            $rowvals .= $val;
+          }
+          $line = "($rowvals)";
+        }
+        $out_data[$shard_name][] = $line;
+      }
+     
+      $dal2 = null; 
+      foreach ($out_data as $shard_name => $lines) {
+        if(isset($dal2)) $dal2->my_close();
+        $dal2 = SimpleDAL::factory($this->shards[$shard_name]);
+        if($error = $dal2->my_error()) {
+          $errors[] = $error;
+        }
+        $dal2->my_select_db($this->shards[$shard_name]['db']);
+        $dal2->my_query("select @@max_allowed_packet as map");
+        if($error = $dal2->my_error()) {
+          $errors[] = $error;
+        }
+        $row = $dal2->my_fetch_assoc();
+        $max_allowed_packet = $row['map'] - 16384;
+        $row = false;
+        $values = "";
+        foreach($lines as $line) {
+          if(strlen($values) >= $max_allowed_packet) {
+            $dal->my_query($insert_sql . $values);
+          if($error = $dal2->my_error()) {
+            $errors[] = $error;
+          }
+            $values = "";
+          }  
+          if($values) $values .= ",";
+          $values .= $line;
+        }
+        if($values != "") {
+          $dal2->my_query($insert_sql . $values);
+          if($error = $dal2->my_error()) {
+            $errors[] = $error;
+          }
+        }
+      }
+ 
+      if (!empty($errors)) {
+        $this->errors = $errors;
+        return false;
+      }
+    
+      /*
+      ALL OK
+      */
+      return true;
+    } 
+  }
 }

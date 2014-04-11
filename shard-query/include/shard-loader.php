@@ -177,6 +177,7 @@ class ShardLoader {
     echo "done!\n";
     
   }
+
   
   /*
   Load a file via gearman.  Again, by default, split the file into 16MB chunks
