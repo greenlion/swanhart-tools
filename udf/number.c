@@ -49,6 +49,7 @@ _PROTOTYPE(void out_of_memory, (void));
 bc_num _zero_;
 bc_num _one_;
 bc_num _two_;
+int _inited_ = 0;
 
 static bc_num _bc_Free_list = NULL;
 
@@ -101,21 +102,26 @@ bc_free_num (num)
 
 void
 bc_init_numbers ()
-{
-  _zero_ = bc_new_num (1,0);
-  _one_  = bc_new_num (1,0);
-  _one_->n_value[0] = 1;
-  _two_  = bc_new_num (1,0);
-  _two_->n_value[0] = 2;
+{ if(_inited_ == 0) {
+    _zero_ = bc_new_num (1,0);
+    _one_  = bc_new_num (1,0);
+    _one_->n_value[0] = 1;
+    _two_  = bc_new_num (1,0);
+    _two_->n_value[0] = 2;
+    _inited_ = 1;
+  }
 }
 
 /* Deinint the number package */
 void
 bc_deinit_numbers ()
 { 
-  bc_free_num(&_zero_);
-  bc_free_num(&_one_);
-  bc_free_num(&_two_);
+  if(_inited_) {
+    bc_free_num(&_zero_);
+    bc_free_num(&_one_);
+    bc_free_num(&_two_);
+    _inited_ = 0;
+  }
 }
 
 
