@@ -1,0 +1,38 @@
+{
+    "name": "greenlion/php-sql-parser",
+    "type": "library",
+    "description": "A pure PHP SQL (non validating) parser w/ focus on MySQL dialect of SQL",
+    "keywords": ["sql","parser","creator","MySQL"],
+    "homepage": "http://code.google.com/p/php-sql-parser/",
+    "license": "BSD New",
+    "authors": [
+        {
+            "name": "Justin Swanhart",
+            "email": "greenlion@gmail.com",
+            "homepage": "http://code.google.com/u/greenlion@gmail.com/",
+            "role": "Owner"
+        },
+        {
+            "name": "André Rothe",
+            "email": "phosco@gmx.de",
+            "homepage": "https://www.phosco.info",
+            "role": "Committer"
+        }
+    ],
+    "support": {
+        "issues": "http://code.google.com/p/php-sql-parser/issues/list",
+        "source": "http://php-sql-parser.googlecode.com/svn/trunk/"
+    },
+    "autoload": {
+        "classmap": [
+        	"src/PHPSQLCreator.php", 
+        	"src/PHPSQLParser.php"
+        ]
+    },
+    "require": {
+        "php": ">=5.2.13"
+    },
+    "require-dev": {
+    	"squizlabs/php_codesniffer": ">=1.5.1"
+    }
+}

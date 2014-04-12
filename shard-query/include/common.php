@@ -36,7 +36,7 @@ require('const.php');
 require_once 'Console/Getopt.php';
 require_once 'Net/Gearman/Client.php';
 require_once 'DAL/simple-dal.php';
-require_once 'PHP-SQL-Parser/php-sql-parser.php';
+require_once 'PHP-SQL-Parser/src/PHPSQLParser.php';
 require_once 'shard-key-mapper.php';
 require_once 'custom_functions.php';
 

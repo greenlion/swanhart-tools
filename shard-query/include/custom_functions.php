@@ -36,7 +36,7 @@ class ShardQueryCustomFunctions {
 
 	static function register_all(&$parser) {
 		foreach(ShardQueryCustomFunctions::$list as $key => $opts) {
-			$parser->add_custom_function($key);
+			$parser->addCustomFunction($key);
 		}
 	}
 
