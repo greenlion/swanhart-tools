@@ -2815,6 +2815,64 @@ class ShardQuery {
       return true;
       
     } else {
+      if(!empty($state->parsed['CREATE']) && !empty($state->parsed['TABLE']) && !empty($state->parsed['SELECT'])) { 
+        echo $state->orig_sql . "\n";
+        $table_name = $state->parsed['TABLE']['base_expr'];
+        $schema_tokens = array(';',
+          '"' . $this->current_schema . '"' . ".",
+          "`{$this->current_schema}`.",
+          $this->current_schema . "."
+        );
+        $create_sql = $state->orig_sql;
+        $create_sql = str_replace($schema_tokens, "", $create_sql);
+        $create_sql = preg_replace('/\s+limit\s+\d+.*$/i', '', $create_sql) . ' LIMIT 0';
+        foreach($this->shards as $name => $shard) {
+          $dal = SimpleDAL::factory($shard);
+          $dal->my_select_db($shard['db']);
+          $dal->my_query($create_sql);
+          if($dal->my_error()) {
+            $this->errors[] = "on shard: " . $name . " errorno:" . $dal->my_errno() . ",message:" . $dal->my_error();
+          }
+          $dal->my_close();
+        }
+
+        unset($state->parsed['CREATE']);
+        unset($state->parsed['TABLE']);
+        $result = $this->get_insert_cols($state, $table_name);
+
+        if($result === false) return false;
+        $cols = $result[0];
+        $col_list = $result[1];
+
+        $shard_column_pos = false;
+        foreach($cols as $pos => $col) {
+          if(trim($col, '` ') == $this->shard_column) {
+            $shard_column_pos = $pos;
+            break;
+          }
+        }
+        $ignore = ""; $replace = "";
+        $sub_state = shardquery::new_state();
+        $this->set_schema($this->schema_name, $sub_state);
+        $sub_state->tmp_shard = $state->tmp_shard;
+        $sub_table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
+        $sub_state->table_name = $sub_table_name;
+        $sub_state->dal = simpledal::factory($sub_state->tmp_shard);
+        $this->query($state->parsed, false, $sub_state, true, false);
+        $state->extra_tables[] = $sub_table_name;
+        $state->extra_tables = array_merge($state->extra_tables, $sub_state->extra_tables);
+
+        $result = $this->load_from_table($sub_state, $table_name, "", $shard_column_pos, $ignore, $replace);
+        if($result) {
+          $this->state->coord_sql = "select 'CREATE .. SELECT completed ok' as message from dual";
+          return true;
+        } else {
+          return false;
+        }
+         
+      }
+
+
       //This query should be broadcast to all nodes
       $state->broadcast_query = $state->orig_sql;
       return true;
@@ -3612,10 +3670,11 @@ class ShardQuery {
     }
   }
 
-  protected function get_insert_cols(&$state) {
+  protected function get_insert_cols(&$state, $table_name = false) {
     $parsed = $state->parsed;
-    $table_name = $parsed['INSERT']['table'];
-    if($parsed['INSERT']['columns'] == '') {
+    if($table_name) $force = true; else $force=false;
+    if(!$table_name)  $table_name = $parsed['INSERT']['table'];
+    if($force || $parsed['INSERT']['columns'] == '') {
       if(empty($this->col_metadata_cache[$table_name])) {
         $sql = "select column_name 
                           from information_schema.columns 
