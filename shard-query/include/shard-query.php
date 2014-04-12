@@ -2815,7 +2815,6 @@ class ShardQuery {
       return true;
       
     } else {
-      print_r($state->parsed); exit;
       //This query should be broadcast to all nodes
       $state->broadcast_query = $state->orig_sql;
       return true;
