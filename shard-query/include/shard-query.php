@@ -636,15 +636,20 @@ class ShardQuery {
           $alias = $clause['alias']['name'];
         }
         $prev_clause = null;
-        
+        $in_case = false;        
         foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
           $sub_used_agg_func = false;
           if($sub_pos > 0) {
             $prev_clause = $clause['sub_tree'][$sub_pos - 1];
           }
-          
+
+          if($sub_clause['expr_type'] == 'reserved') {
+            $coord_query .= ' ' . $sub_clause['base_expr'] . ' ';
+            continue;
+          }
+
           if($sub_clause['expr_type'] == 'operator') {
-            $coord_query .= $sub_clause['base_expr'];
+            $coord_query .= ' ' . $sub_clause['base_expr'] . ' ';
             continue;
           }
           
@@ -652,7 +657,7 @@ class ShardQuery {
             $shard_query .= ",";
           }
           
-          $this->process_select_item($pos, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $sub_used_agg_func, $coord_odku, $prev_clause, $state, "", $clause);
+          $this->process_select_item($pos, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $sub_used_agg_func, $coord_odku, $prev_clause, $state, "", $clause, $custom_functions);
           
         }
         
@@ -895,7 +900,7 @@ class ShardQuery {
         $first = 0;
         foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
           if($sub_clause['expr_type'] == 'colref' || $sub_clause['expr_type'] == 'aggregate_function' || $sub_clause['expr_type'] == 'function') {
-            $this->process_select_item($pos + 1, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $used_agg_func, $coord_odku, $clause, $state, "", $clause);
+            $this->process_select_item($pos + 1, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $used_agg_func, $coord_odku, $clause, $state, "", $clause, $custom_functions);
           } else {
             $coord_query .= " " . $sub_clause['base_expr'];
           }
@@ -984,8 +989,8 @@ class ShardQuery {
     foreach($select as $pos => $clause) {
       //this will recurse and fill up the proper structures
       $alias = $this->make_alias($clause);
-      
       $this->process_select_item($pos, $clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $used_agg_func, $coord_odku, null, $state, $alias, null, $custom_functions);
+
       if($pos + 1 < count($select)) {
         $shard_query = rtrim($shard_query, ", ");
         $coord_query = rtrim($coord_query, ", ");
@@ -995,9 +1000,10 @@ class ShardQuery {
       
       $prev_clause = false;
     }
-    $shard_query = rtrim($shard_query, ", ");
-    $coord_query = rtrim($coord_query, ", ");
-    
+
+    $shard_query = trim($shard_query, ", ");
+    $coord_query = trim($coord_query, ", ");
+
     $sql = "SELECT ";
     if($straight_join)
       $sql .= "STRAIGHT_JOIN ";
@@ -1211,6 +1217,7 @@ class ShardQuery {
     $having = "";
     $select = "";
     
+    
     foreach($clauses as $clause) {
       $pos = 0;
       $shard = "";
@@ -1229,8 +1236,8 @@ class ShardQuery {
           if($select)
             $select .= ",";
           
-          $nothing = " ";
-          $this->process_select_item($pos + 1, $clause, $select, $having, $push, $group_aliases, $group, $error, $skip_alias, $used_agg_func, $coord_odku, $state, $nothing, null);
+          $nothing = " "; $custom_functions = array();
+          $this->process_select_item($pos + 1, $clause, $select, $having, $push, $group_aliases, $group, $error, $skip_alias, $used_agg_func, $coord_odku, $state, $nothing, null,$custom_functions);
           
           break;
         
@@ -2717,7 +2724,7 @@ class ShardQuery {
       
       
     } elseif(!empty($state->parsed['INSERT'])) {
-      $to_table = $state->parsed['INSERT']['table'];
+      $to_table = $state->parsed['INSERT'][1]['table'];
       $result = $this->get_insert_cols($state);
       if($result === false) return false;
       $cols = $result[0];
@@ -2766,15 +2773,13 @@ class ShardQuery {
 
       } else {
         
-        $sql = "INSERT INTO `" . trim($state->parsed['INSERT']['table'],'`') . "` ({$col_list}) VALUES ";
+        $sql = "INSERT INTO `" . trim($state->parsed['INSERT'][1]['table'],'`') . "` {$col_list} VALUES ";
         $values = array();
         $val_count = 0;
         
         $column_count = count($cols);
-        
         foreach($state->parsed['VALUES'] as $record) {
-          $vals = $record['base_expr'];
-          
+          $vals = trim($record['base_expr'],',');
           //this row is going to go to a single shard
           if($shard_column_pos !== false) {
             if(count($record['data']) !== $column_count) {
@@ -2803,7 +2808,6 @@ class ShardQuery {
               
               $val_count++;
             }
-            
           }
         }
         
@@ -2816,7 +2820,6 @@ class ShardQuery {
       
     } else {
       if(!empty($state->parsed['CREATE']) && !empty($state->parsed['TABLE']) && !empty($state->parsed['SELECT'])) { 
-        echo $state->orig_sql . "\n";
         $table_name = $state->parsed['TABLE']['base_expr'];
         $schema_tokens = array(';',
           '"' . $this->current_schema . '"' . ".",
@@ -3670,11 +3673,21 @@ class ShardQuery {
     }
   }
 
+  protected function check_error(&$dal) {
+    $error = $dal->my_error();
+    if($error) {
+      $this->errors[] = $error;
+      return true;
+    }
+ 
+    return false;
+  }
+
   protected function get_insert_cols(&$state, $table_name = false) {
     $parsed = $state->parsed;
     if($table_name) $force = true; else $force=false;
-    if(!$table_name)  $table_name = $parsed['INSERT']['table'];
-    if($force || $parsed['INSERT']['columns'] == '') {
+    if(!$table_name)  $table_name = $parsed['INSERT'][1]['table'];
+    if($force || empty($parsed['INSERT'][2])) {
       if(empty($this->col_metadata_cache[$table_name])) {
         $sql = "select column_name 
                           from information_schema.columns 
@@ -3689,11 +3702,13 @@ class ShardQuery {
         $cols = array();
         $col_list = "";
         while($row = $state->DAL->my_fetch_assoc($stmt)) {
+          $this->check_error($state->DAL);
           if($col_list)
             $col_list .= ",";
           $col_list .= $row['column_name'];
           $cols[] = $row['column_name'];
         }
+        $col_list = "($col_list)";
         if(count($cols) == 0) {
           $this->errors[] = 'Table not found in data dictionary';
           return false;
@@ -3708,16 +3723,9 @@ class ShardQuery {
       }
       
     } else {
-      $cols = $parsed['INSERT']['columns'];
+      $col_list = $parsed['INSERT']['2']['base_expr'];
       $out = array();
-      $col_list = "";
-      foreach($cols as $expr) {
-        $out[] = $expr['base_expr'];
-        if($col_list)
-          $col_list .= ",";
-        $col_list .= $expr['base_expr'];
-      }
-      $cols = $out;
+      $cols = explode(",", trim($col_list,' )('));
     }
 
     return array($cols, $col_list);
@@ -3726,28 +3734,33 @@ class ShardQuery {
   /* load using a table on a shard as the source */
   protected function load_from_table(&$state, $to_table,  $columns_str, $shard_col_pos=false, $ignore="", $replace="") {
     $dal = &$state->dal;
+
     $from_table = "`" . trim($state->table_name,'`') . "`";
     $to_table = "`" . trim($to_table, '`') . "`";
     $sql = "select * from $from_table";
 
     $dal->my_select_db($state->tmp_shard['db']);
+    $this->check_error($dal);
     $state->DAL->my_query($sql);
-
-    $insert_sql = "INSERT INTO $to_table ($columns_str) VALUES ";
+    $insert_sql = "INSERT INTO $to_table (" . trim($columns_str,'()') . ")  VALUES ";
     $values = "";
 
     if ($shard_col_pos===false) { /* load goes to all shards */
       foreach ($this->shards as $shard_name => $shard) {
         $stmt = $dal->my_query($sql);
         $dal2 = SimpleDAL::factory($shard);
+        if($this->check_error($dal2)) return false;
         $dal2->my_query("select @@max_allowed_packet as map");
+        if($this->check_error($dal2)) return false;
         $row = $dal2->my_fetch_assoc();
         $max_allowed_packet = $row['map'] - 16384;
         $row = false;
         $dal2->my_select_db($shard['db']);
+        if($this->check_error($dal2)) return false;
         while ($row = $dal->my_fetch_assoc($stmt)) {
           if(strlen($values) >= $max_allowed_packet) {
             $dal2->my_query($insert_sql . $values);
+            if($this->check_error($dal2)) return false;
             $values = "";
           }  
           if($values) $values .= ",";
@@ -3763,14 +3776,12 @@ class ShardQuery {
       }
       if($values != "") {
         $dal2->my_query($insert_sql . $values);
+        if($this->check_error($dal2)) return false;
       }
       return true;
     } else { /* load goes to specific shards */
       $stmt = $dal->my_query($sql);
-      if($error = $dal->my_error()) {
-        $errors[] = $error;
-        return false;
-      }
+      if($this->check_error($dal)) return false;
       $out_data = array(); // buffer the data for each shard in here
       while ($row = $dal->my_fetch_assoc($stmt)) {
         $row = array_values($row);
@@ -3814,36 +3825,40 @@ class ShardQuery {
       $dal2 = null; 
       foreach ($out_data as $shard_name => $lines) {
         if(isset($dal2)) $dal2->my_close();
+
         $dal2 = SimpleDAL::factory($this->shards[$shard_name]);
-        if($error = $dal2->my_error()) {
-          $errors[] = $error;
-        }
+        if($this->check_error($dal2)) return false;
+
         $dal2->my_select_db($this->shards[$shard_name]['db']);
+        if($this->check_error($dal2)) return false;
+
         $dal2->my_query("select @@max_allowed_packet as map");
-        if($error = $dal2->my_error()) {
-          $errors[] = $error;
-        }
+        if($this->check_error($dal2)) return false;
+
         $row = $dal2->my_fetch_assoc();
+        if($this->check_error($dal2)) return false;
         $max_allowed_packet = $row['map'] - 16384;
         $row = false;
         $values = "";
+
         foreach($lines as $line) {
+
           if(strlen($values) >= $max_allowed_packet) {
             $dal->my_query($insert_sql . $values);
-          if($error = $dal2->my_error()) {
-            $errors[] = $error;
-          }
+            if($this->check_error($dal)) return false;
             $values = "";
           }  
+
           if($values) $values .= ",";
           $values .= $line;
+
         }
+
         if($values != "") {
           $dal2->my_query($insert_sql . $values);
-          if($error = $dal2->my_error()) {
-            $errors[] = $error;
-          }
+          if($this->check_error($dal2)) return false;
         }
+
       }
  
       if (!empty($errors)) {
