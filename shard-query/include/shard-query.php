@@ -2344,8 +2344,10 @@ class ShardQuery {
             $select['coord_group'] .= "`" . $id . "`";
           }
         }
-      }
-      
+      }elseif(empty($state->parsed['GROUP'])) {
+        $select['coord_group'] = "";
+        $select['shard_group'] = "";
+      } 
       
       unset($state->parsed['GROUP']);
       
