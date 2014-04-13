@@ -313,6 +313,7 @@ echo "* Populating gearman servers\n";
 $mapper->conn->my_query("delete IGNORE from gearman_job_servers where schema_id = $schema_id");
 
 foreach($gearman as $server) {
+        $server['is_local']=false;
 	$sql = "INSERT INTO gearman_job_servers (schema_id, hostname, port, local) VALUES(";
 	$sql .= "$schema_id, '{$server['hostname']}',{$server['port']}, '{$server['is_local']}')"; 
 
