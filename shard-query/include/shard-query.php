@@ -2225,7 +2225,7 @@ class ShardQuery {
       //UNION operation requires deduplication of the temporary table
       $select['coord_sql'] = $coord_sql;
       unset($coord_sql);
-    } elseif(!empty($state->parsed['SELECT']) && empty($state->parsed['INSERT']) && empty($state->parsed['CREATE'])) {
+    } elseif(!empty($state->parsed['SELECT']) && empty($state->parsed['INSERT']) && empty($state->parsed['CREATE']) && empty($state->parsed['REPLACE'])) {
       //reset the important variables 
       $select = $from = $where = $group = $order_by = "";
       $straight_join = $distinct = false;
@@ -2725,8 +2725,14 @@ class ShardQuery {
       }
       
       
-    } elseif(!empty($state->parsed['INSERT'])) {
-      $to_table = $state->parsed['INSERT'][1]['table'];
+    } elseif(!empty($state->parsed['INSERT']) || !empty($state->parsed['REPLACE'])) {
+      if(!empty($state->parsed['INSERT'])) {
+        $replace = "";;
+        $to_table = $state->parsed['INSERT'][1]['table']; 
+      } else { 
+        $replace=" REPLACE ";
+        $to_table = $state->parsed['REPLACE'][1]['table'];
+      }
       $result = $this->get_insert_cols($state);
       if($result === false) return false;
       $cols = $result[0];
@@ -2743,7 +2749,6 @@ class ShardQuery {
       if(!empty($state->parsed['SELECT'])) {
         $parsed = $state->parsed;
         $ignore = "";
-        $replace = "";
         if(!empty($parsed['OPTIONS'])) {
           foreach($parsed['OPTIONS'] as $option) {
             if(strtolower($option) == 'ignore') {
@@ -2753,6 +2758,7 @@ class ShardQuery {
           }
         }
         unset($parsed['INSERT']);
+        unset($parsed['REPLACE']);
         unset($parsed['OPTIONS']);
 
         $sub_state = shardquery::new_state();
@@ -2775,7 +2781,13 @@ class ShardQuery {
 
       } else {
         
-        $sql = "INSERT INTO `" . trim($state->parsed['INSERT'][1]['table'],'`') . "` {$col_list} VALUES ";
+        if($replace == "") {
+          $sql = "INSERT INTO `" . trim($state->parsed['INSERT'][1]['table'],'`') . "` {$col_list} VALUES ";
+          $replace = "INSERT";
+        } else {
+          $sql = "REPLACE INTO `" . trim($state->parsed['REPLACE'][1]['table'],'`') . "` {$col_list} VALUES ";
+        }
+
         $values = array();
         $val_count = 0;
         
@@ -2821,7 +2833,7 @@ class ShardQuery {
       return true;
       
     } else {
-      if(!empty($state->parsed['CREATE']) && !empty($state->parsed['TABLE']) && !empty($state->parsed['SELECT'])) { 
+      if(!empty($state->parsed['CREATE']) && !empty($state->parsed['TABLE']) && !empty($state->parsed['SELECT'])) { /* CTAS */
         $table_name = $state->parsed['TABLE']['base_expr'];
         $schema_tokens = array(';',
           '"' . $this->current_schema . '"' . ".",
@@ -2875,8 +2887,7 @@ class ShardQuery {
           return false;
         }
          
-      }
-
+      } /*else*/
 
       //This query should be broadcast to all nodes
       $state->broadcast_query = $state->orig_sql;
@@ -3688,8 +3699,14 @@ class ShardQuery {
   protected function get_insert_cols(&$state, $table_name = false) {
     $parsed = $state->parsed;
     if($table_name) $force = true; else $force=false;
-    if(!$table_name)  $table_name = $parsed['INSERT'][1]['table'];
-    if($force || empty($parsed['INSERT'][2])) {
+    if(!$table_name) {
+      if(!empty($parsed['INSERT'])) {
+         trim($table_name = $parsed['INSERT'][1]['table'],'`');
+      } else {
+         trim($table_name = $parsed['REPLACE'][1]['table'],'`');
+      }
+    } 
+    if($force || ( empty($parsed['INSERT'][2]) && empty($parsed['REPLACE'][2]) ) ) {
       if(empty($this->col_metadata_cache[$table_name])) {
         $sql = "select column_name 
                           from information_schema.columns 
@@ -3725,7 +3742,7 @@ class ShardQuery {
       }
       
     } else {
-      $col_list = $parsed['INSERT']['2']['base_expr'];
+      if(!empty($parsed['INSERT'])) $col_list = $parsed['INSERT']['2']['base_expr']; else $col_list = $parsed['REPLACE']['2']['base_expr'];
       $out = array();
       $cols = explode(",", trim($col_list,' )('));
     }
