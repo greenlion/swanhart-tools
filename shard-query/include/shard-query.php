@@ -2890,7 +2890,20 @@ class ShardQuery {
       } /*else*/
 
       //This query should be broadcast to all nodes
-      $state->broadcast_query = $state->orig_sql;
+      #$state->broadcast_query = $state->orig_sql;
+      foreach($this->shards as $shard_name => $shard) {
+        $dal = SimpleDAL::factory($shard);
+        $dal->my_select_db($shard['db']);
+        if($dal->my_error()) {
+          $this->errors[] = $dal->my_error();
+          continue;
+        }
+        $dal->my_query($state->orig_sql);
+        if($dal->my_error()) {
+          $this->errors[] = $dal->my_error();
+        }
+      }
+      $this->state->coord_sql = "select 'Sent query to all shards' as message from dual";
       return true;
     }
     
