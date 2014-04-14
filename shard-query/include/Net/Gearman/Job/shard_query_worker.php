@@ -65,7 +65,7 @@ class Net_Gearman_Job_shard_query_worker extends Net_Gearman_Job_Common {
 			$DAL->my_close();
 			unset($DAL);
 
-		} elseif (preg_match('/select\s+.*\sfrom\s.*/i', $arg->sql)) {
+		} elseif (preg_match('/select\s+.*\sfrom\s.*/i', $arg->sql) || preg_match('/(create|drop|alter)\s+.*/i', $arg->sql) ) {
 			$cache_ttl = null;
 			if(isset($this->cache)) {
 				$patterns = $this->cache_rules;
