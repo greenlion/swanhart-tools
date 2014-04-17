@@ -710,10 +710,10 @@ class ShardQuery {
         break;
       
       case 'aggregate_function':
+
         $used_agg_func = 1;
         $item = "";
         $base_expr = $this->concat_all_subtrees($clause['sub_tree'], $item);
-        
         $function = strtoupper($clause['base_expr']);
         $new_alias = "expr_" . crc32(uniqid());
         
@@ -1155,6 +1155,7 @@ class ShardQuery {
   }
   
   protected function concat_all_subtrees($clauses, &$item, $depth = 0, $parent_type = "") {
+
     if(empty($clauses[0])) {
       $clauses = array(
         $clauses
@@ -1186,9 +1187,9 @@ class ShardQuery {
         case 'function':
         case 'aggregate_function':
         case 'expression':
-          $item .= "{$clause['base_expr']}(";
-          $this->concat_all_subtrees($clause['sub_tree'], $item, $depth + 1, $clause['expr_type']);
-          $item .= ")";
+          $item .= " {$clause['base_expr']} ";
+          #$this->concat_all_subtrees($clause['sub_tree'], $item, $depth + 1, $clause['expr_type']);
+          #$item .= ")";
           break;
         
         case 'reserved':
