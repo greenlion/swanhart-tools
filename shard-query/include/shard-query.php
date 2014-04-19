@@ -605,6 +605,7 @@ class ShardQuery {
     $return = array();
     $no_pushdown_limit = true;
     $non_distrib = false;
+
     
     /* handle SELECT * 
      */
@@ -617,7 +618,6 @@ class ShardQuery {
         $clause['expr_type'] = 'operator';
       }
     }
-    
     
     if(!empty($clause['base_expr'])) {
       $base_expr = $clause['base_expr'];
@@ -637,24 +637,22 @@ class ShardQuery {
         }
         $prev_clause = null;
         $in_case = false;        
+        
         foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
+          print_r($sub_clause);
+
           $sub_used_agg_func = false;
           if($sub_pos > 0) {
             $prev_clause = $clause['sub_tree'][$sub_pos - 1];
           }
 
-          if($sub_clause['expr_type'] == 'reserved') {
+          if($sub_clause['expr_type'] == 'reserved' || $sub_clause['expr_type'] == 'operator') {
             $coord_query .= ' ' . $sub_clause['base_expr'] . ' ';
             continue;
           }
 
-          if($sub_clause['expr_type'] == 'operator') {
-            $coord_query .= ' ' . $sub_clause['base_expr'] . ' ';
-            continue;
-          }
-          
           if($sub_pos > 0) {
-            $shard_query .= ",";
+            $shard_query = rtrim($shard_query,",") . ",";
           }
           
           $this->process_select_item($pos, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $sub_used_agg_func, $coord_odku, $prev_clause, $state, "", $clause, $custom_functions);
@@ -932,7 +930,7 @@ class ShardQuery {
             if(strpos($base_expr, '.*') === false) {
               $shard_query .= ' AS ' . $new_alias;
             }
-            $shard_query .= ",";
+            #$shard_query .= ",";
             $group_aliases[$base_expr] = array(
               'alias' => $new_alias,
               'pushed' => false
@@ -990,7 +988,6 @@ class ShardQuery {
       //this will recurse and fill up the proper structures
       $alias = $this->make_alias($clause);
       $this->process_select_item($pos, $clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $used_agg_func, $coord_odku, null, $state, $alias, null, $custom_functions);
-
       if($pos + 1 < count($select)) {
         $shard_query = rtrim($shard_query, ", ");
         $coord_query = rtrim($coord_query, ", ");
@@ -2309,6 +2306,7 @@ class ShardQuery {
       $this->process_undistributable_select() [below]
       */
       $select = $this->process_select($state->parsed['SELECT'], $straight_join, $distinct, $state);
+
       if(trim($select['shard_sql']) == 'SELECT') {
         $select['shard_sql'] = 'SELECT 1';
       }
