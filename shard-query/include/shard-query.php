@@ -624,6 +624,7 @@ class ShardQuery {
     }
     
     switch($clause['expr_type']) {
+
       
       case 'operator':
         $prev_clause = $clause;
@@ -639,7 +640,6 @@ class ShardQuery {
         $in_case = false;        
         
         foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
-          print_r($sub_clause);
 
           $sub_used_agg_func = false;
           if($sub_pos > 0) {
@@ -898,10 +898,13 @@ class ShardQuery {
         $first = 0;
         foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
           if($sub_clause['expr_type'] == 'colref' || $sub_clause['expr_type'] == 'aggregate_function' || $sub_clause['expr_type'] == 'function') {
+            echo "SQ: $shard_query\nCQ: $coord_query\n";
             $this->process_select_item($pos + 1, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $used_agg_func, $coord_odku, $clause, $state, "", $clause, $custom_functions);
+            echo "SQ: $shard_query\nCQ: $coord_query\n";
           } else {
             $coord_query .= " " . $sub_clause['base_expr'];
           }
+          if(!empty($clause['sub_tree'][$sub_pos+1])) $coord_query .= ",";
         }
         $coord_query .= ") $alias";
         
