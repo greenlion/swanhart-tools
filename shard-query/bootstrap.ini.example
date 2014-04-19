@@ -22,7 +22,7 @@ schema_name=default
 mapper=directory
 
 ;Finally, you must specify the column and column_datatype 
-;of the shard key, and its datatype, respectively
+;of the shard key, and its datatype, respectively (integer or string)
 column=date_id
 column_datatype=integer
 
