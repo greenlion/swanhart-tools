@@ -42,11 +42,6 @@ inlist_merge_threshold=128
 ;will get split into many lists of this many items
 inlist_merge_size=64
 
-;Shard-Query supports star schema optimization
-;make sure you turn this on if you have a star
-;schema! (defaults to false!)
-star_schema=false
-
 ;storage engine to use for the coordinator table
 ;myisam has lower concurrency but it is guaranteed
 ;to be available, so it is a sensible default.
