@@ -33,8 +33,8 @@ is_default_schema=1
 ;these options enable SQL expansion for all columns
 ;these are usually good defaults
 ;if you have partitions, you might want to disable this
-inlist=*
-between=*
+inlist=false
+between=false
 
 ;an IN list which contains more than this many items
 inlist_merge_threshold=128
