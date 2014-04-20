@@ -156,24 +156,24 @@ class ShardLoader {
         $info = $chunker->s3_find_offsets($s3, $bucket, $file,$info['size'],$chunk_size, $segment_count);
 
       } else { /* NON-S3 load here */
-        $fs = @filesize($path);
+        $fs = filesize($path);
 
         if (!$fs) {
           $this->errors[] = "Could not get size of $path";
           return false;
         }
       
-        $segment_count = floor($fs / $chunk_size);
+        $segment_count = ceil($fs / $chunk_size);
         $info    = $chunker->find_offsets($path, $segment_count);
 
       }
 
     }
-    
+    if(!isset($pathinfo)) $pathinfo=$path;
     foreach ($info as $segment) {
-      
       $return = $this->load_segment($pathinfo, $table, $segment['start'], $segment['end'], $columns_str, $set_str, $ignore, $replace);
     }
+    if(!isset($this->errors)) $this->errors=array(); 
     echo "done!\n";
     
   }

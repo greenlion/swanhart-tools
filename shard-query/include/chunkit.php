@@ -53,6 +53,7 @@ class ChunkIt extends StdClass {
         }
 
         $size = filesize($path);
+        if($chunks ==0) $chunks=1;
         $base_chunk_size = floor($size / $chunks);
 
         $info = array();
@@ -109,11 +110,11 @@ class ChunkIt extends StdClass {
         #fgets is only safe for terminators that end in \n, but it is an order of magnitude 
         #faster than using fread()  
     	$fgets_safe=false; 
-    	
-    	if($start != null && $start == 0) {
+
+    	if($start === 0 || $start === 0.0) {
             #the first chunk always starts at the beginning
             return 0;
-    	} elseif($start == null) {
+    	} elseif($start === null) {
             $start = 0;
         }
 
