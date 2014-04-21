@@ -438,7 +438,7 @@ echo "HERE 2 :(\n";
         continue;
       }
       
-      $shard_name = array_pop(array_keys(array_pop($info)));
+      $shard_name = @array_pop(array_keys(array_pop($info)));
       
       if (empty($out_data[$shard_name]))
         $out_data[$shard_name] = array();
