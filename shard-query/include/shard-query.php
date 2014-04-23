@@ -1796,24 +1796,16 @@ class ShardQuery {
           $t =& $clause['sub_tree'];
           
           if(empty($t['GROUP'])) {
-            if(empty($t['OPTIONS']))
-              $t['OPTIONS'] = array();
-            if(!in_array('DISTINCT', $t['OPTIONS']))
-              $t['OPTIONS'][] = 'DISTINCT';
-            
-          }
-          
-          if(empty($t['SELECT'][0]['alias'])) {
-            $alias = "`" . $t['SELECT'][0]['base_expr'] . "`";
-          } else {
-            $alias = $t['SELECT'][0]['alias']['name'];
+            if(strtoupper($t['SELECT'][0]['base_expr']) != 'DISTINCT') {
+              array_unshift($t['SELECT'], array('base_expr' => distinct, 'expr_type'=>'reserved'));
+            }
           }
           
           if(!$not_in) {
             $state->push_join[] = " JOIN $sub_table_name on $prev = $sub_table_name.expr$0 ";
           } else {
             $state->push_join[] = " LEFT JOIN $sub_table_name on $prev = $sub_table_name.expr$0 ";
-            $state->push_where[] = " AND $sub_table_name.$alias IS NULL ";
+            $state->push_where[] = " AND $sub_table_name.expr$0 IS NULL ";
             $not_in = false;
           }
           
