@@ -1010,7 +1010,7 @@ class ShardQuery {
     
     $shard_query = $sql . $shard_query;
     $coord_query = $sql . $coord_query;
-    
+
     foreach($push_select as $clause) {
       $shard_query .= "," . $clause;
     }
@@ -1810,9 +1810,9 @@ class ShardQuery {
           }
           
           if(!$not_in) {
-            $state->push_join[] = " JOIN $sub_table_name on $prev = $sub_table_name.$alias ";
+            $state->push_join[] = " JOIN $sub_table_name on $prev = $sub_table_name.expr$0 ";
           } else {
-            $state->push_join[] = " LEFT JOIN $sub_table_name on $prev = $sub_table_name.$alias ";
+            $state->push_join[] = " LEFT JOIN $sub_table_name on $prev = $sub_table_name.expr$0 ";
             $state->push_where[] = " AND $sub_table_name.$alias IS NULL ";
             $not_in = false;
           }
@@ -2249,7 +2249,7 @@ class ShardQuery {
         $straight_join = true;
       }
       
-      if(!empty($state->parsed['OPTIONS']) && in_array('DISTINCT', $state->parsed['OPTIONS'])) {
+      if(strtoupper($state->parsed['SELECT'][0]['base_expr']) == 'DISTINCT') {
         $distinct = true;
       }
       
