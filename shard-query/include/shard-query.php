@@ -2127,7 +2127,7 @@ class ShardQuery {
         return false;
       }
       
-      #version check is broken on ICE due to LIMIT 0 issue
+      #syntax check is broken on ICE due to LIMIT 0 issue
       $version_check_sql = 'select @@version_comment c';
       $stmt = $state->DAL->my_query($version_check_sql);
       $comment = "";
@@ -2153,7 +2153,7 @@ class ShardQuery {
             $this->current_schema . "."
           );
           $check_sql = str_replace($schema_tokens, "", $check_sql);
-          $check_sql = preg_replace('/\s+limit\s+\d+.*$/i', '', $check_sql) . ' LIMIT 0';
+          $check_sql = preg_replace('/\s+limit\s+\d+,*\s*\d*/i', '', $check_sql) . ' LIMIT 0';
           $check_sql = "select count(*) from (" . trim($check_sql, ";\r\n ") . ") check_sql where 0=1";
           
           if(!$state->DAL->my_query($check_sql)) {
