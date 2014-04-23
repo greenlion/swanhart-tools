@@ -720,11 +720,11 @@ class ShardQuery {
           case 'SUM':
           case 'MIN':
           case 'MAX':
-            $expr_info = explode(" ", trim($base_expr, '()'));
+            $expr_info = explode(" ", trim($base_expr, '() '));
             if(!empty($expr_info[0]) && strtolower($expr_info[0]) == 'distinct') {
               $this->messages[] = "DISTINCT aggregate expression used.  Pushing expression.\n";
               $no_pushdown_limit = true;
-              
+              $state->pushed = true; 
               unset($expr_info[0]);
               $new_expr = join(" ", $expr_info);
               
@@ -768,7 +768,7 @@ class ShardQuery {
             break;
           
           case 'AVG':
-            $expr_info = explode(" ", $base_expr);
+            $expr_info = explode(" ", trim($base_expr, '() '));
             if(!empty($expr_info[0]) && strtolower($expr_info[0]) == 'distinct') {
               $this->messages[] = "Detected a {$function} [DISTINCT] expression!\n";
               
@@ -2344,7 +2344,7 @@ class ShardQuery {
             $select['coord_group'] .= "`" . $id . "`";
           }
         }
-      }elseif(empty($state->parsed['GROUP'])) {
+      }elseif(!isset($state->pushed) && empty($state->parsed['GROUP'])) {
         $select['coord_group'] = "";
         $select['shard_group'] = "";
       } 
