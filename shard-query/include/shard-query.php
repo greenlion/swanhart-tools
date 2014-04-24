@@ -1017,7 +1017,7 @@ class ShardQuery {
     
     #take all the group by columns and use them on the shard
     $shard_group = join(',', array_keys($group_aliases));
-    
+
     #only non-pushed group items are sent to coordinator
     #also put together the hash statements
     $coord_group = $shard_hash = $coord_hash = "";
@@ -1047,7 +1047,7 @@ class ShardQuery {
       $shard_hash = "'ONE_ROW_RESULTSET'";
     if($coord_hash == "")
       $coord_hash = "'ONE_ROW_RESULTSET'";
-    //}
+
     if($state->need_hash) { 
       $shard_hash = "SHA1(CONCAT_WS('#'," . $shard_hash . "))";
       $coord_hash = "SHA1(CONCAT_WS('#'," . $coord_hash . "))";
@@ -2268,12 +2268,14 @@ class ShardQuery {
         );
         return false;
       }
-      
+     
       $with_rollup = "";
-      if(!empty($state->parsed['OPTIONS']) && in_array('WITH ROLLUP', $state->parsed['OPTIONS'])) {
-        $with_rollup = ' WITH ROLLUP';
+      if(!empty($state->parsed['OPTIONS'])) {
+        foreach($state->parsed['OPTIONS'] as $option) {
+          if(strtoupper($option['base_expr']) === 'WITH ROLLUP') $with_rollup = ' WITH ROLLUP'; 
+        }
       }
-      
+
       //ignore any other options
       unset($state->parsed['OPTIONS']);
       
@@ -2320,27 +2322,21 @@ class ShardQuery {
         $this->errors[] = $select['error'];
         return false;
       }
-      
-      if(!empty($state->parsed['GROUP']) && empty($select['coord_group'])) {
-        foreach($state->parsed['GROUP'] as $gb) {
-          if(!is_numeric(trim($gb['base_expr']))) {
-            $id = "expr_" . mt_rand(1, 100000);
-            
-            $select['shard_sql'] .= "," . $gb['base_expr'] . ' AS `' . $id . '`';
-            if($select['shard_group'] !== "")
-              $select['shard_group'] .= ',';
-            $select['shard_group'] .= $gb['base_expr'];
-            
-            if($select['coord_group'] !== "")
-              $select['coord_group'] .= ',';
-            $select['coord_group'] .= "`" . $id . "`";
-          }
-        }
-      }elseif(!isset($state->pushed) && empty($state->parsed['GROUP'])) {
+
+      $group = $state->parsed['GROUP'];
+      $coord_group = "";
+      foreach($group as $item) {
+        if($coord_group) $coord_group .= ",";
+        $coord_group .= $this->process_group_item($item, $state->used_colrefs);
+      }
+      $select['coord_group'] = $coord_group;
+      $select['shard_group'] = $select['group_aliases'];
+
+      if(!isset($state->pushed) && empty($state->parsed['GROUP'])) {
         $select['coord_group'] = "";
         $select['shard_group'] = "";
       } 
-      
+
       unset($state->parsed['GROUP']);
       
       if($having_info = $this->process_having($state)) {
@@ -3895,5 +3891,48 @@ class ShardQuery {
       */
       return true;
     } 
+  }
+
+  protected function process_group_item(&$item, &$map,$depth=0) {
+    if($depth===0) $out = "";
+    if(empty($item['expr_type'])) {
+      foreach($item as $sub_item) {
+        if(!isset($out)) $out = "";
+        $out .= $this->process_group_item($sub_item, $map, $depth+1);
+      }
+      return $out;
+    }
+
+    if($item['expr_type'] == 'colref') {
+        if(!isset($out)) $out = "";
+        $out .= "expr$" . $map[$item['base_expr']];
+    } else {
+        $out .= $item['base_expr'];
+        if($item['expr_type'] == 'function' || $item['expr_type'] == 'aggregregate_function') { 
+          $out .= "("; 
+        }
+    }
+    if(!isset($out)) $out = "";
+    if(!empty($item['sub_tree'])) $out .= $this->process_group_item($item['sub_tree'], $map, $depth + 1);
+    if($item['expr_type'] == 'function' || $item['expr_type'] == 'aggregregate_function') $out .= ")"; 
+    return $out;
+  }
+
+  protected function process_shard_group_item(&$item, &$map,$depth=0) {
+    if(empty($item['expr_type'])) {
+      foreach($item as $sub_item) {
+        if(!isset($out)) $out = "";
+        $out .= $this->process_shard_group_item($sub_item, $map, $depth+1);
+      }
+      return $out;
+    }
+
+    if($item['expr_type'] == 'colref') {
+        if(!isset($out)) $out = "";
+        $out .= "expr$" . $map[$item['base_expr']];
+    } 
+    if(!isset($out))$out = "";
+    if(!empty($item['sub_tree'])) $out .= $this->process_shard_group_item($item['sub_tree'], $map, $depth + 1);
+    return $out;
   }
 }

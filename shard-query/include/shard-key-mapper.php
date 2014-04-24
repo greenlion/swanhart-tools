@@ -532,8 +532,8 @@ class DirectoryShardKeyMapper implements ShardKeyMapper{
 
 	*/
 	public function &map($column, $key, $schema_name=null, $operator = "=",  $create_on_miss = true) {
-
-        if($operator == "between") return null;
+        $null = null;
+        if($operator == "between") return $null;
 
 		static $map_cache = array();
 
