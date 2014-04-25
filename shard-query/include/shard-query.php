@@ -2323,11 +2323,13 @@ class ShardQuery {
         return false;
       }
 
-      $group = $state->parsed['GROUP'];
       $coord_group = "";
-      foreach($group as $item) {
-        if($coord_group) $coord_group .= ",";
-        $coord_group .= $this->process_group_item($item, $state->used_colrefs);
+      if(!empty($state->parsed['GROUP'])) {
+        $group = $state->parsed['GROUP'];
+        foreach($group as $item) {
+          if($coord_group) $coord_group .= ",";
+          $coord_group .= $this->process_group_item($item, $state->used_colrefs);
+        }
       }
       $select['coord_group'] = $coord_group;
       $select['shard_group'] = $select['group_aliases'];
