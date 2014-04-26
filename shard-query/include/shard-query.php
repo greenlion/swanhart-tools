@@ -1151,7 +1151,7 @@ class ShardQuery {
     return $is_group_item;
     
   }
-  
+
   protected function concat_all_subtrees($clauses, &$item, $depth = 0, $parent_type = "") {
 
     if(empty($clauses[0])) {
@@ -2126,6 +2126,7 @@ class ShardQuery {
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
         $comment = $row['c'];
       }
+
       if(strpos($comment, '(ice)') === false) {
         if(preg_match('/^select/i', $sql)) {
           $check_sql = trim($sql, "; \n");
@@ -2148,18 +2149,40 @@ class ShardQuery {
           $check_sql = preg_replace('/\s+limit\s+\d+,*\s*\d*/i', '', $check_sql) . ' LIMIT 0';
           $check_sql = "select count(*) from (" . trim($check_sql, ";\r\n ") . ") check_sql where 0=1";
           
-          if(!$state->DAL->my_query($check_sql)) {
-            $this->errors[] = $state->DAL->my_error();
-            return false;
-          }
+         /* if(!$state->DAL->my_query($check_sql)) {
+              $this->errors[] = $state->DAL->my_error();
+              return false;
+          }*/
         }
       }
-      
-      $state->parsed = $this->parser->parse($sql);
+
+      $state->parsed = $this->parser->parse($sql,true);
     } else {
       $state->parsed = $sql;
     }
-    
+    /* handle window functions */
+    $state->windows = array();
+    $funcnum=0;
+    if(!empty($state->parsed['SELECT'])) {
+      foreach($state->parsed['SELECT'] as $pos => $item) {
+        if($item['expr_type'] == 'expression' && strtoupper($item['sub_tree'][1]['base_expr']) == 'OVER') {
+          $over = array();
+          #combine the subtrees together
+          $func_info = $item['sub_tree'][0];
+          foreach($item['sub_tree'][1]['sub_tree'] as $sub_item) {
+            if(!empty($sub_item['sub_tree'])) { 
+              foreach($sub_item['sub_tree'] as $sub_item2) {
+                $over[] = $sub_item2;
+              }
+            } else {
+              $over[] = $sub_item;
+            }
+          }
+          $state->windows[] = array('func'=>$func_info, 'over' => $over, 'pos' => $pos);
+          $state->parsed['SELECT'][$pos] = array('expr_type'=>'const', 'base_expr'=>'NULL', 'sub_tree'=>null, 'alias'=>array('name'=>'wf' . ($funcnum++)));
+        }
+      }
+    }
     
     if(!empty($state->parsed['UNION ALL'])) {
       $queries = array();
