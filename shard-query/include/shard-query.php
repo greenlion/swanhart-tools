@@ -257,15 +257,24 @@ class ShardQuery {
     $sql = "CREATE TABLE IF NOT EXISTS {$state->table_name} ";
     $create_subquery = str_replace('1=1', '0=1', $state->shard_sql[0]);
     
-    
+    $added_key = 0; 
+    $args = "";
     if(stristr($state->shard_sql[0], 'GROUP BY')) {
-      if(!empty($state->agg_key_cols) && $state->agg_key_cols)
-        $sql .= "(UNIQUE KEY gb_key (" . $state->agg_key_cols . "))";
+      if(!empty($state->agg_key_cols) && $state->agg_key_cols) {
+        $added_key = 1;
+        $args .= "UNIQUE KEY gb_key (" . $state->agg_key_cols . ")";
+      }
     }
+
+    if(!empty($state->windows)) {
+      if($added_key) $sql .= ",";
+      $args .= "wf_rownum bigint auto_increment, key(wf_rownum)";
+    }
+    if($args) $args = "($args)";
     
-    $sql .= " ENGINE=" . $state->engine;
+    $sql .= "$args ENGINE=" . $state->engine;
     $sql .= " AS $create_subquery ";
-    
+
     if(!$state->DAL->my_select_db($state->tmp_shard['db'])) {
       $this->errors[] = 'While aggregating result: ' . $state->DAL->my_error();
       $stmt = false;
@@ -429,6 +438,9 @@ class ShardQuery {
       unset($set);
       
       $this->errors = array();
+
+      /* If the query has window functions then they must be processed now */
+      if(!$this->run_window_functions($state)) return false;
       
       /* If the query has custom functions, then the custom function workers must be invoked once all of the
        *  store_resultset workers finish their jobs.  The store_resultset worker collects hashes which represent
@@ -985,10 +997,20 @@ class ShardQuery {
     $prev_clause = false;
     $custom_functions = array();
     $state->need_hash = false;
+    $state->aliases = "";
+    $win_num = 0;
     foreach($select as $pos => $clause) {
-      //this will recurse and fill up the proper structures
-      $alias = $this->make_alias($clause);
-      $this->process_select_item($pos, $clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $used_agg_func, $coord_odku, null, $state, $alias, null, $custom_functions);
+      if(!empty($state->windows_at[$pos])) {
+        $shard_query .= "0 as wf{$win_num}"; 
+        $coord_query .= "wf{$win_num} as {$this->windows[$win_num]['alias']}"; 
+        $this->state->aliases[] = $this->windows[$win_num]['alias']; 
+        ++$win_num;
+      } else {
+        //this will recurse and fill up the proper structures
+        $alias = $this->make_alias($clause);
+        $this->state->aliases[] = $alias;
+        $this->process_select_item($pos, $clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $used_agg_func, $coord_odku, null, $state, $alias, null, $custom_functions);
+      }
       if($pos + 1 < count($select)) {
         $shard_query = rtrim($shard_query, ", ");
         $coord_query = rtrim($coord_query, ", ");
@@ -1007,9 +1029,13 @@ class ShardQuery {
       $sql .= "STRAIGHT_JOIN ";
     if($distinct)
       $sql .= " DISTINCT ";
-    
-    $shard_query = $sql . $shard_query;
+
     $coord_query = $sql . $coord_query;
+    
+    if($win_num > 0) {
+      $sql .= "NULL as wf_rownum, ";
+    }
+    $shard_query = $sql . $shard_query;
 
     foreach($push_select as $clause) {
       $shard_query .= "," . $clause;
@@ -2160,12 +2186,16 @@ class ShardQuery {
     } else {
       $state->parsed = $sql;
     }
+
+    //print_r($state->parsed); exit;
+
     /* handle window functions */
     $state->windows = array();
     $funcnum=0;
     if(!empty($state->parsed['SELECT'])) {
       foreach($state->parsed['SELECT'] as $pos => $item) {
         if($item['expr_type'] == 'expression' && strtoupper($item['sub_tree'][1]['base_expr']) == 'OVER') {
+          $alias = $this->make_alias($item);
           $over = array();
           #combine the subtrees together
           $func_info = $item['sub_tree'][0];
@@ -2178,10 +2208,36 @@ class ShardQuery {
               $over[] = $sub_item;
             }
           }
-          $state->windows[] = array('func'=>$func_info, 'over' => $over, 'pos' => $pos);
+          $state->windows[] = array('func'=>$func_info, 'over' => $over, 'pos' => $pos, 'alias'=>$alias);
           $state->parsed['SELECT'][$pos] = array('expr_type'=>'const', 'base_expr'=>'NULL', 'sub_tree'=>null, 'alias'=>array('name'=>'wf' . ($funcnum++)));
         }
       }
+    }
+    
+    foreach($state->windows as $num => $win) {
+      $partition_cols = array();
+      $order_by = array();
+      $i=0;
+      if(strtoupper($win['over'][0]['base_expr']) == 'PARTITION') {
+        for($i=1;$i<count($win['over']);++$i) {
+          if(strtoupper($win['over'][$i]['base_expr']) == "ORDER") break;
+          if($win['over'][$i]['expr_type'] != 'reserved') $partition_cols[] = $win['over'][$i];
+        }
+      }
+      if(strtoupper($win['over'][$i]['base_expr']) == 'ORDER') {
+        for(;$i<count($win['over']);++$i) {
+          if(strtoupper($win['over'][$i]['base_expr']) == 'DESC') $order_by[count($order_by)-1]['direction'] = 'desc';
+          if($win['over'][$i]['expr_type'] != 'reserved') { 
+            $win['over'][$i]['direction'] = 'asc';
+            $order_by[] = $win['over'][$i];
+          }
+        }
+      }
+      $state->windows[$num]['partition'] = $partition_cols;
+      $state->windows[$num]['order'] = $order_by;
+      unset($state->windows[$num]['over']);
+      #map which select positions have 
+      $state->windows_at[$win['pos']] = 1;
     }
     
     if(!empty($state->parsed['UNION ALL'])) {
@@ -2325,6 +2381,57 @@ class ShardQuery {
       */
       $select = $this->process_select($state->parsed['SELECT'], $straight_join, $distinct, $state);
 
+      /* Now the columns referenced by window functions have to be paid attention to*/
+      $window_col = array();
+      if(!empty($state->windows)) {
+        for($i=0;$i<count($state->windows);++$i) {
+          $win = $state->windows[$i];
+          $shard_hash = "";
+          
+          foreach($win['partition'] as $part) {
+            if(empty($window_col[$part['base_expr']])) {
+              if(trim($select['shard_sql']) != 'SELECT') $select['shard_sql'] .= ",";
+              $select['shard_sql'] .= $part['base_expr'];
+              $window_col[$part['base_expr']] = 1;
+            }
+            if($shard_hash) $shard_hash .= ",";
+            $shard_hash .= $part['base_expr'];
+          }
+          if(!empty($win['partition'])) { 
+            $select['shard_sql'] .= ",SHA1(CONCAT_WS('#'," . $shard_hash . ")) as wf{$i}_hash"; 
+          } else {
+            $select['shard_sql'] .= ",SHA1(CONCAT_WS('#','ONE_PARTITION')) as wf{$i}_hash"; 
+          }
+
+          $obclause = "";
+          $obhash = "";
+          foreach($win['order'] as $ob) {
+            if(trim($select['shard_sql']) != 'SELECT') $select['shard_sql'] .= ",";
+            if(empty($window_col[$ob['base_expr']])) {
+              $select['shard_sql'] .= $ob['base_expr'];
+              $window_col[$ob['base_expr']] = 1;
+            }
+            if($obclause) $obclause .= ",";
+            if($obhash) $obclause .= ",";
+            $obclause .= $ob['base_expr'] . " " . $ob['direction'];
+            $obhash .= $ob['base_expr']; 
+          }
+          if($obhash) { 
+            $select['shard_sql'] .= ",SHA1(CONCAT_WS('#'," . $obhash . ")) as wf{$i}_obhash";
+          }
+          $state->windows[$i]['order_by'] = $obclause;
+          $colrefs = $this->extract_colrefs($win['func']['sub_tree']);
+          foreach($colrefs as $col) {
+            if(empty($window_col[$col['base_expr']])) {
+              if(trim($select['shard_sql']) != 'SELECT') $select['shard_sql'] .= ",";
+              $select['shard_sql'] .= $col['base_expr'];
+              $window_col[$col['base_expr']] = 1;
+            }
+          }
+        }
+      }
+     
+      //print_r($select); print_r($state->windows); 
       if(trim($select['shard_sql']) == 'SELECT') {
         $select['shard_sql'] = 'SELECT 1';
       }
@@ -2372,9 +2479,12 @@ class ShardQuery {
           'having' => " "
         );
       }
+      $order_by = "";
+      if($state->windows) {
+        $order_by = $state->windows[0]['order_by'];
+      }
       
       if(!empty($state->parsed['ORDER'])) {
-        $order_by = "";
         foreach($state->parsed['ORDER'] as $o) {
           if($order_by)
             $order_by .= ',';
@@ -2439,9 +2549,9 @@ class ShardQuery {
           
           $order_by .= " " . $o['direction'];
         }
-        $order_by = " ORDER BY {$order_by}";
-        unset($state->parsed['ORDER']);
       }
+      if($order_by) $order_by = " ORDER BY {$order_by}";
+      unset($state->parsed['ORDER']);
       
       if(empty($state->parsed['FROM'])) {
         $this->errors = array(
@@ -3959,5 +4069,117 @@ class ShardQuery {
     if(!isset($out))$out = "";
     if(!empty($item['sub_tree'])) $out .= $this->process_shard_group_item($item['sub_tree'], $map, $depth + 1);
     return $out;
+  }
+
+  protected function wf_sum($num,$state) {
+    static $sum;
+    $win = $state->windows[$num];
+    if($win['order_by'] == "") { 
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name;
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $sql = "select sum($colref) s from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $stmt2 = $state->DAL->my_query($sql);
+        $row2 = $state->DAL->my_fetch_assoc($stmt2);
+        $sum = $row2['s'];
+        $sql = "UPDATE " . $state->table_name . " SET wf$num = $sum WHERE wf{$num}_hash = '{$row['h']}'"; 
+        $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+      }
+      return true;
+    } else { 
+      /* running sum*/
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_hash = "";
+      $hash = "";
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $last_hash = "";
+        $last_ob_hash = "";
+        $i = 0;
+        $rowlist="";
+        $sum = 0;
+        while($i<count($rows)) {
+          $row2 = $rows[$i];
+          $hash = $row2["wf{$num}_hash"];
+          $ob_hash = $row2["wf{$num}_obhash"];
+          $val = $row2[$colref];
+          $sum += $val;
+          $rowlist=$row2['wf_rownum'];
+          for($n=$i+1;$n<count($rows);++$n) {
+            $row3 = $rows[$n];
+            $new_ob_hash = $row3["wf{$num}_obhash"];
+            $val2 = $row3[$colref]; 
+            if($new_ob_hash != $ob_hash) {
+              break;
+            }
+            $sum += $row3[$colref];
+            $rowlist .= "," . $row3['wf_rownum'];
+            ++$i;
+          }
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$sum} WHERE wf_rownum in ({$rowlist})";
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+        }
+      }
+    }
+    return true;
+  }
+
+  protected function run_window_functions(&$state) {
+    $DB = &$state->DAL;
+    foreach($state->windows as $num => $win) {
+      switch(strtoupper($win['func']['base_expr'])) {
+        case 'RANK':
+          /*  if($hash != $lash_hash) $rank=0;
+            if(!$ob_hash) { // rank without order by
+              $rank++;
+            } else {
+              if($ob_hash !== $last_ob_hash) $rank++;
+              $last_obhash = $ob_hash;
+            }
+            $sql = "UPDATE " . $state->table_name . " SET wf".$num. " = $rank where wf_rownum=" . $rownum;
+            $DB->my_query($sql);
+            if($err = $db->my_error()) {
+              $this->errors[] = $err;
+              return false;
+            } */
+        break;
+        case 'SUM':
+          if(!$this->wf_sum($num, $state)) return false;    
+        break;
+      }
+    }
+    return true;
   }
 }
