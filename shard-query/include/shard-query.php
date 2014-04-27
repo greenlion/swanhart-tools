@@ -4248,6 +4248,181 @@ class ShardQuery {
     return true;
   }
 
+  protected function wf_min($num,$state) {
+    static $sum;
+    $win = $state->windows[$num];
+    if($win['order_by'] == "") { 
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name;
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $sql = "select min($colref) m from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $stmt2 = $state->DAL->my_query($sql);
+        $row2 = $state->DAL->my_fetch_assoc($stmt2);
+        $min = $row2['m'];
+        $sql = "UPDATE " . $state->table_name . " SET wf$num = $min WHERE wf{$num}_hash = '{$row['h']}'"; 
+        $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+      }
+      return true;
+    } else { 
+      /* moving min*/
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_hash = "";
+      $hash = "";
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $last_hash = "";
+        $last_ob_hash = "";
+        $i = 0;
+        $rowlist="";
+        $min = null;
+        while($i<count($rows)) {
+          $row2 = $rows[$i];
+          $hash = $row2["wf{$num}_hash"];
+          $ob_hash = $row2["wf{$num}_obhash"];
+          $val = $row2[$colref];
+          if(!isset($min)) $min = $val; 
+          if($val < $min) $min = $val;
+          $rowlist=$row2['wf_rownum'];
+          for($n=$i+1;$n<count($rows);++$n) {
+            $row3 = $rows[$n];
+            $new_ob_hash = $row3["wf{$num}_obhash"];
+            $val2 = $row3[$colref]; 
+            
+            if($new_ob_hash != $ob_hash) {
+              break;
+            }
+            if($val2 < $min) $min = $val2;
+            $rowlist .= "," . $row3['wf_rownum'];
+            ++$i;
+          }
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = ($min) WHERE wf_rownum in ({$rowlist})";
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+        }
+      }
+    }
+    return true;
+  }
+
+  protected function wf_max($num,$state) {
+    static $sum;
+    $win = $state->windows[$num];
+    if($win['order_by'] == "") { 
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name;
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $sql = "select max($colref) m from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $stmt2 = $state->DAL->my_query($sql);
+        $row2 = $state->DAL->my_fetch_assoc($stmt2);
+        $max = $row2['m'];
+        $sql = "UPDATE " . $state->table_name . " SET wf$num = $max WHERE wf{$num}_hash = '{$row['h']}'"; 
+        $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+      }
+      return true;
+    } else { 
+      /* moving max*/
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_hash = "";
+      $hash = "";
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $last_hash = "";
+        $last_ob_hash = "";
+        $i = 0;
+        $rowlist="";
+        $max = null;
+        while($i<count($rows)) {
+          $row2 = $rows[$i];
+          $hash = $row2["wf{$num}_hash"];
+          $ob_hash = $row2["wf{$num}_obhash"];
+          $val = $row2[$colref];
+          if(!isset($max)) $max = $val; 
+          if($val > $max) $max = $val;
+          $rowlist=$row2['wf_rownum'];
+          for($n=$i+1;$n<count($rows);++$n) {
+            $row3 = $rows[$n];
+            $new_ob_hash = $row3["wf{$num}_obhash"];
+            $val2 = $row3[$colref]; 
+            
+            if($new_ob_hash != $ob_hash) {
+              break;
+            }
+            if($val2 > $max) $max = $val2;
+            $rowlist .= "," . $row3['wf_rownum'];
+            ++$i;
+          }
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = $max WHERE wf_rownum in ({$rowlist})";
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+        }
+      }
+    }
+    return true;
+  }
+
+
   protected function run_window_functions(&$state) {
     $DB = &$state->DAL;
     foreach($state->windows as $num => $win) {
@@ -4273,6 +4448,13 @@ class ShardQuery {
         case 'AVG':
           if(!$this->wf_avg($num, $state)) return false;    
         break;
+        case 'MIN':
+          if(!$this->wf_min($num, $state)) return false;    
+        break;
+        case 'MAX':
+          if(!$this->wf_max($num, $state)) return false;    
+        break;
+
       }
     }
     return true;
