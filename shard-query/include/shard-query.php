@@ -2481,7 +2481,11 @@ class ShardQuery {
       }
       $order_by = "";
       if($state->windows) {
-        $order_by = $state->windows[0]['order_by'];
+        $order_by = "wf0_hash";
+        if(!empty($state->windows[0]['order_by'])) { 
+          $order_by .= ",";
+          $order_by .= $state->windows[0]['order_by'];
+        }
       }
       
       if(!empty($state->parsed['ORDER'])) {
@@ -4156,6 +4160,94 @@ class ShardQuery {
     return true;
   }
 
+  protected function wf_avg($num,$state) {
+    static $sum;
+    $win = $state->windows[$num];
+    if($win['order_by'] == "") { 
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name;
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $sql = "select avg($colref) a from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $stmt2 = $state->DAL->my_query($sql);
+        $row2 = $state->DAL->my_fetch_assoc($stmt2);
+        $avg = $row2['a'];
+        $sql = "UPDATE " . $state->table_name . " SET wf$num = $avg WHERE wf{$num}_hash = '{$row['h']}'"; 
+        $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+      }
+      return true;
+    } else { 
+      /* moving avg*/
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_hash = "";
+      $hash = "";
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $last_hash = "";
+        $last_ob_hash = "";
+        $i = 0;
+        $rowlist="";
+        $sum = 0;
+        $cnt =0;
+        while($i<count($rows)) {
+          $row2 = $rows[$i];
+          $hash = $row2["wf{$num}_hash"];
+          $ob_hash = $row2["wf{$num}_obhash"];
+          $val = $row2[$colref];
+          $sum += $val;
+          $cnt++;
+          $rowlist=$row2['wf_rownum'];
+          for($n=$i+1;$n<count($rows);++$n) {
+            $row3 = $rows[$n];
+            $new_ob_hash = $row3["wf{$num}_obhash"];
+            $val2 = $row3[$colref]; 
+            if($new_ob_hash != $ob_hash) {
+              break;
+            }
+            $cnt++;
+            $sum += $row3[$colref];
+            $rowlist .= "," . $row3['wf_rownum'];
+            ++$i;
+          }
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = ($sum/$cnt) WHERE wf_rownum in ({$rowlist})";
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+        }
+      }
+    }
+    return true;
+  }
+
   protected function run_window_functions(&$state) {
     $DB = &$state->DAL;
     foreach($state->windows as $num => $win) {
@@ -4177,6 +4269,9 @@ class ShardQuery {
         break;
         case 'SUM':
           if(!$this->wf_sum($num, $state)) return false;    
+        break;
+        case 'AVG':
+          if(!$this->wf_avg($num, $state)) return false;    
         break;
       }
     }
