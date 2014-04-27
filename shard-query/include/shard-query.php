@@ -269,6 +269,10 @@ class ShardQuery {
     if(!empty($state->windows)) {
       if($added_key) $sql .= ",";
       $args .= "wf_rownum bigint auto_increment, key(wf_rownum)";
+      foreach($state->windows as $num => $win) {
+        $args .= ",";
+        $args .= "wf{$num} tinytext null";
+      }
     }
     if($args) $args = "($args)";
     
@@ -2969,7 +2973,7 @@ class ShardQuery {
         );
         $create_sql = $state->orig_sql;
         $create_sql = str_replace($schema_tokens, "", $create_sql);
-        $create_sql = preg_replace('/\s+limit\s+\d+.*$/i', '', $create_sql) . ' LIMIT 0';
+        $create_sql = preg_replace('/\s+limit\s+\d+/i', '', $create_sql) . ' LIMIT 0';
         foreach($this->shards as $name => $shard) {
           $dal = SimpleDAL::factory($shard);
           $dal->my_select_db($shard['db']);
@@ -4421,6 +4425,7 @@ class ShardQuery {
     }
     return true;
   }
+
   protected function wf_count($num,$state) {
     static $sum;
     $win = $state->windows[$num];
@@ -4501,6 +4506,198 @@ class ShardQuery {
     return true;
   }
 
+  protected function wf_std($num,$state, $samp = true) {
+    static $sum;
+    $win = $state->windows[$num];
+    if($win['order_by'] == "") { 
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name;
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $sql = "select sum($colref) s from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $stmt2 = $state->DAL->my_query($sql);
+        $row2 = $state->DAL->my_fetch_assoc($stmt2);
+        $sum = $row2['s'];
+        $sql = "UPDATE " . $state->table_name . " SET wf$num = $sum WHERE wf{$num}_hash = '{$row['h']}'"; 
+        $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+      }
+      return true;
+    } else { 
+      /* running sum*/
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $last_ob_hash = "";
+        $i = 0;
+        $rowlist="";
+        $vals = array();
+        while($i<count($rows)) {
+          $row2 = $rows[$i];
+          $hash = $row2["wf{$num}_hash"];
+          $ob_hash = $row2["wf{$num}_obhash"];
+          $vals[] = $row2[$colref];
+          $rowlist=$row2['wf_rownum'];
+          for($n=$i+1;$n<count($rows);++$n) {
+            $row3 = $rows[$n];
+            $new_ob_hash = $row3["wf{$num}_obhash"];
+            if($new_ob_hash != $ob_hash) {
+              break;
+            }
+            $vals[] = $row3[$colref]; 
+            $rowlist .= "," . $row3['wf_rownum'];
+            ++$i;
+          }
+          $std = $this->standard_deviation($vals,$samp);
+          if($std == false) $std = "NULL";
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$std} WHERE wf_rownum in ({$rowlist})";
+
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+        }
+      }
+    }
+    return true;
+  }
+
+  protected function wf_var($num,$state, $samp = true) {
+    static $sum;
+    $win = $state->windows[$num];
+    if($win['order_by'] == "") { 
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name;
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $sql = "select sum($colref) s from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $stmt2 = $state->DAL->my_query($sql);
+        $row2 = $state->DAL->my_fetch_assoc($stmt2);
+        $sum = $row2['s'];
+        $sql = "UPDATE " . $state->table_name . " SET wf$num = $sum WHERE wf{$num}_hash = '{$row['h']}'"; 
+        $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+      }
+      return true;
+    } else { 
+      /* running sum*/
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $last_ob_hash = "";
+        $i = 0;
+        $rowlist="";
+        $vals = array();
+        while($i<count($rows)) {
+          $row2 = $rows[$i];
+          $hash = $row2["wf{$num}_hash"];
+          $ob_hash = $row2["wf{$num}_obhash"];
+          $vals[] = $row2[$colref];
+          $rowlist=$row2['wf_rownum'];
+          for($n=$i+1;$n<count($rows);++$n) {
+            $row3 = $rows[$n];
+            $new_ob_hash = $row3["wf{$num}_obhash"];
+            if($new_ob_hash != $ob_hash) {
+              break;
+            }
+            $vals[] = $row3[$colref]; 
+            $rowlist .= "," . $row3['wf_rownum'];
+            ++$i;
+          }
+          $var = $this->variance($vals,$samp);
+          if($var==false) $var = "0";
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$var} WHERE wf_rownum in ({$rowlist})";
+
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+        }
+      }
+    }
+    return true;
+  }
+
+  function standard_deviation($aValues, $bSample = false) {
+      $fMean = array_sum($aValues) / count($aValues);
+      $fVariance = 0.0;
+      foreach ($aValues as $i)
+      {
+          $fVariance += pow($i - $fMean, 2);
+      }
+      $fVariance /= ( $bSample ? count($aValues) - 1 : count($aValues) );
+      return (float) sqrt($fVariance);
+  }
+
+  function variance($aValues, $bSample = false) {
+      
+      $fMean = array_sum($aValues) / count($aValues);
+      $fVariance = 0.0;
+      foreach ($aValues as $i)
+      {
+          $fVariance += pow($i - $fMean, 2);
+      }
+      $cnt = count($aValues);
+      if($bSample) $cnt -=1;
+      if($cnt <=0) return false;
+      $fVariance /= ( $bSample ? count($aValues) - 1 : count($aValues) );
+      return (float) $fVariance;
+  }
+
 
   protected function run_window_functions(&$state) {
     $DB = &$state->DAL;
@@ -4540,6 +4737,27 @@ class ShardQuery {
         case 'COUNT':
           if(!$this->wf_count($num, $state)) return false;    
         break;
+        case 'STDDEV':
+        case 'STDDEV_SAMP':
+        case 'STD':
+        case 'STD_SAMP':
+          if(!$this->wf_std($num, $state,true)) return false;    
+        break;
+        case 'STDDEV_POP':
+        case 'STD_POP':
+          if(!$this->wf_std($num, $state,false)) return false;    
+        break;
+        case 'VARIANCE':
+        case 'VARIANCE_SAMP':
+        case 'VAR':
+        case 'VAR_SAMP':
+          if(!$this->wf_var($num, $state,true)) return false;    
+        break;
+        case 'VARIANCE_POP':
+        case 'VAR_POP':
+          if(!$this->wf_var($num, $state,false)) return false;    
+        break;
+          
 
       }
     }
