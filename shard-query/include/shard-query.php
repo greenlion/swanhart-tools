@@ -4742,6 +4742,62 @@ class ShardQuery {
     return true;
   }
 
+  protected function wf_rownum($num,$state) {
+    static $sum;
+    $win = $state->windows[$num];
+    if(empty($win['order']) && empty($win['partition'])) {
+      $sql = "update " . $state->table_name . " set wf{$num}=wf_rownum";
+      $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      return true;
+    } else { 
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_hash = "";
+      $hash = "";
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $last_hash = "";
+        $last_ob_hash = "";
+        $i = 0;
+        $rowlist="";
+        $rownum = 0;
+        while($i<count($rows)) {
+          ++$rownum;
+          $row2 = $rows[$i];
+          $rowlist=$row2['wf_rownum'];
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$rownum} WHERE wf_rownum = $rowlist";
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+        }
+      }
+    }
+    return true;
+  }
+
   function standard_deviation($aValues, $bSample = false) {
       $fMean = array_sum($aValues) / count($aValues);
       $fVariance = 0.0;
@@ -4779,6 +4835,8 @@ class ShardQuery {
       switch(strtoupper($win['func']['base_expr'])) {
         case 'RANK':
           if(!$this->wf_rank($num, $state)) return false;    
+        case 'ROW_NUMBER':
+          if(!$this->wf_rownum($num, $state)) return false;    
         break;
         case 'SUM':
           if(!$this->wf_sum($num, $state)) return false;    
