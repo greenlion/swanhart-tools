@@ -4421,11 +4421,94 @@ class ShardQuery {
     }
     return true;
   }
+  protected function wf_count($num,$state) {
+    static $sum;
+    $win = $state->windows[$num];
+    if($win['order_by'] == "") { 
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name;
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $sql = "select count($colref) c from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $stmt2 = $state->DAL->my_query($sql);
+        $row2 = $state->DAL->my_fetch_assoc($stmt2);
+        $cnt = $row2['c'];
+        $sql = "UPDATE " . $state->table_name . " SET wf$num = $cnt WHERE wf{$num}_hash = '{$row['h']}'"; 
+        $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+      }
+      return true;
+    } else { 
+      /* moving max*/
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $i = 0;
+        $rowlist="";
+        $cnt = 0;
+        while($i<count($rows)) {
+          $row2 = $rows[$i];
+          $ob_hash = $row2["wf{$num}_obhash"];
+          ++$cnt;
+          $rowlist=$row2['wf_rownum'];
+          for($n=$i+1;$n<count($rows);++$n) {
+            $row3 = $rows[$n];
+            $new_ob_hash = $row3["wf{$num}_obhash"];
+            
+            if($new_ob_hash != $ob_hash) {
+              break;
+            }
+            ++$cnt;
+            $rowlist .= "," . $row3['wf_rownum'];
+            ++$i;
+          }
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = $cnt WHERE wf_rownum in ({$rowlist})";
+
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+        }
+      }
+    }
+    return true;
+  }
 
 
   protected function run_window_functions(&$state) {
     $DB = &$state->DAL;
     foreach($state->windows as $num => $win) {
+      if(@strtoupper($win['func']['sub_tree'][0]['sub_tree'][0]['base_expr']) == "DISTINCT") {
+        $this->errors[] = "DISTINCT not implemented for window functions";
+        return false;
+      } 
       switch(strtoupper($win['func']['base_expr'])) {
         case 'RANK':
           /*  if($hash != $lash_hash) $rank=0;
@@ -4453,6 +4536,9 @@ class ShardQuery {
         break;
         case 'MAX':
           if(!$this->wf_max($num, $state)) return false;    
+        break;
+        case 'COUNT':
+          if(!$this->wf_count($num, $state)) return false;    
         break;
 
       }
