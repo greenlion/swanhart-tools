@@ -2222,13 +2222,13 @@ class ShardQuery {
       $partition_cols = array();
       $order_by = array();
       $i=0;
-      if(strtoupper($win['over'][0]['base_expr']) == 'PARTITION') {
+      if(!empty($win['over']) && strtoupper($win['over'][0]['base_expr']) == 'PARTITION') {
         for($i=1;$i<count($win['over']);++$i) {
           if(strtoupper($win['over'][$i]['base_expr']) == "ORDER") break;
           if($win['over'][$i]['expr_type'] != 'reserved') $partition_cols[] = $win['over'][$i];
         }
       }
-      if(strtoupper($win['over'][$i]['base_expr']) == 'ORDER') {
+      if(!empty($win['over']) && strtoupper($win['over'][$i]['base_expr']) == 'ORDER') {
         for(;$i<count($win['over']);++$i) {
           if(strtoupper($win['over'][$i]['base_expr']) == 'DESC') $order_by[count($order_by)-1]['direction'] = 'desc';
           if($win['over'][$i]['expr_type'] != 'reserved') { 
@@ -4672,6 +4672,76 @@ class ShardQuery {
     return true;
   }
 
+  protected function wf_rank($num,$state) {
+    static $sum;
+    $win = $state->windows[$num];
+    if(empty($win['order'])) {
+      $sql = "update " . $state->table_name . " set wf{$num}=1";
+      $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      return true;
+    } else { 
+      /* running sum*/
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_hash = "";
+      $hash = "";
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $last_hash = "";
+        $last_ob_hash = "";
+        $i = 0;
+        $rowlist="";
+        $rank = 0;
+        while($i<count($rows)) {
+          $row2 = $rows[$i];
+          ++$rank;
+          $push_rank = 0;
+          $ob_hash = $row2["wf{$num}_obhash"];
+          $rowlist=$row2['wf_rownum'];
+          for($n=$i+1;$n<count($rows);++$n) {
+            $row3 = $rows[$n];
+            $new_ob_hash = $row3["wf{$num}_obhash"];
+            if($new_ob_hash != $ob_hash) {
+              break;
+            }
+            $push_rank++;
+            $rowlist .= "," . $row3['wf_rownum'];
+            ++$i;
+          }
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$rank} WHERE wf_rownum in ({$rowlist})";
+          $rank += $push_rank;
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+        }
+      }
+    }
+    return true;
+  }
+
   function standard_deviation($aValues, $bSample = false) {
       $fMean = array_sum($aValues) / count($aValues);
       $fVariance = 0.0;
@@ -4708,19 +4778,7 @@ class ShardQuery {
       } 
       switch(strtoupper($win['func']['base_expr'])) {
         case 'RANK':
-          /*  if($hash != $lash_hash) $rank=0;
-            if(!$ob_hash) { // rank without order by
-              $rank++;
-            } else {
-              if($ob_hash !== $last_ob_hash) $rank++;
-              $last_obhash = $ob_hash;
-            }
-            $sql = "UPDATE " . $state->table_name . " SET wf".$num. " = $rank where wf_rownum=" . $rownum;
-            $DB->my_query($sql);
-            if($err = $db->my_error()) {
-              $this->errors[] = $err;
-              return false;
-            } */
+          if(!$this->wf_rank($num, $state)) return false;    
         break;
         case 'SUM':
           if(!$this->wf_sum($num, $state)) return false;    
