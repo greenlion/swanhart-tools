@@ -2234,15 +2234,111 @@ class ShardQuery {
           if($win['over'][$i]['expr_type'] != 'reserved') { 
             $win['over'][$i]['direction'] = 'asc';
             $order_by[] = $win['over'][$i];
+          } elseif(strtoupper($win['over'][$i]['base_expr']) == 'ROWS' || strtoupper($win['over'][$i]['base_expr']) == 'RANGE') {
+            $has_frame_clause = 1;
+            break;
           }
         }
       }
+
+      // "parse" the framing clause
+      if($has_frame_clause) {
+        $state->windows[$num]['mode'] = strtoupper($win['over'][$i]['base_expr']);
+        $in_start = true;
+        $i++;
+        $skip_next=false;
+        while($i < count($win['over'])) {
+
+          if($skip_next) { 
+            $skip_next = false; 
+            ++$i;
+            continue; 
+          }
+
+          $tok = strtoupper($win['over'][$i]['base_expr']);
+
+          if($win['over'][$i]['expr_type'] == 'const') {
+            if($in_start) {
+              $state->windows[$num]['start'] = $tok;
+            } else {
+              $state->windows[$num]['end'] = $tok;
+            }
+            ++$i;
+            continue;
+          }
+
+
+          if(!empty($win['over'][$i+1])) $next_tok = strtoupper($win['over'][$i+1]['base_expr']); else $next_tok = null;
+
+
+          switch($tok) {
+
+            case 'ROW':
+              ++$i;
+              continue;
+            break;
+
+            case 'BETWEEN':
+              $in_start = true;
+            break;
+
+            case 'AND':
+              $in_start = false;
+            break;
+
+            case 'CURRENT':
+              if($in_start) {
+                $state->windows[$num]['start'] = 0;
+              } else{
+                $state->windows[$num]['end'] = 0;
+              }
+
+            case 'UNBOUNDED':
+              if($in_start) {
+                if($next_tok == "FOLLOWING") {
+                  $this->errors['UNBOUNDED FOLLOWING may not be used as the start of a window frame'];
+                  return false;
+                } 
+                $state->windows[$num]['start'] = false;
+              } else {
+                if($next_tok == "PRECEDING") {
+                  $this->errors['UNBOUNDED PRECIDING may not be used as the end of a window frame'];
+                  return false;
+                }
+                $state->windows[$num]['end'] = false;
+                $skip_next = true;
+
+              }
+            break;
+
+            case 'PRECEDING':
+              if($in_start) {
+                $state->windows[$num]['start'] *= -1;
+              } else {
+                $state->windows[$num]['end'] *= -1;
+              }
+            break;
+
+            case 'FOLLOWING':
+            break;
+          }
+          ++$i;
+        }
+      } else { /* default for each frame is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW */
+        $state->windows[$num]['mode'] = 'RANGE'; 
+        $state->windows[$num]['frame_start'] = false; // false means unbounded preceeding
+        $state->windows[$num]['frame_end'] = 0; // 0 means current_row
+      }
+
       $state->windows[$num]['partition'] = $partition_cols;
       $state->windows[$num]['order'] = $order_by;
       unset($state->windows[$num]['over']);
-      #map which select positions have 
+
+      //map which select positions have windows for use in process_select()
       $state->windows_at[$win['pos']] = 1;
     }
+
+    print_r($state->windows); 
     
     if(!empty($state->parsed['UNION ALL'])) {
       $queries = array();
@@ -2259,7 +2355,9 @@ class ShardQuery {
         $sub_table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
         $sub_state->table_name = $sub_table_name;
         $sub_state->DAL = SimpleDAL::factory($sub_state->tmp_shard);
+
         $this->query($sub_tree, false, $sub_state, true, false);
+
         $state->extra_tables[] = $sub_table_name;
         $state->extra_tables = array_merge($state->extra_tables, $sub_state->extra_tables);
         
@@ -2287,7 +2385,9 @@ class ShardQuery {
         $sub_table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
         $sub_state->table_name = $sub_table_name;
         $sub_state->dal = simpledal::factory($sub_state->tmp_shard);
+
         $this->query($sub_tree, false, $sub_state, true, false);
+
         $state->extra_tables[] = $sub_table_name;
         $state->extra_tables = array_merge($state->extra_tables, $sub_state->extra_tables);
         
@@ -4104,60 +4204,36 @@ class ShardQuery {
       }
       return true;
     } else { 
-      /* running sum*/
       $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
       $stmt = $state->DAL->my_query($sql);
       if($err = $state->DAL->my_error()) {
         $this->errors[] = $err;
         return false;
       }
-      $last_hash = "";
-      $hash = "";
-      $last_ob_hash = "";
-      $ob_hash = "";
-      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+      while($row = $state->DAL->my_fetch_assoc($stmt)) { /* loop over each partition */
+
         $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $stmt2 = $state->DAL->my_query($sql);
-        if($err = $state->DAL->my_error()) {
-          $this->errors[] = $err;
-          return false;
-        }
+        $partition_rows = $this->get_all_rows($sql, $state);
+        if(!$partition_rows) return false;
+
         $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $done=array();
-        $rows=array();
-        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
-          $rows[] = $row2;
-        }
-        $last_hash = "";
-        $last_ob_hash = "";
-        $i = 0;
-        $rowlist="";
-        $sum = 0;
-        while($i<count($rows)) {
-          $row2 = $rows[$i];
-          $hash = $row2["wf{$num}_hash"];
-          $ob_hash = $row2["wf{$num}_obhash"];
-          $val = $row2[$colref];
-          $sum += $val;
-          $rowlist=$row2['wf_rownum'];
-          for($n=$i+1;$n<count($rows);++$n) {
-            $row3 = $rows[$n];
-            $new_ob_hash = $row3["wf{$num}_obhash"];
-            $val2 = $row3[$colref]; 
-            if($new_ob_hash != $ob_hash) {
-              break;
-            }
-            $sum += $row3[$colref];
-            $rowlist .= "," . $row3['wf_rownum'];
-            ++$i;
+
+        for($i=0;$i<count($partition_rows);++$i) {
+          $row3 = $partition_rows[$i];
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+
+          if($this->all_null($frame)) { // will also return true on empty set
+            $sum = "NULL"; 
+          } else { 
+            $sum = array_sum($frame);
           }
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$sum} WHERE wf_rownum in ({$rowlist})";
+
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$sum} WHERE wf_rownum = {$row3['wf_rownum']}";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
             return false;
           }
-          ++$i;
         }
       }
     }
@@ -4824,6 +4900,97 @@ class ShardQuery {
       return (float) $fVariance;
   }
 
+  /* This function calculates the 'frame' for a window */
+  protected function &frame_window(&$rows,$win, $cur=0,$key = "wf_rownum") {
+    $start = $win['start'];
+    $end = $win['end'];
+    $mode = $win['mode'];
+    $peers = true;
+
+    if($start === 0) { // 0 is current_row
+      $start = $cur;
+    } elseif($start === false) { //unbounded preceeding
+      $start =0;
+    } else {
+      $start = $cur + $start; // positive if "value following" or negative for "value preceeding" 
+    }
+    
+    if($end === false) {
+      $end = count($rows); // unbounded following
+    } elseif($end === 0 && $mode == 'RANGE') { //range follows through peers
+      $end = $cur; 
+      $peers = true;
+    } elseif($end === 0 && $mode == 'ROWS') { //rows does not go through peers
+      $end = $cur;
+      $peers = false;
+    } else {
+      $end = $cur + $end; // positive for "value following", negative for "value preceeding"
+    }
+    $vals = array();
+
+    /* The frame can extend from before the resultset or past the end of it, but the 
+       values are NULL when that happens.  
+    */ 
+    if($start < 0) {
+      $rows_to_add = abs($start);
+      for($i=1;$i<=$rows_to_add;$i++) {
+        $rows[-1*$i][$key] = null;  
+      }
+    }
+
+    if($end < 0) {
+      $rows_to_add = abs($end);
+      for($i=1;$i<=$rows_to_add;$i++) {
+        $rows[count($rows)+($i-1)][$key] = null;  
+      }
+    }
+
+    if($start > count($rows)) {
+      $rows_to_add = $start - count($rows);
+      for($i=1;$i<=$rows_to_add;$i++) {
+        $rows[count($rows)+($i-1)][$key] = null;  
+      }
+    }
+
+    if($end> count($rows)) {
+      $rows_to_add = $end - count($rows);
+      for($i=1;$i<=$rows_to_add;$i++) {
+        $rows[count($rows)+($i-1)][$key] = null;  
+      }
+    }
+    
+    $i = $start;
+    while($i<count($rows)) {
+      $row = $rows[$i];
+      $val = $row[$key];
+      $vals[] = $val;
+      if($i == $end && !$peers) break;
+      if($i == $end) {
+        for($n=$i+1;$n<count($rows);++$n) { // continue through peers
+          $row2 = $rows[$n];
+          $val2 = $row2[$key];
+          if($val2 != $val) break 2;
+          $vals[] = null; // rows in the range don't contribute to the values
+          ++$i;
+        }
+      }
+      ++$i; 
+    }
+    return $vals;
+  }
+
+  protected function &get_all_rows($sql, &$state) {
+    $stmt = $state->DAL->my_query($sql);
+    if($err = $state->DAL->my_error()) {
+      $this->errors[] = $err;
+      return false;
+    }
+    $rows = array(); 
+    while($row = $state->DAL->my_fetch_assoc($stmt)) {
+      $rows[] = $row;
+    }
+    return $rows;
+  }
 
   protected function run_window_functions(&$state) {
     $DB = &$state->DAL;
@@ -4873,9 +5040,15 @@ class ShardQuery {
         case 'VAR_POP':
           if(!$this->wf_var($num, $state,false)) return false;    
         break;
-          
 
       }
+    }
+    return true;
+  }
+
+  function all_null(&$ary) {
+    foreach($ary as $a) {
+      if($a != null) return false;
     }
     return true;
   }
