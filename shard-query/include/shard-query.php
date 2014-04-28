@@ -2222,6 +2222,7 @@ class ShardQuery {
       $partition_cols = array();
       $order_by = array();
       $i=0;
+      $has_frame_clause = false;
       if(!empty($win['over']) && strtoupper($win['over'][0]['base_expr']) == 'PARTITION') {
         for($i=1;$i<count($win['over']);++$i) {
           if(strtoupper($win['over'][$i]['base_expr']) == "ORDER") break;
@@ -2326,8 +2327,8 @@ class ShardQuery {
         }
       } else { /* default for each frame is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW */
         $state->windows[$num]['mode'] = 'RANGE'; 
-        $state->windows[$num]['frame_start'] = false; // false means unbounded preceeding
-        $state->windows[$num]['frame_end'] = 0; // 0 means current_row
+        $state->windows[$num]['start'] = false; // false means unbounded preceeding
+        $state->windows[$num]['end'] = 0; // 0 means current_row
       }
 
       $state->windows[$num]['partition'] = $partition_cols;
@@ -2338,8 +2339,6 @@ class ShardQuery {
       $state->windows_at[$win['pos']] = 1;
     }
 
-    print_r($state->windows); 
-    
     if(!empty($state->parsed['UNION ALL'])) {
       $queries = array();
       $table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
@@ -4272,56 +4271,31 @@ class ShardQuery {
         $this->errors[] = $err;
         return false;
       }
-      $last_hash = "";
-      $hash = "";
-      $last_ob_hash = "";
-      $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
         $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $stmt2 = $state->DAL->my_query($sql);
-        if($err = $state->DAL->my_error()) {
-          $this->errors[] = $err;
-          return false;
-        }
         $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $done=array();
-        $rows=array();
-        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
-          $rows[] = $row2;
-        }
-        $last_hash = "";
-        $last_ob_hash = "";
-        $i = 0;
-        $rowlist="";
-        $sum = 0;
-        $cnt =0;
-        while($i<count($rows)) {
-          $row2 = $rows[$i];
-          $hash = $row2["wf{$num}_hash"];
-          $ob_hash = $row2["wf{$num}_obhash"];
-          $val = $row2[$colref];
-          $sum += $val;
-          $cnt++;
-          $rowlist=$row2['wf_rownum'];
-          for($n=$i+1;$n<count($rows);++$n) {
-            $row3 = $rows[$n];
-            $new_ob_hash = $row3["wf{$num}_obhash"];
-            $val2 = $row3[$colref]; 
-            if($new_ob_hash != $ob_hash) {
-              break;
-            }
-            $cnt++;
-            $sum += $row3[$colref];
-            $rowlist .= "," . $row3['wf_rownum'];
-            ++$i;
+        
+        $partition_rows = $this->get_all_rows($sql, $state);
+        if(!$partition_rows) return false;
+
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+
+        for($i=0;$i<count($partition_rows);++$i) {
+          $row3 = $partition_rows[$i];
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+
+          if($this->all_null($frame)) { // will also return true on empty set
+            $avg = "NULL";
+          } else {
+            $avg = array_sum($frame)/count($frame);
           }
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = ($sum/$cnt) WHERE wf_rownum in ({$rowlist})";
+
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$avg} WHERE wf_rownum = {$row3['wf_rownum']}";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
             return false;
           }
-          ++$i;
         }
       }
     }
@@ -4917,17 +4891,13 @@ class ShardQuery {
     
     if($end === false) {
       $end = count($rows); // unbounded following
-    } elseif($end === 0 && $mode == 'RANGE') { //range follows through peers
-      $end = $cur; 
-      $peers = true;
-    } elseif($end === 0 && $mode == 'ROWS') { //rows does not go through peers
+    } elseif($end === 0) {
       $end = $cur;
-      $peers = false;
     } else {
       $end = $cur + $end; // positive for "value following", negative for "value preceeding"
     }
+    if($mode == 'ROWS') $peers = false;
     $vals = array();
-
     /* The frame can extend from before the resultset or past the end of it, but the 
        values are NULL when that happens.  
     */ 
@@ -4970,7 +4940,7 @@ class ShardQuery {
           $row2 = $rows[$n];
           $val2 = $row2[$key];
           if($val2 != $val) break 2;
-          $vals[] = null; // rows in the range don't contribute to the values
+          $vals[] = $val; // rows in the range don't contribute to the values
           ++$i;
         }
       }
@@ -5051,5 +5021,13 @@ class ShardQuery {
       if($a != null) return false;
     }
     return true;
+  }
+
+  function count2(&$ary) {
+    $cnt =0;
+    foreach($ary as $a) {
+      if($a != null) $cnt++;
+    }
+    return $cnt;
   }
 }
