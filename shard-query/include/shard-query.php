@@ -4627,11 +4627,15 @@ class ShardQuery {
     return true;
   }
 
-  protected function wf_rank($num,$state,$dense=false) {
+  protected function wf_rank($num,$state,$dense=false,$percent=false) {
     static $sum;
     $win = $state->windows[$num];
     if(empty($win['order'])) {
-      $sql = "update " . $state->table_name . " set wf{$num}=1";
+      if($percent)
+        $sql = "update " . $state->table_name . " set wf{$num}=1";
+      else
+        $sql = "update " . $state->table_name . " set wf{$num}=0";
+         
       $state->DAL->my_query($sql);
       if($err = $state->DAL->my_error()) {
         $this->errors[] = $err;
@@ -4667,6 +4671,7 @@ class ShardQuery {
         $i = 0;
         $rowlist="";
         $rank = 0;
+
         while($i<count($rows)) {
           $row2 = $rows[$i];
           ++$rank;
@@ -4683,13 +4688,18 @@ class ShardQuery {
             $rowlist .= "," . $row3['wf_rownum'];
             ++$i;
           }
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$rank} WHERE wf_rownum in ({$rowlist})";
-          $rank += $push_rank;
+          if($percent) { 
+            $pct = ($rank-1)/(count($rows)-1);
+            $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$pct} WHERE wf_rownum in ({$rowlist})";
+          } else {
+            $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$rank} WHERE wf_rownum in ({$rowlist})";
+          }
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
             return false;
           }
+          $rank += $push_rank;
           ++$i;
         }
       }
@@ -4847,7 +4857,7 @@ class ShardQuery {
           $val2 = $row2[$key];
           $sort2 = $row2[$ob_key];
           if($sort != $sort2) break 2;
-          $vals[] = $val; // rows in the range don't contribute to the values
+          $vals[] = $val; 
           ++$i;
         }
       }
@@ -4882,6 +4892,9 @@ class ShardQuery {
         break;
         case 'DENSE_RANK':
           if(!$this->wf_rank($num, $state,true)) return false;    
+        break;
+        case 'PERCENT_RANK':
+          if(!$this->wf_rank($num, $state,false, true)) return false;    
         break;
         case 'ROW_NUMBER':
           if(!$this->wf_rownum($num, $state)) return false;    
