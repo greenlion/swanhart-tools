@@ -267,7 +267,7 @@ class ShardQuery {
     }
 
     if(!empty($state->windows)) {
-      if($added_key) $sql .= ",";
+      if($added_key) $args .= ",";
       $args .= "wf_rownum bigint auto_increment, key(wf_rownum)";
       foreach($state->windows as $num => $win) {
         $args .= ",";
@@ -617,11 +617,11 @@ class ShardQuery {
     return "`$alias`";
   }
   
-  protected function process_select_item($pos, &$clause, &$shard_query = "", &$coord_query = "", &$push_select = array(), &$group_aliases = array(), &$error = array(), $skip_alias = false, &$used_agg_func, &$coord_odku, $prev_clause = null, &$state, $alias, $parent, &$custom_functions) {
+  protected function process_select_item($pos, &$clause, &$shard_query = "", &$coord_query = "", &$push_select = array(), &$group_aliases = array(), &$error = array(), $skip_alias = false, &$used_agg_func, &$coord_odku, $prev_clause = null, &$state, $alias, $parent, &$custom_functions, $skip_coord=false) {
     $return = array();
     $no_pushdown_limit = true;
     $non_distrib = false;
-
+    $new_alias = "";
     
     /* handle SELECT * 
      */
@@ -638,7 +638,6 @@ class ShardQuery {
     if(!empty($clause['base_expr'])) {
       $base_expr = $clause['base_expr'];
     }
-    
     switch($clause['expr_type']) {
 
       
@@ -646,7 +645,7 @@ class ShardQuery {
         $prev_clause = $clause;
         if(!$parent || ($parent && $parent['expr_type'] !== 'expression'))
           $coord_query .= $clause['base_expr'];
-        return true;
+        return $new_alias;
       
       case 'expression':
         if(!empty($clause['alias'])) {
@@ -754,7 +753,7 @@ class ShardQuery {
               }
               
               $state->used_colrefs[trim($new_expr)] = 1;
-              $coord_query .= "{$function}(distinct $new_alias)";
+              if(!$skip_coord) $coord_query .= "{$function}(distinct $new_alias)";
               $state->used_distinct = true;
               
             } else {
@@ -772,14 +771,14 @@ class ShardQuery {
               }
               if($function == 'COUNT') {
                 $shard_query .= "COUNT({$base_expr}) AS $new_alias";
-                $coord_query .= "SUM($new_alias)";
+                if(!$skip_coord) $coord_query .= "SUM($new_alias)";
               } else {
                 $shard_query .= "{$function}({$base_expr}) AS $new_alias";
-                $coord_query .= "{$function}({$new_alias})";
+                if(!$skip_coord) $coord_query .= "{$function}({$new_alias})";
               }
             }
             if($alias && !$skip_alias)
-              $coord_query .= " AS $alias";
+              if(!$skip_coord) $coord_query .= " AS $alias";
             
             break;
           
@@ -805,7 +804,7 @@ class ShardQuery {
               $alias_cnt = trim($alias, '`');
               $alias_cnt = "`{$alias_cnt}_cnt`";
               $shard_query .= "SUM({$base_expr}) AS $alias";
-              $coord_query .= "SUM({$alias})/SUM({$alias_cnt})" . (!$skip_alias ? " AS $alias" : "");
+              if(!$skip_coord) $coord_query .= "SUM({$alias})/SUM({$alias_cnt})" . (!$skip_alias ? " AS $alias" : "");
               
               //need to push a COUNT expression into the SELECT clause
               $push_select[] = "COUNT({$base_expr}) as {$alias_cnt}";
@@ -910,17 +909,17 @@ class ShardQuery {
       
       case 'function':
         $no_pushdown_limit = true;
-        $coord_query .= $base_expr . "(";
+        if(!$skip_coord) $coord_query .= $base_expr . "(";
         $first = 0;
         foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
           if($sub_clause['expr_type'] == 'colref' || $sub_clause['expr_type'] == 'aggregate_function' || $sub_clause['expr_type'] == 'function') {
             $this->process_select_item($pos + 1, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $used_agg_func, $coord_odku, $clause, $state, "", $clause, $custom_functions);
           } else {
-            $coord_query .= " " . $sub_clause['base_expr'];
+            if(!$skip_coord) $coord_query .= " " . $sub_clause['base_expr'];
           }
           if(!empty($clause['sub_tree'][$sub_pos+1])) $coord_query .= ",";
         }
-        $coord_query .= ") $alias";
+        if(!$skip_coord) $coord_query .= ") $alias";
         
         break;
       
@@ -929,11 +928,12 @@ class ShardQuery {
         if(empty($state->used_colrefs[$base_expr])) {
           $new_alias = "expr$" . (count($state->used_colrefs));
         } else {
+          if($skip_coord) continue;
           $new_alias = "expr$" . $state->used_colrefs[$base_expr];
         }
         
         if(!$parent) {
-          $coord_query .= $new_alias . ' AS ' . $alias;
+          if(!$skip_coord) $coord_query .= $new_alias . ' AS ' . $alias;
           $shard_query .= $clause['base_expr'] . ' AS ' . $new_alias;
           //$group[] = $pos + 1;
           $group_aliases[$clause['base_expr']] = array(
@@ -974,7 +974,7 @@ class ShardQuery {
     $state->no_pushdown_limit = $no_pushdown_limit;
     $state->non_distrib = $non_distrib;
     
-    return true;
+    return $new_alias;
     
   }
   
@@ -1006,8 +1006,25 @@ class ShardQuery {
     foreach($select as $pos => $clause) {
       if(!empty($state->windows_at[$pos])) {
         $shard_query .= "0 as wf{$win_num}"; 
-        $coord_query .= "wf{$win_num} as {$this->windows[$win_num]['alias']}"; 
-        $this->state->aliases[] = $this->windows[$win_num]['alias']; 
+        $coord_query .= "wf{$win_num} as {$this->windows[$win_num]['alias']},"; 
+        if(!empty($state->windows[$win_num]['func']['sub_tree'][0]) && $state->windows[$win_num]['func']['sub_tree'][0]['expr_type'] == "aggregate_function") {
+          $shard_query .= ",";
+          $alias = $this->process_select_item($pos+1, $state->windows[$win_num]['func']['sub_tree'][0], $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $used_agg_func, $coord_odku, null, $state, $alias, null, $custom_functions,true);
+          $state->windows[$win_num]['func']['sub_tree'][0]=array('expr_type'=>'colref', 'base_expr' => $alias, 'sub_tree'=>null);
+        } elseif(!empty($state->windows[$win_num]['func']['sub_tree'][0]) && $state->windows[$win_num]['func']['sub_tree'][0]['expr_type'] == "colref") {
+          $colref = $state->windows[$win_num]['func']['sub_tree'][0]['base_expr'];
+          if(empty($state->used_colrefs[$colref])) {
+            $new_alias = "expr$" . (count($state->used_colrefs));
+            $shard_query .= "," . $colref;
+            if(strpos($colref, '.*') === false) {
+              $shard_query .= ' AS ' . $new_alias;
+            }
+          } else {
+            $new_alias = ",expr$" . $state->used_colrefs[$colref];
+          } 
+          $state->windows[$win_num]['func']['sub_tree'][0]=array('expr_type'=>'colref', 'base_expr' => $new_alias, 'sub_tree'=>null);
+        }
+        $state->aliases[] = $this->windows[$win_num]['alias']; 
         ++$win_num;
       } else {
         //this will recurse and fill up the proper structures
@@ -2483,14 +2500,13 @@ class ShardQuery {
       $this->process_undistributable_select() [below]
       */
       $select = $this->process_select($state->parsed['SELECT'], $straight_join, $distinct, $state);
-
       /* Now the columns referenced by window functions have to be paid attention to*/
       $window_col = array();
       if(!empty($state->windows)) {
         for($i=0;$i<count($state->windows);++$i) {
           $win = $state->windows[$i];
           $shard_hash = "";
-          
+         
           foreach($win['partition'] as $part) {
             if(empty($window_col[$part['base_expr']])) {
               if(trim($select['shard_sql']) != 'SELECT') $select['shard_sql'] .= ",";
@@ -2524,13 +2540,14 @@ class ShardQuery {
           }
           $state->windows[$i]['order_by'] = $obclause;
           $colrefs = $this->extract_colrefs($win['func']['sub_tree']);
-          foreach($colrefs as $col) {
+/*          foreach($colrefs as $col) {
+
             if(empty($window_col[$col['base_expr']])) {
               if(trim($select['shard_sql']) != 'SELECT') $select['shard_sql'] .= ",";
               $select['shard_sql'] .= $col['base_expr'];
               $window_col[$col['base_expr']] = 1;
-            }
-          }
+            } 
+          } */
         }
       }
      
@@ -4818,7 +4835,6 @@ class ShardQuery {
           ++$bucket; 
           $cnt = 0; 
         }
-echo $sql . "\n";
         $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$bucket} WHERE wf_rownum = {$rownum}";
         $state->DAL->my_query($sql);
         if($err = $state->DAL->my_error()) {
@@ -4955,6 +4971,44 @@ echo $sql . "\n";
     return true;
   }
 
+  protected function wf_nth_value($num,$state) {
+    static $sum;
+    $win = $state->windows[$num];
+    $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name;
+    $stmt = $state->DAL->my_query($sql);
+    if($err = $state->DAL->my_error()) {
+      $this->errors[] = $err;
+      return false;
+    }
+    while($row = $state->DAL->my_fetch_assoc($stmt)) { /* loop over each partition */
+      $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "'";
+      if(!empty($win['order_by'])) $sql .= " ORDER BY " . $win['order_by'];
+      $partition_rows = $this->get_all_rows($sql, $state);
+      if(!$partition_rows) return false;
+
+      $colref = $win['func']['sub_tree'][0]['base_expr'];
+      $n = $win['func']['sub_tree'][1]['base_expr'];
+
+      for($i=0;$i<count($partition_rows);++$i) {
+        $row3 = $partition_rows[$i];
+        $frame = $this->frame_window($partition_rows, $win, $i, $colref, "wf{$num}_obhash");
+        if($n > count($partition_rows || $n < 0)) {
+          $last = null;
+        } else {
+          $last = $frame[$n-1];
+        }
+        if(!is_numeric($last)) $last=0;
+        $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$last} WHERE wf_rownum = {$row3['wf_rownum']}";
+        $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   function standard_deviation($aValues, $bSample = false) {
       $fMean = array_sum($aValues) / count($aValues);
       $fVariance = 0.0;
@@ -5038,6 +5092,7 @@ echo $sql . "\n";
     
     $i = $start;
     while($i<count($rows)) {
+
       $row = $rows[$i];
       $val = $row[$key];
       if(!empty($row[$ob_key])) $sort = $row[$ob_key];
@@ -5055,6 +5110,7 @@ echo $sql . "\n";
       }
       ++$i; 
     }
+
     return $vals;
   }
 
@@ -5099,6 +5155,9 @@ echo $sql . "\n";
         break;
         case 'FIRST_VALUE':
           if(!$this->wf_first_value($num, $state)) return false;    
+        break;
+        case 'NTH_VALUE':
+          if(!$this->wf_nth_value($num, $state)) return false;    
         break;
         case 'ROW_NUMBER':
           if(!$this->wf_rownum($num, $state)) return false;    
