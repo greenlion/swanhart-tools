@@ -4219,7 +4219,7 @@ class ShardQuery {
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
-          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref, "wf{$num}_obhash");
 
           if($this->all_null($frame)) { // will also return true on empty set
             $sum = "NULL"; 
@@ -4282,7 +4282,7 @@ class ShardQuery {
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
-          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref, "wf{$num}_obhash");
 
           if($this->all_null($frame)) { // will also return true on empty set
             $avg = "NULL";
@@ -4349,7 +4349,7 @@ class ShardQuery {
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
-          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref, "wf{$num}_obhash");
 
           if($this->all_null($frame)) { // will also return true on empty set
             $min = "NULL";
@@ -4412,7 +4412,7 @@ class ShardQuery {
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
-          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref, "wf{$num}_obhash");
 
           if($this->all_null($frame)) { // will also return true on empty set
             $max = "NULL";
@@ -4477,7 +4477,7 @@ class ShardQuery {
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
-          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref, "wf{$num}_obhash");
 
           if($this->all_null($frame)) { // will also return true on empty set
             $cnt = 0;
@@ -4542,7 +4542,7 @@ class ShardQuery {
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
-          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref, "wf{$num}_obhash");
 
           if($this->all_null($frame)) { // will also return true on empty set
             $std = 0;
@@ -4607,7 +4607,7 @@ class ShardQuery {
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
-          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref, "wf{$num}_obhash");
 
           if($this->all_null($frame)) { // will also return true on empty set
             $std = 0;
@@ -4780,7 +4780,7 @@ class ShardQuery {
   }
 
   /* This function calculates the 'frame' for a window */
-  protected function &frame_window(&$rows,$win, $cur=0,$key = "wf_rownum") {
+  protected function &frame_window(&$rows,$win, $cur=0,$key = "wf_rownum", $ob_key="") {
     $start = $win['start'];
     $end = $win['end'];
     $mode = $win['mode'];
@@ -4838,13 +4838,15 @@ class ShardQuery {
     while($i<count($rows)) {
       $row = $rows[$i];
       $val = $row[$key];
+      $sort = $row[$ob_key];
       $vals[] = $val;
       if($i == $end && !$peers) break;
       if($i == $end) {
         for($n=$i+1;$n<count($rows);++$n) { // continue through peers
           $row2 = $rows[$n];
           $val2 = $row2[$key];
-          if($val2 != $val) break 2;
+          $sort2 = $row2[$ob_key];
+          if($sort != $sort2) break 2;
           $vals[] = $val; // rows in the range don't contribute to the values
           ++$i;
         }
