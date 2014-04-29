@@ -4437,7 +4437,7 @@ class ShardQuery {
             $max = max($frame);
           }
 
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$min} WHERE wf_rownum = {$row3['wf_rownum']}";
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$max} WHERE wf_rownum = {$row3['wf_rownum']}";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
@@ -4502,7 +4502,7 @@ class ShardQuery {
             $cnt = $this->count2($frame);
           }
 
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$min} WHERE wf_rownum = {$row3['wf_rownum']}";
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$cnt} WHERE wf_rownum = {$row3['wf_rownum']}";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
@@ -4630,12 +4630,14 @@ class ShardQuery {
           $frame = $this->frame_window($partition_rows, $win, $i, $colref, "wf{$num}_obhash");
 
           if($this->all_null($frame)) { // will also return true on empty set
-            $std = 0;
+            $var = 0;
           } else {
-            $std = $this->variance($frame,$samp);
+            $var = $this->variance($frame,$samp);
           }
+          if(!$var) $var = 'NULL';
 
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$std} WHERE wf_rownum = {$row3['wf_rownum']}";
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$var} WHERE wf_rownum = {$row3['wf_rownum']}";
+echo "$sql\n";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
@@ -5037,6 +5039,7 @@ class ShardQuery {
 
   /* This function calculates the 'frame' for a window */
   protected function &frame_window(&$rows,$win, $cur=0,$key = "wf_rownum", $ob_key="") {
+    $key = ltrim($key,",");
     $start = $win['start'];
     $end = $win['end'];
     $mode = $win['mode'];
@@ -5091,6 +5094,7 @@ class ShardQuery {
     }
     
     $i = $start;
+    
     while($i<count($rows)) {
 
       $row = $rows[$i];
