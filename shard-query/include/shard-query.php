@@ -4598,7 +4598,6 @@ class ShardQuery {
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
         $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
         
         $partition_rows = $this->get_all_rows($sql, $state);
         if(!$partition_rows) return false;
@@ -4755,7 +4754,6 @@ class ShardQuery {
         while($i<count($rows)) {
           $row2 = $rows[$i];
           ++$rank;
-          $push_rank = 0;
           $ob_hash = $row2["wf{$num}_obhash"];
           $rowlist=$row2['wf_rownum'];
           for($n=$i+1;$n<count($rows);++$n) {
@@ -4776,6 +4774,77 @@ class ShardQuery {
             return false;
           }
           ++$i;
+        }
+      }
+    }
+    return true;
+  }
+
+  protected function wf_ntile($num,$state) {
+    static $sum;
+    $win = $state->windows[$num];
+    if(empty($win['order'])) {
+      if($percent)
+        $sql = "update " . $state->table_name . " set wf{$num}=1";
+      else
+        $sql = "update " . $state->table_name . " set wf{$num}=0";
+         
+      $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      return true;
+    } else { 
+      /* running sum*/
+      $sql = "SELECT distinct wf{$num}_hash h from " . $state->table_name . " ORDER BY " . $win['order_by']; 
+      $stmt = $state->DAL->my_query($sql);
+      if($err = $state->DAL->my_error()) {
+        $this->errors[] = $err;
+        return false;
+      }
+      $last_hash = "";
+      $hash = "";
+      $last_ob_hash = "";
+      $ob_hash = "";
+      while($row = $state->DAL->my_fetch_assoc($stmt)) {
+        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $stmt2 = $state->DAL->my_query($sql);
+        if($err = $state->DAL->my_error()) {
+          $this->errors[] = $err;
+          return false;
+        }
+        $done=array();
+        $rows=array();
+        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
+          $rows[] = $row2;
+        }
+        $last_hash = "";
+        $last_ob_hash = "";
+        $i = 0;
+        $rowlist="";
+        $rank = 0;
+        
+        $buckets = $win['func']['sub_tree'][0]['base_expr'];
+        $per_bucket=ceil(count($rows) * (1/$buckets)); 
+        if($buckets > count($rows)) $per_bucket=1; 
+        $bucket = 1;
+        $cnt = 0;
+        while($i<count($rows)) {
+          $row2 = $rows[$i];
+          $rownum=$row2['wf_rownum'];
+          if($cnt >= $per_bucket) { 
+            ++$bucket; 
+            $cnt = 0; 
+          }
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$bucket} WHERE wf_rownum = {$rownum}";
+          $state->DAL->my_query($sql);
+          if($err = $state->DAL->my_error()) {
+            $this->errors[] = $err;
+            return false;
+          }
+          ++$i;
+          ++$cnt;
         }
       }
     }
@@ -4973,6 +5042,9 @@ class ShardQuery {
         break;
         case 'CUME_DIST':
           if(!$this->wf_cume_dist($num, $state)) return false;    
+        break;
+        case 'NTILE':
+          if(!$this->wf_ntile($num, $state)) return false;    
         break;
         case 'ROW_NUMBER':
           if(!$this->wf_rownum($num, $state)) return false;    
