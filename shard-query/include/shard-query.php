@@ -4287,7 +4287,7 @@ class ShardQuery {
           if($this->all_null($frame)) { // will also return true on empty set
             $avg = "NULL";
           } else {
-            $avg = array_sum($frame)/count($frame);
+            $avg = array_sum($frame)/$this->count2($frame);
           }
 
           $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$avg} WHERE wf_rownum = {$row3['wf_rownum']}";
@@ -4340,49 +4340,29 @@ class ShardQuery {
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
         $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $stmt2 = $state->DAL->my_query($sql);
-        if($err = $state->DAL->my_error()) {
-          $this->errors[] = $err;
-          return false;
-        }
         $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $done=array();
-        $rows=array();
-        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
-          $rows[] = $row2;
-        }
-        $last_hash = "";
-        $last_ob_hash = "";
-        $i = 0;
-        $rowlist="";
-        $min = null;
-        while($i<count($rows)) {
-          $row2 = $rows[$i];
-          $hash = $row2["wf{$num}_hash"];
-          $ob_hash = $row2["wf{$num}_obhash"];
-          $val = $row2[$colref];
-          if(!isset($min)) $min = $val; 
-          if($val < $min) $min = $val;
-          $rowlist=$row2['wf_rownum'];
-          for($n=$i+1;$n<count($rows);++$n) {
-            $row3 = $rows[$n];
-            $new_ob_hash = $row3["wf{$num}_obhash"];
-            $val2 = $row3[$colref]; 
-            
-            if($new_ob_hash != $ob_hash) {
-              break;
-            }
-            if($val2 < $min) $min = $val2;
-            $rowlist .= "," . $row3['wf_rownum'];
-            ++$i;
+        
+        $partition_rows = $this->get_all_rows($sql, $state);
+        if(!$partition_rows) return false;
+
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+
+        for($i=0;$i<count($partition_rows);++$i) {
+          $row3 = $partition_rows[$i];
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+
+          if($this->all_null($frame)) { // will also return true on empty set
+            $min = "NULL";
+          } else {
+            $min = min($frame);
           }
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = ($min) WHERE wf_rownum in ({$rowlist})";
+
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$min} WHERE wf_rownum = {$row3['wf_rownum']}";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
             return false;
           }
-          ++$i;
         }
       }
     }
@@ -4421,55 +4401,31 @@ class ShardQuery {
         $this->errors[] = $err;
         return false;
       }
-      $last_hash = "";
-      $hash = "";
-      $last_ob_hash = "";
-      $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
         $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $stmt2 = $state->DAL->my_query($sql);
-        if($err = $state->DAL->my_error()) {
-          $this->errors[] = $err;
-          return false;
-        }
         $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $done=array();
-        $rows=array();
-        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
-          $rows[] = $row2;
-        }
-        $last_hash = "";
-        $last_ob_hash = "";
-        $i = 0;
-        $rowlist="";
-        $max = null;
-        while($i<count($rows)) {
-          $row2 = $rows[$i];
-          $hash = $row2["wf{$num}_hash"];
-          $ob_hash = $row2["wf{$num}_obhash"];
-          $val = $row2[$colref];
-          if(!isset($max)) $max = $val; 
-          if($val > $max) $max = $val;
-          $rowlist=$row2['wf_rownum'];
-          for($n=$i+1;$n<count($rows);++$n) {
-            $row3 = $rows[$n];
-            $new_ob_hash = $row3["wf{$num}_obhash"];
-            $val2 = $row3[$colref]; 
-            
-            if($new_ob_hash != $ob_hash) {
-              break;
-            }
-            if($val2 > $max) $max = $val2;
-            $rowlist .= "," . $row3['wf_rownum'];
-            ++$i;
+        
+        $partition_rows = $this->get_all_rows($sql, $state);
+        if(!$partition_rows) return false;
+
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+
+        for($i=0;$i<count($partition_rows);++$i) {
+          $row3 = $partition_rows[$i];
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+
+          if($this->all_null($frame)) { // will also return true on empty set
+            $max = "NULL";
+          } else {
+            $max = max($frame);
           }
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = $max WHERE wf_rownum in ({$rowlist})";
+
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$min} WHERE wf_rownum = {$row3['wf_rownum']}";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
             return false;
           }
-          ++$i;
         }
       }
     }
@@ -4512,44 +4468,29 @@ class ShardQuery {
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
         $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $stmt2 = $state->DAL->my_query($sql);
-        if($err = $state->DAL->my_error()) {
-          $this->errors[] = $err;
-          return false;
-        }
         $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $done=array();
-        $rows=array();
-        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
-          $rows[] = $row2;
-        }
-        $i = 0;
-        $rowlist="";
-        $cnt = 0;
-        while($i<count($rows)) {
-          $row2 = $rows[$i];
-          $ob_hash = $row2["wf{$num}_obhash"];
-          ++$cnt;
-          $rowlist=$row2['wf_rownum'];
-          for($n=$i+1;$n<count($rows);++$n) {
-            $row3 = $rows[$n];
-            $new_ob_hash = $row3["wf{$num}_obhash"];
-            
-            if($new_ob_hash != $ob_hash) {
-              break;
-            }
-            ++$cnt;
-            $rowlist .= "," . $row3['wf_rownum'];
-            ++$i;
-          }
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = $cnt WHERE wf_rownum in ({$rowlist})";
+        
+        $partition_rows = $this->get_all_rows($sql, $state);
+        if(!$partition_rows) return false;
 
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+
+        for($i=0;$i<count($partition_rows);++$i) {
+          $row3 = $partition_rows[$i];
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+
+          if($this->all_null($frame)) { // will also return true on empty set
+            $cnt = 0;
+          } else {
+            $cnt = $this->count2($frame);
+          }
+
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$min} WHERE wf_rownum = {$row3['wf_rownum']}";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
             return false;
           }
-          ++$i;
         }
       }
     }
@@ -4592,47 +4533,29 @@ class ShardQuery {
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
         $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $stmt2 = $state->DAL->my_query($sql);
-        if($err = $state->DAL->my_error()) {
-          $this->errors[] = $err;
-          return false;
-        }
         $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $done=array();
-        $rows=array();
-        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
-          $rows[] = $row2;
-        }
-        $last_ob_hash = "";
-        $i = 0;
-        $rowlist="";
-        $vals = array();
-        while($i<count($rows)) {
-          $row2 = $rows[$i];
-          $hash = $row2["wf{$num}_hash"];
-          $ob_hash = $row2["wf{$num}_obhash"];
-          $vals[] = $row2[$colref];
-          $rowlist=$row2['wf_rownum'];
-          for($n=$i+1;$n<count($rows);++$n) {
-            $row3 = $rows[$n];
-            $new_ob_hash = $row3["wf{$num}_obhash"];
-            if($new_ob_hash != $ob_hash) {
-              break;
-            }
-            $vals[] = $row3[$colref]; 
-            $rowlist .= "," . $row3['wf_rownum'];
-            ++$i;
-          }
-          $std = $this->standard_deviation($vals,$samp);
-          if($std == false) $std = "NULL";
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$std} WHERE wf_rownum in ({$rowlist})";
+        
+        $partition_rows = $this->get_all_rows($sql, $state);
+        if(!$partition_rows) return false;
 
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+
+        for($i=0;$i<count($partition_rows);++$i) {
+          $row3 = $partition_rows[$i];
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+
+          if($this->all_null($frame)) { // will also return true on empty set
+            $std = 0;
+          } else {
+            $std = $this->standard_deviation($frame,$samp);
+          }
+
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$std} WHERE wf_rownum = {$row3['wf_rownum']}";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
             return false;
           }
-          ++$i;
         }
       }
     }
@@ -4675,54 +4598,36 @@ class ShardQuery {
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
         $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $stmt2 = $state->DAL->my_query($sql);
-        if($err = $state->DAL->my_error()) {
-          $this->errors[] = $err;
-          return false;
-        }
         $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $done=array();
-        $rows=array();
-        while($row2=$state->DAL->my_fetch_assoc($stmt2)) {
-          $rows[] = $row2;
-        }
-        $last_ob_hash = "";
-        $i = 0;
-        $rowlist="";
-        $vals = array();
-        while($i<count($rows)) {
-          $row2 = $rows[$i];
-          $hash = $row2["wf{$num}_hash"];
-          $ob_hash = $row2["wf{$num}_obhash"];
-          $vals[] = $row2[$colref];
-          $rowlist=$row2['wf_rownum'];
-          for($n=$i+1;$n<count($rows);++$n) {
-            $row3 = $rows[$n];
-            $new_ob_hash = $row3["wf{$num}_obhash"];
-            if($new_ob_hash != $ob_hash) {
-              break;
-            }
-            $vals[] = $row3[$colref]; 
-            $rowlist .= "," . $row3['wf_rownum'];
-            ++$i;
-          }
-          $var = $this->variance($vals,$samp);
-          if($var==false) $var = "0";
-          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$var} WHERE wf_rownum in ({$rowlist})";
+        
+        $partition_rows = $this->get_all_rows($sql, $state);
+        if(!$partition_rows) return false;
 
+        $colref = $win['func']['sub_tree'][0]['base_expr'];
+
+        for($i=0;$i<count($partition_rows);++$i) {
+          $row3 = $partition_rows[$i];
+          $frame = $this->frame_window($partition_rows, $win, $i, $colref);
+
+          if($this->all_null($frame)) { // will also return true on empty set
+            $std = 0;
+          } else {
+            $std = $this->variance($frame,$samp);
+          }
+
+          $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$std} WHERE wf_rownum = {$row3['wf_rownum']}";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
             return false;
           }
-          ++$i;
         }
       }
     }
     return true;
   }
 
-  protected function wf_rank($num,$state) {
+  protected function wf_rank($num,$state,$dense=false) {
     static $sum;
     $win = $state->windows[$num];
     if(empty($win['order'])) {
@@ -4774,7 +4679,7 @@ class ShardQuery {
             if($new_ob_hash != $ob_hash) {
               break;
             }
-            $push_rank++;
+            if(!$dense) $push_rank++;
             $rowlist .= "," . $row3['wf_rownum'];
             ++$i;
           }
@@ -4972,6 +4877,10 @@ class ShardQuery {
       switch(strtoupper($win['func']['base_expr'])) {
         case 'RANK':
           if(!$this->wf_rank($num, $state)) return false;    
+        break;
+        case 'DENSE_RANK':
+          if(!$this->wf_rank($num, $state,true)) return false;    
+        break;
         case 'ROW_NUMBER':
           if(!$this->wf_rownum($num, $state)) return false;    
         break;
