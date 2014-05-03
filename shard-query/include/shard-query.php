@@ -901,7 +901,7 @@ class ShardQuery {
               unset($expr_info[0]);
               $new_expr = join(" ", $expr_info);
               
-              if(empty($state->used_colrefs[trim($new_expr)])) {
+              if(!isset($state->used_colrefs[trim($new_expr)])) {
                 $shard_query .= "$new_expr AS $new_alias";
                 $coord_odku[] = "$new_alias=VALUES($new_alias)";
                 $group_aliases[trim($new_expr)] = array(
@@ -961,7 +961,7 @@ class ShardQuery {
               
               unset($expr_info[0]);
               $new_expr = join(" ", $expr_info);
-              if(empty($state->used_colrefs[trim($new_expr)])) {
+              if(!isset($state->used_colrefs[trim($new_expr)])) {
                 $shard_query .= "$new_expr AS $alias";
                 $coord_odku[] = "$alias=VALUES($alias)";
                 $group_aliases[trim($new_expr)] = array(
@@ -1123,7 +1123,7 @@ class ShardQuery {
       
       case 'colref':
       case 'subquery':
-        if(empty($state->used_colrefs[$base_expr])) {
+        if(!isset($state->used_colrefs[$base_expr])) {
           $new_alias = "expr$" . (count($state->used_colrefs));
         } else {
           $new_alias = "expr$" . $state->used_colrefs[$base_expr];
@@ -1137,7 +1137,7 @@ class ShardQuery {
             'pushed' => false
           );
         } else {
-          if(empty($state->used_colrefs[$base_expr])) {
+          if(!isset($state->used_colrefs[$base_expr])) {
             $shard_query .= $base_expr;
             if(strpos($base_expr, '.*') === false) {
                 $shard_query .= ' AS ' . $new_alias;
@@ -1158,7 +1158,7 @@ class ShardQuery {
           #$coord_query .= ",";
         }
         
-        if(empty($state->used_colrefs[$base_expr])) {
+        if(!isset($state->used_colrefs[$base_expr])) {
           $state->used_colrefs[$base_expr] = count($state->used_colrefs);
         }
         break;
@@ -2521,7 +2521,6 @@ class ShardQuery {
       $this->process_undistributable_select() [below]
       */
       $select = $this->process_select($state->parsed['SELECT'], $straight_join, $distinct, $state);
-
       /* Now some special window function columns are needed */
       if(!empty($state->windows)) {
         $used_cols = array();
