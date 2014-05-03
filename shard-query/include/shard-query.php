@@ -83,6 +83,7 @@ class ShardQuery {
     $state->push_join = array();
     $state->push_where = array();
     $state->used_distinct = false;
+    $state->windows = array();
     
     return $state;
   }
@@ -444,7 +445,9 @@ class ShardQuery {
       $this->errors = array();
 
       /* If the query has window functions then they must be processed now */
-      if(!$this->run_window_functions($state)) return false;
+      if(!empty($state->windows)) {
+        if(!$this->run_window_functions($state)) return false;
+      }
       
       /* If the query has custom functions, then the custom function workers must be invoked once all of the
        *  store_resultset workers finish their jobs.  The store_resultset worker collects hashes which represent
@@ -617,12 +620,12 @@ class ShardQuery {
     return "`$alias`";
   }
   
-  protected function process_select_item($pos, &$clause, &$shard_query = "", &$coord_query = "", &$push_select = array(), &$group_aliases = array(), &$error = array(), $skip_alias = false, &$used_agg_func, &$coord_odku, $prev_clause = null, &$state, $alias, $parent, &$custom_functions, $skip_coord=false) {
+  protected function process_select_item($pos, &$clause, &$shard_query = "", &$coord_query = "", &$push_select = array(), &$group_aliases = array(), &$error = array(), $skip_alias = false, &$coord_odku, $prev_clause = null, &$state, $alias, $parent, &$custom_functions,$winfunc_num=false, &$winfunc_query = "") {
     $return = array();
     $no_pushdown_limit = true;
     $non_distrib = false;
     $new_alias = "";
-    
+
     /* handle SELECT * 
      */
     if(!empty($clause['base_expr']) && $clause['base_expr'] == "*") {
@@ -640,41 +643,193 @@ class ShardQuery {
     }
     switch($clause['expr_type']) {
 
-      
       case 'operator':
         $prev_clause = $clause;
-        if(!$parent || ($parent && $parent['expr_type'] !== 'expression'))
-          $coord_query .= $clause['base_expr'];
-        return $new_alias;
+        if(!$parent || ($parent && $parent['expr_type'] !== 'expression')) {
+          if($winfunc_num !== false) {
+             $winfunc_query .= $clause['base_expr'];
+           } else {
+             $coord_query .= $clause['base_expr'];
+           }
+        }
+        return true;
+      break;
       
       case 'expression':
-        if(!empty($clause['alias'])) {
-          $alias = $clause['alias']['name'];
-        }
-        $prev_clause = null;
-        $in_case = false;        
-        
-        foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
-
-          $sub_used_agg_func = false;
-          if($sub_pos > 0) {
-            $prev_clause = $clause['sub_tree'][$sub_pos - 1];
+        if(strtoupper($clause['sub_tree'][1]['base_expr']) == 'OVER') { // handle window functions
+          $win = array();
+          #combine the subtrees together
+          $win['func'] = $clause['sub_tree'][0];
+          $win['over'] = array();
+          foreach($clause['sub_tree'][1]['sub_tree'] as $sub_item) {
+            if(!empty($sub_item['sub_tree'])) {
+              foreach($sub_item['sub_tree'] as $sub_item2) {
+                $win['over'][]= $sub_item2;
+              }
+            } else {
+              $win['over'][]= $sub_item;
+            }
           }
-
-          if($sub_clause['expr_type'] == 'reserved' || $sub_clause['expr_type'] == 'operator') {
-            $coord_query .= ' ' . $sub_clause['base_expr'] . ' ';
-            continue;
+          $partition_cols = array();
+          $order_by = array();
+          $i=0;
+          $has_frame_clause = false;
+          if(!empty($win['over']) && strtoupper($win['over'][0]['base_expr']) == 'PARTITION') {
+            for($i=1;$i<count($win['over']);++$i) {
+              if(strtoupper($win['over'][$i]['base_expr']) == "ORDER") break;
+              if($win['over'][$i]['expr_type'] != 'reserved') $partition_cols[] = $win['over'][$i];
+            }
           }
+          if(!empty($win['over']) && strtoupper($win['over'][$i]['base_expr']) == 'ORDER') {
+            for(;$i<count($win['over']);++$i) {
+              if(strtoupper($win['over'][$i]['base_expr']) == 'DESC') $order_by[count($order_by)-1]['direction'] = 'desc';
+              if($win['over'][$i]['expr_type'] != 'reserved') { 
+                $win['over'][$i]['direction'] = 'asc';
+                $order_by[] = $win['over'][$i];
+              } elseif(strtoupper($win['over'][$i]['base_expr']) == 'ROWS' || strtoupper($win['over'][$i]['base_expr']) == 'RANGE') {
+                $has_frame_clause = 1;
+                break;
+              }
+           }
+          }
+          $state->windows[] = $win;
+          $num = count($state->windows)-1;
 
-          if($sub_pos > 0) {
-            $shard_query = rtrim($shard_query,",") . ",";
+          // "parse" the framing clause
+          if($has_frame_clause) {
+            if(!isset($state->windows)) $state->windows=array();
+            $state->windows[$num]['mode'] = strtoupper($win['over'][$i]['base_expr']);
+            $in_start = true;
+            $i++;
+            $skip_next=false;
+            while($i < count($win['over'])) {
+
+              if($skip_next) { 
+                $skip_next = false; 
+                ++$i;
+                continue; 
+              }
+    
+              $tok = strtoupper($win['over'][$i]['base_expr']);
+    
+              if($win['over'][$i]['expr_type'] == 'const') {
+                if($in_start) {
+                  $state->windows[$num]['start'] = $tok;
+                } else {
+                  $state->windows[$num]['end'] = $tok;
+                }
+                ++$i;
+                continue;
+              }
+    
+    
+              if(!empty($win['over'][$i+1])) $next_tok = strtoupper($win['over'][$i+1]['base_expr']); else $next_tok = null;
+    
+    
+              switch($tok) {
+    
+                case 'ROW':
+                  ++$i;
+                  continue;
+                break;
+    
+                case 'BETWEEN':
+                  $in_start = true;
+                break;
+    
+                case 'AND':
+                  $in_start = false;
+                break;
+    
+                case 'CURRENT':
+                  if($in_start) {
+                    $state->windows[$num]['start'] = 0;
+                  } else{
+                    $state->windows[$num]['end'] = 0;
+                  }
+    
+                case 'UNBOUNDED':
+                  if($in_start) {
+                    if($next_tok == "FOLLOWING") {
+                      $this->errors['UNBOUNDED FOLLOWING may not be used as the start of a window frame'];
+                      return false;
+                    } 
+                    $state->windows[$num]['start'] = false;
+                  } else {
+                    if($next_tok == "PRECEDING") {
+                      $this->errors['UNBOUNDED PRECIDING may not be used as the end of a window frame'];
+                      return false;
+                    }
+                    $state->windows[$num]['end'] = false;
+                    $skip_next = true;
+    
+                  }
+                break;
+    
+                case 'PRECEDING':
+                  if($in_start) {
+                    $state->windows[$num]['start'] *= -1;
+                  } else {
+                    $state->windows[$num]['end'] *= -1;
+                  }
+                break;
+    
+                case 'FOLLOWING':
+                break;
+              }
+              ++$i;
+            }
+          } else { // default for each frame is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW 
+            $state->windows[$num]['mode'] = 'RANGE'; 
+            $state->windows[$num]['start'] = false; // false means unbounded preceeding
+            $state->windows[$num]['end'] = 0; // 0 means current_row
+          }
+    
+          $state->windows[$num]['partition'] = $partition_cols;
+          $state->windows[$num]['order'] = $order_by;
+          unset($state->windows[$num]['over']);
+    
+          #$state->windows[$num]['func']['expr_type'] = 'window_function';
+          if(!empty($state->windows[$num]['func']['sub_tree']) && $state->windows[$num]['func']['sub_tree'][0]['expr_type'] !== 'const') { 
+            $this->process_select_item($pos+1,$state->windows[$num]['func']['sub_tree'][0],$shard_query, $coord_query, $push_select, $group_aliases, $error, true,$coord_odku, $prev_clause, $state, "", true, $custom_functions, $num, $winfunc_query);
+          } else {
+           $shard_query .= "NULL";
+           $winfunc_query .= "NULL";
+          }
+          $shard_query .= " as wf{$num}";
+          $coord_query .= "wf{$num} as $alias";
+          $winfunc_query .= " as wf{$num}";
+          $winfunc_query = ltrim($winfunc_query,",");
+        } else {
+
+          if(!empty($clause['alias'])) {
+            $alias = $clause['alias']['name'];
+          }
+          $prev_clause = null;
+          $in_case = false;        
+          
+          foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
+
+            if($sub_pos > 0) {
+              $prev_clause = $clause['sub_tree'][$sub_pos - 1];
+            }
+
+            if($sub_clause['expr_type'] == 'reserved' || $sub_clause['expr_type'] == 'operator') {
+              $coord_query .= ' ' . $sub_clause['base_expr'] . ' ';
+              continue;
+            }
+
+            if($sub_pos > 0) {
+              $shard_query = rtrim($shard_query,",") . ",";
+            }
+            
+            $this->process_select_item($pos, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $coord_odku, $prev_clause, $state, "", $clause, $custom_functions);
+            
           }
           
-          $this->process_select_item($pos, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $sub_used_agg_func, $coord_odku, $prev_clause, $state, "", $clause, $custom_functions);
-          
+          $coord_query .= " $alias";
+
         }
-        
-        $coord_query .= " $alias";
         
         break;
       
@@ -713,7 +868,6 @@ class ShardQuery {
           }
           /* there is a string replace later which replaces #gb_hash# with the appropriate hash expression */
           $coord_query .= "MAX(( select retval from `$func_call_id` cfr where cfr.gb_hash = #gb_hash# limit 1 )) AS $alias";
-          $used_agg_func = 1;
         } else {
           // since it doesn't take unique input, we have to be undistributable :(
           $no_pushdown_limit = true;
@@ -724,11 +878,15 @@ class ShardQuery {
       
       case 'aggregate_function':
 
-        $used_agg_func = 1;
         $item = "";
         $base_expr = $this->concat_all_subtrees($clause['sub_tree'], $item);
         $function = strtoupper($clause['base_expr']);
-        $new_alias = "expr_" . crc32(uniqid());
+        if($winfunc_num !== false) {
+          $new_alias = "wf{$winfunc_num}";  
+        } else {
+          $new_alias = "expr_" . crc32(uniqid());
+        }
+        
         
         switch($function) {
           case 'COUNT':
@@ -752,8 +910,12 @@ class ShardQuery {
                 );
               }
               
-              $state->used_colrefs[trim($new_expr)] = 1;
-              if(!$skip_coord) $coord_query .= "{$function}(distinct $new_alias)";
+              $state->used_colrefs[trim($new_expr)] = count($state->used_colrefs);
+              if($winfunc_num !== false) { 
+                $winfunc_query .= "{$function}(distinct $new_alias)";
+              } else {
+                $coord_query .= "{$function}(distinct $new_alias)";
+              }
               $state->used_distinct = true;
               
             } else {
@@ -770,16 +932,26 @@ class ShardQuery {
                   break;
               }
               if($function == 'COUNT') {
-                $shard_query .= "COUNT({$base_expr}) AS $new_alias";
-                if(!$skip_coord) $coord_query .= "SUM($new_alias)";
+                $shard_query .= "COUNT({$base_expr})";
+                if($winfunc_num !== false) {
+                  $winfunc_query .= "SUM($new_alias)";
+                } else {
+                  $shard_query .= " AS $new_alias";
+                  $coord_query .= "SUM($new_alias)";
+                }
               } else {
-                $shard_query .= "{$function}({$base_expr}) AS $new_alias";
-                if(!$skip_coord) $coord_query .= "{$function}({$new_alias})";
+                $shard_query .= "{$function}({$base_expr})";
+                if($winfunc_num !== false) { 
+                  $winfunc_query .= "{$function}({$new_alias})";
+                } else { 
+                  $shard_query .= " AS $new_alias";
+                  $coord_query .= "{$function}({$new_alias})";
+                }
               }
             }
-            if($alias && !$skip_alias)
-              if(!$skip_coord) $coord_query .= " AS $alias";
-            
+            if($alias && !$skip_alias && $winfunc_num === false)
+                $coord_query .= " AS $alias";
+
             break;
           
           case 'AVG':
@@ -797,15 +969,25 @@ class ShardQuery {
                   'pushed' => true
                 );
               }
+              $state->used_colrefs[trim($new_expr)] = 1;
+              if($winfunc_num !== false) { 
+                $winfunc_query .= "{$function}(distinct $new_alias)";
+              } else {
+                $coord_query .= "{$function}(distinct $new_alias)";
+              }
               
               $coord_query .= "{$function}(distinct $alias)" . (!$skip_alias ? " AS $alias" : "");
               //since we pushed a GB expression we need to update the ODKU clause
             } else {
               $alias_cnt = trim($alias, '`');
               $alias_cnt = "`{$alias_cnt}_cnt`";
-              $shard_query .= "SUM({$base_expr}) AS $alias";
-              if(!$skip_coord) $coord_query .= "SUM({$alias})/SUM({$alias_cnt})" . (!$skip_alias ? " AS $alias" : "");
-              
+              $shard_query .= "SUM({$base_expr})";
+              if($winfunc_num !== false) {
+                $winfunc_query .= "SUM({$alias})/SUM({$alias_cnt})"; 
+              } else {
+                $shard_query .= " AS $alias";
+                $coord_query .= "SUM({$alias})/SUM({$alias_cnt})" . (!$skip_alias ? " AS $alias" : "");
+              } 
               //need to push a COUNT expression into the SELECT clause
               $push_select[] = "COUNT({$base_expr}) as {$alias_cnt}";
               $coord_odku[] = "{$alias_cnt}={$alias_cnt} +  VALUES({$alias_cnt})";
@@ -822,7 +1004,6 @@ class ShardQuery {
             $alias_sum2 = "`{$alias_expr}_sum2`";
             $alias_sum = "`{$alias_expr}_sum`";
             $alias_cnt = "`{$alias_expr}_cnt`";
-            
             
             //need to push expressions into the SELECT clause
             $shard_query .= "SUM({$base_expr}) as {$alias_sum}";
@@ -909,18 +1090,35 @@ class ShardQuery {
       
       case 'function':
         $no_pushdown_limit = true;
-        if(!$skip_coord) $coord_query .= $base_expr . "(";
-        $first = 0;
+        if($winfunc_num !== false) { 
+          $winfunc_query .= $base_expr . "(";
+        } else { 
+          $coord_query .= $base_expr . "(";
+        }
+         $first = 0;
         foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
           if($sub_clause['expr_type'] == 'colref' || $sub_clause['expr_type'] == 'aggregate_function' || $sub_clause['expr_type'] == 'function') {
-            $this->process_select_item($pos + 1, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $used_agg_func, $coord_odku, $clause, $state, "", $clause, $custom_functions);
+            $this->process_select_item($pos + 1, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $coord_odku, $clause, $state, "", $clause, $custom_functions);
           } else {
-            if(!$skip_coord) $coord_query .= " " . $sub_clause['base_expr'];
+            if($winfunc_num !== false) { 
+              $winfunc_query .= " " . $sub_clause['base_expr'];
+            } else {
+              $coord_query .= " " . $sub_clause['base_expr'];
+            }
           }
-          if(!empty($clause['sub_tree'][$sub_pos+1])) $coord_query .= ",";
+          if(!empty($clause['sub_tree'][$sub_pos+1])) {
+           if($winfunc_num !== false) {
+             $winfunc_query .= ",";
+           } else { 
+             $coord_query .= ",";
+           }
+          }
         }
-        if(!$skip_coord) $coord_query .= ") $alias";
-        
+        if($winfunc_num !== false) {
+          $winfunc_query .= ") ";
+        } elseif(!$skip_alias) { 
+          $coord_query .= ") $alias";
+        } 
         break;
       
       case 'colref':
@@ -928,12 +1126,10 @@ class ShardQuery {
         if(empty($state->used_colrefs[$base_expr])) {
           $new_alias = "expr$" . (count($state->used_colrefs));
         } else {
-          if($skip_coord) continue;
           $new_alias = "expr$" . $state->used_colrefs[$base_expr];
         }
-        
         if(!$parent) {
-          if(!$skip_coord) $coord_query .= $new_alias . ' AS ' . $alias;
+          $coord_query .= $new_alias . ' AS ' . $alias;
           $shard_query .= $clause['base_expr'] . ' AS ' . $new_alias;
           //$group[] = $pos + 1;
           $group_aliases[$clause['base_expr']] = array(
@@ -942,18 +1138,23 @@ class ShardQuery {
           );
         } else {
           if(empty($state->used_colrefs[$base_expr])) {
-            $new_alias = "expr$" . (count($state->used_colrefs));
             $shard_query .= $base_expr;
             if(strpos($base_expr, '.*') === false) {
-              $shard_query .= ' AS ' . $new_alias;
+                $shard_query .= ' AS ' . $new_alias;
             }
-            #$shard_query .= ",";
             $group_aliases[$base_expr] = array(
               'alias' => $new_alias,
               'pushed' => false
             );
+          } else {
+            if($winfunc_num !== false) {
+              $shard_query .= "NULL ";
+              $winfunc_query .= "expr$" . $state->used_colrefs[$base_expr];
+            }
           }
-          $coord_query .= " $new_alias";
+          if($winfunc_num === false) {
+            $coord_query .= " $new_alias";
+          }
           #$coord_query .= ",";
         }
         
@@ -974,7 +1175,7 @@ class ShardQuery {
     $state->no_pushdown_limit = $no_pushdown_limit;
     $state->non_distrib = $non_distrib;
     
-    return $new_alias;
+    return true;
     
   }
   
@@ -982,14 +1183,12 @@ class ShardQuery {
     $error = array();
     $shard_query = ""; //Query to send to each shard
     $coord_query = ""; //Query to send to the coordination node
+    $winfunc_query = ""; //Query used to get data for window functions
     
     $group = array(); //list of positions which contain non-aggregate functions
     $group_aliases = array(); //list of group aliases which will be indexed on the aggregation temp table
     
     $coord_odku = array();
-    
-    
-    $used_agg_func = 0;
     
     $push_select = array(); //list of expressions to push onto the end of the SELECT clause sent to the shards
     $state->non_distrib = false;
@@ -1004,39 +1203,17 @@ class ShardQuery {
     $state->aliases = "";
     $win_num = 0;
     foreach($select as $pos => $clause) {
-      if(!empty($state->windows_at[$pos])) {
-        $shard_query .= "0 as wf{$win_num}"; 
-        $coord_query .= "wf{$win_num} as {$this->windows[$win_num]['alias']},"; 
-        if(!empty($state->windows[$win_num]['func']['sub_tree'][0]) && $state->windows[$win_num]['func']['sub_tree'][0]['expr_type'] == "aggregate_function") {
-          $shard_query .= ",";
-          $alias = $this->process_select_item($pos+1, $state->windows[$win_num]['func']['sub_tree'][0], $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $used_agg_func, $coord_odku, null, $state, $alias, null, $custom_functions,true);
-          $state->windows[$win_num]['func']['sub_tree'][0]=array('expr_type'=>'colref', 'base_expr' => $alias, 'sub_tree'=>null);
-        } elseif(!empty($state->windows[$win_num]['func']['sub_tree'][0]) && $state->windows[$win_num]['func']['sub_tree'][0]['expr_type'] == "colref") {
-          $colref = $state->windows[$win_num]['func']['sub_tree'][0]['base_expr'];
-          if(empty($state->used_colrefs[$colref])) {
-            $new_alias = "expr$" . (count($state->used_colrefs));
-            $shard_query .= "," . $colref;
-            if(strpos($colref, '.*') === false) {
-              $shard_query .= ' AS ' . $new_alias;
-            }
-          } else {
-            $new_alias = ",expr$" . $state->used_colrefs[$colref];
-          } 
-          $state->windows[$win_num]['func']['sub_tree'][0]=array('expr_type'=>'colref', 'base_expr' => $new_alias, 'sub_tree'=>null);
-        }
-        $state->aliases[] = $this->windows[$win_num]['alias']; 
-        ++$win_num;
-      } else {
-        //this will recurse and fill up the proper structures
-        $alias = $this->make_alias($clause);
-        $this->state->aliases[] = $alias;
-        $this->process_select_item($pos, $clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $used_agg_func, $coord_odku, null, $state, $alias, null, $custom_functions);
-      }
+
+      $alias = $this->make_alias($clause);
+      $this->state->aliases[] = $alias;
+      $this->process_select_item($pos, $clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $coord_odku, null, $state, $alias, null, $custom_functions,null,$winfunc_query);
       if($pos + 1 < count($select)) {
         $shard_query = rtrim($shard_query, ", ");
         $coord_query = rtrim($coord_query, ", ");
+        $winfunc_query = rtrim($winfunc_query, ", ");
         $shard_query .= ",";
         $coord_query .= ",";
+        $winfunc_query .= ",";
       }
       
       $prev_clause = false;
@@ -1044,6 +1221,7 @@ class ShardQuery {
 
     $shard_query = trim($shard_query, ", ");
     $coord_query = trim($coord_query, ", ");
+    $winfunc_query = trim($winfunc_query, ", ");
 
     $sql = "SELECT ";
     if($straight_join)
@@ -1053,7 +1231,7 @@ class ShardQuery {
 
     $coord_query = $sql . $coord_query;
     
-    if($win_num > 0) {
+    if($winfunc_query != "") {
       $sql .= "NULL as wf_rownum, ";
     }
     $shard_query = $sql . $shard_query;
@@ -1085,10 +1263,6 @@ class ShardQuery {
         $coord_group .= ',';
       $coord_group .= $ary_alias['alias'];
     }
-    if($coord_group || $shard_group)
-      $state->used_agg_func = true;
-    else
-      $state->used_agg_func = false;
     
     if($shard_hash == "")
       $shard_hash = "'ONE_ROW_RESULTSET'";
@@ -1110,7 +1284,8 @@ class ShardQuery {
       'shard_group' => $shard_group,
       'coord_group' => $coord_group,
       'group_aliases' => $all_aliases,
-      'custom_functions' => $custom_functions
+      'custom_functions' => $custom_functions,
+      'winfunc_sql' => $winfunc_query
     );
   }
   
@@ -1273,7 +1448,6 @@ class ShardQuery {
       $group = array();
       $error = array();
       $skip_alias = true;
-      $used_agg_func = false;
       $coord_odku = array();
       switch($clause['expr_type']) {
         case 'function':
@@ -1283,7 +1457,7 @@ class ShardQuery {
             $select .= ",";
           
           $nothing = " "; $custom_functions = array();
-          $this->process_select_item($pos + 1, $clause, $select, $having, $push, $group_aliases, $group, $error, $skip_alias, $used_agg_func, $coord_odku, $state, $nothing, null,$custom_functions);
+          $this->process_select_item($pos + 1, $clause, $select, $having, $push, $group_aliases, $group, $error, $skip_alias, $coord_odku, $state, $nothing, null,$custom_functions);
           
           break;
         
@@ -2092,9 +2266,6 @@ class ShardQuery {
     if($ignore)$ignore="IGNORE";else $ignore="";
 
     if($set_pos_at) $set_str = substr($sql, $set_pos_at); else $set_str = "";
-#echo "LOAD DATA INFILE $file_name {$replace}{$ignore} INTO TABLE $table_name CHARACTER SET $charset FIELDS TERMINATED BY '$fields_terminated_by' OPTIONALLY ENCLOSED BY '$fields_enclosed_by' ESCAPED BY '$fields_escaped_by' LINES STARTING BY '$lines_starting_by' TERMINATED BY '$lines_terminated_by' $columns_str $set_str\n";
-#exit;
-    /* $fields_optionally_enclosed =  false; #not used */
 
     $lines_terminated_by = str_replace("\\n", "\n", $lines_terminated_by);
     #TODO: Handle setting the shard_key in the SET clause
@@ -2127,8 +2298,6 @@ class ShardQuery {
     $state->shard_sql = ""; //identical SQL which will be broadcast to all shards
     $state->coord_sql = ""; //the summary table sql
     $state->in_lists = array();
-    
-    $state->used_agg_func = false;
     
     $error = array();
     
@@ -2206,154 +2375,6 @@ class ShardQuery {
       $state->parsed = $this->parser->parse($sql,true);
     } else {
       $state->parsed = $sql;
-    }
-
-    //print_r($state->parsed); exit;
-
-    /* handle window functions */
-    $state->windows = array();
-    $funcnum=0;
-    if(!empty($state->parsed['SELECT'])) {
-      foreach($state->parsed['SELECT'] as $pos => $item) {
-        if($item['expr_type'] == 'expression' && strtoupper($item['sub_tree'][1]['base_expr']) == 'OVER') {
-          $alias = $this->make_alias($item);
-          $over = array();
-          #combine the subtrees together
-          $func_info = $item['sub_tree'][0];
-          foreach($item['sub_tree'][1]['sub_tree'] as $sub_item) {
-            if(!empty($sub_item['sub_tree'])) { 
-              foreach($sub_item['sub_tree'] as $sub_item2) {
-                $over[] = $sub_item2;
-              }
-            } else {
-              $over[] = $sub_item;
-            }
-          }
-          $state->windows[] = array('func'=>$func_info, 'over' => $over, 'pos' => $pos, 'alias'=>$alias);
-          $state->parsed['SELECT'][$pos] = array('expr_type'=>'const', 'base_expr'=>'NULL', 'sub_tree'=>null, 'alias'=>array('name'=>'wf' . ($funcnum++)));
-        }
-      }
-    }
-    
-    foreach($state->windows as $num => $win) {
-      $partition_cols = array();
-      $order_by = array();
-      $i=0;
-      $has_frame_clause = false;
-      if(!empty($win['over']) && strtoupper($win['over'][0]['base_expr']) == 'PARTITION') {
-        for($i=1;$i<count($win['over']);++$i) {
-          if(strtoupper($win['over'][$i]['base_expr']) == "ORDER") break;
-          if($win['over'][$i]['expr_type'] != 'reserved') $partition_cols[] = $win['over'][$i];
-        }
-      }
-      if(!empty($win['over']) && strtoupper($win['over'][$i]['base_expr']) == 'ORDER') {
-        for(;$i<count($win['over']);++$i) {
-          if(strtoupper($win['over'][$i]['base_expr']) == 'DESC') $order_by[count($order_by)-1]['direction'] = 'desc';
-          if($win['over'][$i]['expr_type'] != 'reserved') { 
-            $win['over'][$i]['direction'] = 'asc';
-            $order_by[] = $win['over'][$i];
-          } elseif(strtoupper($win['over'][$i]['base_expr']) == 'ROWS' || strtoupper($win['over'][$i]['base_expr']) == 'RANGE') {
-            $has_frame_clause = 1;
-            break;
-          }
-        }
-      }
-
-      // "parse" the framing clause
-      if($has_frame_clause) {
-        $state->windows[$num]['mode'] = strtoupper($win['over'][$i]['base_expr']);
-        $in_start = true;
-        $i++;
-        $skip_next=false;
-        while($i < count($win['over'])) {
-
-          if($skip_next) { 
-            $skip_next = false; 
-            ++$i;
-            continue; 
-          }
-
-          $tok = strtoupper($win['over'][$i]['base_expr']);
-
-          if($win['over'][$i]['expr_type'] == 'const') {
-            if($in_start) {
-              $state->windows[$num]['start'] = $tok;
-            } else {
-              $state->windows[$num]['end'] = $tok;
-            }
-            ++$i;
-            continue;
-          }
-
-
-          if(!empty($win['over'][$i+1])) $next_tok = strtoupper($win['over'][$i+1]['base_expr']); else $next_tok = null;
-
-
-          switch($tok) {
-
-            case 'ROW':
-              ++$i;
-              continue;
-            break;
-
-            case 'BETWEEN':
-              $in_start = true;
-            break;
-
-            case 'AND':
-              $in_start = false;
-            break;
-
-            case 'CURRENT':
-              if($in_start) {
-                $state->windows[$num]['start'] = 0;
-              } else{
-                $state->windows[$num]['end'] = 0;
-              }
-
-            case 'UNBOUNDED':
-              if($in_start) {
-                if($next_tok == "FOLLOWING") {
-                  $this->errors['UNBOUNDED FOLLOWING may not be used as the start of a window frame'];
-                  return false;
-                } 
-                $state->windows[$num]['start'] = false;
-              } else {
-                if($next_tok == "PRECEDING") {
-                  $this->errors['UNBOUNDED PRECIDING may not be used as the end of a window frame'];
-                  return false;
-                }
-                $state->windows[$num]['end'] = false;
-                $skip_next = true;
-
-              }
-            break;
-
-            case 'PRECEDING':
-              if($in_start) {
-                $state->windows[$num]['start'] *= -1;
-              } else {
-                $state->windows[$num]['end'] *= -1;
-              }
-            break;
-
-            case 'FOLLOWING':
-            break;
-          }
-          ++$i;
-        }
-      } else { /* default for each frame is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW */
-        $state->windows[$num]['mode'] = 'RANGE'; 
-        $state->windows[$num]['start'] = false; // false means unbounded preceeding
-        $state->windows[$num]['end'] = 0; // 0 means current_row
-      }
-
-      $state->windows[$num]['partition'] = $partition_cols;
-      $state->windows[$num]['order'] = $order_by;
-      unset($state->windows[$num]['over']);
-
-      //map which select positions have windows for use in process_select()
-      $state->windows_at[$win['pos']] = 1;
     }
 
     if(!empty($state->parsed['UNION ALL'])) {
@@ -2500,58 +2521,47 @@ class ShardQuery {
       $this->process_undistributable_select() [below]
       */
       $select = $this->process_select($state->parsed['SELECT'], $straight_join, $distinct, $state);
-      /* Now the columns referenced by window functions have to be paid attention to*/
-      $window_col = array();
+
+      /* Now some special window function columns are needed */
       if(!empty($state->windows)) {
+        $used_cols = array();
         for($i=0;$i<count($state->windows);++$i) {
           $win = $state->windows[$i];
           $shard_hash = "";
-         
+        
           foreach($win['partition'] as $part) {
-            if(empty($window_col[$part['base_expr']])) {
-              if(trim($select['shard_sql']) != 'SELECT') $select['shard_sql'] .= ",";
-              $select['shard_sql'] .= $part['base_expr'];
-              $window_col[$part['base_expr']] = 1;
+            if(empty($used_cols[$part['base_expr']])) {
+              $select['shard_sql'] .= "," . $part['base_expr'];
+              $used_cols[$part['base_expr']] = 1;
+            } else {
+              continue;
             }
             if($shard_hash) $shard_hash .= ",";
             $shard_hash .= $part['base_expr'];
           }
-          if(!empty($win['partition'])) { 
-            $select['shard_sql'] .= ",SHA1(CONCAT_WS('#'," . $shard_hash . ")) as wf{$i}_hash"; 
-          } else {
-            $select['shard_sql'] .= ",SHA1(CONCAT_WS('#','ONE_PARTITION')) as wf{$i}_hash"; 
-          }
+          if($shard_hash == "") $shard_hash="'ONE_PARTITION'";
+          $select['shard_sql'] .= ",SHA1(CONCAT_WS('#'," . $shard_hash . ")) as wf{$i}_hash"; 
 
-          $obclause = "";
+          $obclause ="";
           $obhash = "";
           foreach($win['order'] as $ob) {
-            if(trim($select['shard_sql']) != 'SELECT') $select['shard_sql'] .= ",";
-            if(empty($window_col[$ob['base_expr']])) {
-              $select['shard_sql'] .= $ob['base_expr'];
-              $window_col[$ob['base_expr']] = 1;
-            }
+            if(empty($used_cols[$ob['base_expr']])) {
+              $select['shard_sql'] .= "," . $ob['base_expr'];
+              $used_cols[$ob['base_expr']] = 1;
+            } 
+              
             if($obclause) $obclause .= ",";
             if($obhash) $obclause .= ",";
             $obclause .= $ob['base_expr'] . " " . $ob['direction'];
-            $obhash .= $ob['base_expr']; 
+            $obhash .= $ob['base_expr'];
           }
           if($obhash) { 
             $select['shard_sql'] .= ",SHA1(CONCAT_WS('#'," . $obhash . ")) as wf{$i}_obhash";
           }
           $state->windows[$i]['order_by'] = $obclause;
-          $colrefs = $this->extract_colrefs($win['func']['sub_tree']);
-/*          foreach($colrefs as $col) {
-
-            if(empty($window_col[$col['base_expr']])) {
-              if(trim($select['shard_sql']) != 'SELECT') $select['shard_sql'] .= ",";
-              $select['shard_sql'] .= $col['base_expr'];
-              $window_col[$col['base_expr']] = 1;
-            } 
-          } */
         }
       }
-     
-      //print_r($select); print_r($state->windows); 
+
       if(trim($select['shard_sql']) == 'SELECT') {
         $select['shard_sql'] = 'SELECT 1';
       }
@@ -2600,7 +2610,7 @@ class ShardQuery {
         );
       }
       $order_by = "";
-      if($state->windows) {
+      if(!empty($state->windows)) {
         $order_by = "wf0_hash";
         if(!empty($state->windows[0]['order_by'])) { 
           $order_by .= ",";
@@ -2612,7 +2622,6 @@ class ShardQuery {
         foreach($state->parsed['ORDER'] as $o) {
           if($order_by)
             $order_by .= ',';
-          
           
           switch($o['expr_type']) {
             
@@ -2653,6 +2662,10 @@ class ShardQuery {
                   case 'COUNT':
                     $select['coord_odku'][] = "$expr_alias=$expr_alias +  VALUES($expr_alias)";
                     break;
+
+                  default:
+                    $this->errors[] = "Unsupported aggregate function in ORDER BY";
+                    return false;
                     
                 }
                 
@@ -2739,6 +2752,7 @@ class ShardQuery {
         if(!isset($state->table_name) || $state->table_name == "")
           $state->table_name = "aggregation_tmp_" . mt_rand(1, 100000000);
         $select['coord_sql'] .= "\nFROM `$state->table_name`";
+        $select['winfunc_sql'] .= "\nFROM `$state->table_name`";
         
         unset($state->parsed['FROM']);
       }
@@ -3165,6 +3179,7 @@ class ShardQuery {
     if(empty($select['group_aliases']))
       $select['group_aliases'] = "";
     $state->coord_sql = $select['coord_sql'] . ' ' . $select['coord_group'] . ' ' . $order_by;
+    $state->winfunc_sql = $select['winfunc_sql'] . ' ' . $select['coord_group'];
     if(!isset($state->coord_odku) || empty($state->coord_odku))
       $state->coord_odku = $select['coord_odku'];
     $state->shard_sql = $queries;
@@ -4206,8 +4221,8 @@ class ShardQuery {
         return false;
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $sql = "select sum($colref) s from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $colref = "wf{$num}";
+        $sql = "select sum($colref) as s from (select " . $state->winfunc_sql . " WHERE wf{$num}_hash = '{$row['h']}') sq";
         $stmt2 = $state->DAL->my_query($sql);
         $row2 = $state->DAL->my_fetch_assoc($stmt2);
         $sum = $row2['s'];
@@ -4228,11 +4243,12 @@ class ShardQuery {
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) { /* loop over each partition */
 
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
         $partition_rows = $this->get_all_rows($sql, $state);
         if(!$partition_rows) return false;
 
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $colref = "wf{$num}";
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
@@ -4267,8 +4283,9 @@ class ShardQuery {
         return false;
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $sql = "select avg($colref) a from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $colref = "wf{$num}";
+        #$sql = "select avg($colref) a from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $sql = "select avg($colref) as a from (select " . $state->winfunc_sql . " WHERE wf{$num}_hash = '{$row['h']}') sq";
         $stmt2 = $state->DAL->my_query($sql);
         $row2 = $state->DAL->my_fetch_assoc($stmt2);
         $avg = $row2['a'];
@@ -4289,13 +4306,12 @@ class ShardQuery {
         return false;
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $colref = "wf{$num}";
         
         $partition_rows = $this->get_all_rows($sql, $state);
         if(!$partition_rows) return false;
-
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
@@ -4330,8 +4346,9 @@ class ShardQuery {
         return false;
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $sql = "select min($colref) m from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $colref = "wf{$num}";
+        #$sql = "select min($colref) m from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $sql = "select min($colref) as m from (select " . $state->winfunc_sql . " WHERE wf{$num}_hash = '{$row['h']}') sq";
         $stmt2 = $state->DAL->my_query($sql);
         $row2 = $state->DAL->my_fetch_assoc($stmt2);
         $min = $row2['m'];
@@ -4356,13 +4373,13 @@ class ShardQuery {
       $last_ob_hash = "";
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
         
         $partition_rows = $this->get_all_rows($sql, $state);
         if(!$partition_rows) return false;
 
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $colref = "wf{$num}";
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
@@ -4397,8 +4414,9 @@ class ShardQuery {
         return false;
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $sql = "select max($colref) m from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $colref = "wf{$num}";
+        #$sql = "select max($colref) m from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $sql = "select max($colref) as m from (select " . $state->winfunc_sql . " WHERE wf{$num}_hash = '{$row['h']}') sq";
         $stmt2 = $state->DAL->my_query($sql);
         $row2 = $state->DAL->my_fetch_assoc($stmt2);
         $max = $row2['m'];
@@ -4419,13 +4437,12 @@ class ShardQuery {
         return false;
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $colref = "wf{$num}";
         
         $partition_rows = $this->get_all_rows($sql, $state);
         if(!$partition_rows) return false;
-
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
@@ -4460,8 +4477,9 @@ class ShardQuery {
         return false;
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
-        $sql = "select count($colref) c from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $colref = "wf{$num}";
+        #$sql = "select count($colref) c from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $sql = "select count($colref) as c from (select " . $state->winfunc_sql . " WHERE wf{$num}_hash = '{$row['h']}') sq";
         $stmt2 = $state->DAL->my_query($sql);
         $row2 = $state->DAL->my_fetch_assoc($stmt2);
         $cnt = $row2['c'];
@@ -4484,13 +4502,13 @@ class ShardQuery {
       $last_ob_hash = "";
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
         
         $partition_rows = $this->get_all_rows($sql, $state);
         if(!$partition_rows) return false;
 
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $colref = "wf{$num}";
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
@@ -4525,10 +4543,11 @@ class ShardQuery {
         return false;
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $colref = "wf{$num}";
         $sql = "select ";
         if($samp) $sql .= "std_samp"; else $sql .= "std";
-        $sql .= "($colref) s from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        #$sql .= "($colref) s from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $sql = "($colref) as s from (select " . $state->winfunc_sql . " WHERE wf{$num}_hash = '{$row['h']}') sq";
         $stmt2 = $state->DAL->my_query($sql);
         $row2 = $state->DAL->my_fetch_assoc($stmt2);
         $std = $row2['s'];
@@ -4551,13 +4570,14 @@ class ShardQuery {
       $last_ob_hash = "";
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $colref = "wf{$num}";
         
         $partition_rows = $this->get_all_rows($sql, $state);
         if(!$partition_rows) return false;
 
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $colref = "wf{$num}";
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
@@ -4592,10 +4612,11 @@ class ShardQuery {
         return false;
       }
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $colref = "wf{$num}";
         $sql = "select ";
         if($samp) $sql .= "var_samp"; else $sql .= "var";
-        $sql .= "($colref) s from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        #$sql .= "($colref) s from " . $state->table_name . " WHERE wf{$num}_hash = '{$row['h']}'";
+        $sql = "($colref) as s from (select " . $state->winfunc_sql . " WHERE wf{$num}_hash = '{$row['h']}') sq";
         $stmt2 = $state->DAL->my_query($sql);
         $row2 = $state->DAL->my_fetch_assoc($stmt2);
         $var = $row2['s'];
@@ -4618,12 +4639,13 @@ class ShardQuery {
       $last_ob_hash = "";
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
         
         $partition_rows = $this->get_all_rows($sql, $state);
         if(!$partition_rows) return false;
 
-        $colref = $win['func']['sub_tree'][0]['base_expr'];
+        $colref = "wf{$num}";
 
         for($i=0;$i<count($partition_rows);++$i) {
           $row3 = $partition_rows[$i];
@@ -4637,7 +4659,6 @@ class ShardQuery {
           if(!$var) $var = 'NULL';
 
           $sql = "UPDATE " . $state->table_name . " SET wf{$num} = {$var} WHERE wf_rownum = {$row3['wf_rownum']}";
-echo "$sql\n";
           $state->DAL->my_query($sql);
           if($err = $state->DAL->my_error()) {
             $this->errors[] = $err;
@@ -4677,7 +4698,8 @@ echo "$sql\n";
       $last_ob_hash = "";
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
         $stmt2 = $state->DAL->my_query($sql);
         if($err = $state->DAL->my_error()) {
           $this->errors[] = $err;
@@ -4757,7 +4779,8 @@ echo "$sql\n";
       $last_ob_hash = "";
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
         $stmt2 = $state->DAL->my_query($sql);
         if($err = $state->DAL->my_error()) {
           $this->errors[] = $err;
@@ -4873,7 +4896,8 @@ echo "$sql\n";
       $last_ob_hash = "";
       $ob_hash = "";
       while($row = $state->DAL->my_fetch_assoc($stmt)) {
-        $sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        #$sql = "select * from " . $state->table_name . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
+        $sql = "SELECT *," . $state->winfunc_sql . " where wf{$num}_hash='" . $row['h'] . "' ORDER BY " . $win['order_by'];
         $stmt2 = $state->DAL->my_query($sql);
         if($err = $state->DAL->my_error()) {
           $this->errors[] = $err;
@@ -4922,7 +4946,7 @@ echo "$sql\n";
       $partition_rows = $this->get_all_rows($sql, $state);
       if(!$partition_rows) return false;
 
-      $colref = $win['func']['sub_tree'][0]['base_expr'];
+      $colref = "wf{$num}";
 
       for($i=0;$i<count($partition_rows);++$i) {
         $row3 = $partition_rows[$i];
@@ -4955,7 +4979,7 @@ echo "$sql\n";
       $partition_rows = $this->get_all_rows($sql, $state);
       if(!$partition_rows) return false;
 
-      $colref = $win['func']['sub_tree'][0]['base_expr'];
+      $colref = "wf{$num}";
 
       for($i=0;$i<count($partition_rows);++$i) {
         $row3 = $partition_rows[$i];
@@ -4988,7 +5012,7 @@ echo "$sql\n";
       $partition_rows = $this->get_all_rows($sql, $state);
       if(!$partition_rows) return false;
 
-      $colref = $win['func']['sub_tree'][0]['base_expr'];
+      $colref = "wf{$num}";
       $n = $win['func']['sub_tree'][1]['base_expr'];
 
       for($i=0;$i<count($partition_rows);++$i) {
@@ -5220,5 +5244,21 @@ echo "$sql\n";
       if($a != null) $cnt++;
     }
     return $cnt;
+  }
+
+  function full_tree_concat($tree) {
+    $txt = "";
+    $sub = $tree['sub_tree'];
+    $expr_type = $tree['expr_type'];
+    if($expr_type == 'function' || $expr_type == 'aggregate_function') $txt.="(";
+    if($sub) {
+      foreach($sub as $pos => $sub_tree) {
+        if($pos > 0) $txt .= ",";
+        $txt .= $this->full_tree_concat($sub_tree);
+      }
+    } 
+    $txt = $tree['base_expr'] . $txt;
+    if($expr_type == 'function' || $expr_type == 'aggregate_function') $txt.=")";
+    return $txt;
   }
 }
