@@ -34,7 +34,8 @@ class PHPSQLParserConstants {
 
     private static $inst = null;
     protected static $customFunctions = array();
-    protected $reserved = array('ABS', 'ACOS', 'ADDDATE', 'ADDTIME', 'AES_ENCRYPT', 'AES_DECRYPT', 'AGAINST','UNBOUNDED','FOLLOWING','PRECEDING','RANGE','ROW','ROWS','CURRENT',
+    protected $reserved = array('ABS', 'ACOS', 'ADDDATE', 'ADDTIME', 'AES_ENCRYPT', 'AES_DECRYPT', 'AGAINST','UNBOUNDED',
+                                       'FOLLOWING','PRECEDING','RANGE','ROW','ROWS','CURRENT','RESPECT','NULLS','FROM_FIRST','FROM_LAST',
                                        'ASCII', 'ASIN', 'ATAN', 'AVG', 'BENCHMARK', 'BIN', 'BIT_AND', 'BIT_OR',
                                        'BITCOUNT', 'BITLENGTH', 'CAST', 'CEILING', 'CHAR', 'CHAR_LENGTH',
                                        'CHARACTER_LENGTH', 'CHARSET', 'COALESCE', 'COERCIBILITY', 'COLLATION',
