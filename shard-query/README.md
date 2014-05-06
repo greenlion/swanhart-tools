@@ -19,7 +19,7 @@ The primary goal of Shard-Query is to enable low-latency query access to extreme
         * PERCENTILE(expr, N) - take a percentile, for example percentile(score,90)
     * JOINs are supported (unshareded tables are duplicated on all nodes to support JOINS)
     * ORDER BY, GROUP BY, HAVING, WITH ROLLUP, and LIMIT are supported
-  * Also upports INSERT, UPDATE, DELETE 
+  * Also supports INSERT, UPDATE, DELETE 
   * Also supports DDL such as CREATE TABLE, ALTER TABLE and DROP TABLE
 
 ###Key Features
