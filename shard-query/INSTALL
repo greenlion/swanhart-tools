@@ -32,10 +32,11 @@ If no errors in 10 to 15 seconds hit ctrl-c.
 
 UI installation (CentOS 6.4)
 ---------------------------
-Copy /usr/share/tools/shard-query.conf into /etc/http/conf.d
-Restart apache
-Copy bundle/dooframework into /usr/share
-chmod -R a+r /usr/share/dooframework
+1. Set username and password: php ui/set_password.php
+2. Copy /usr/share/tools/shard-query.conf into /etc/http/conf.d
+3. Restart apache
+4. Copy bundle/dooframework into /usr/share
+5. chmod -R a+r /usr/share/dooframework
 
 Test:
 http://localhost/shard-query

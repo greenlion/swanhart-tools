@@ -56,7 +56,7 @@
 
 //User Required for Web Applicahtion
 
-$user = unserialize(file_get_contents("user.inc"));
+$user = unserialize(file_get_contents("protected/config/user.inc"));
 
 //Desktop Web Site
 $route['get']['/'] = array('redirect', 'query');
