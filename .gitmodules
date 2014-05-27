@@ -1,3 +1,0 @@
-[submodule "S3"]
-	path = S3
-	url = git@github.com:greenlion/amazon-s3-php-class.git
