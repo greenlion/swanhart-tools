@@ -369,7 +369,6 @@ class ShardLoader {
       foreach ($all_shards as $shard_name => $shard) {
         $fifo = $this->start_fifo($table, $shard, $columns_str, $set_str, $ignore, $replace);
         if (!$fifo) {
-echo "HERE :(\n";
           $err      = "Could not start a FIFO to a destination database.  This will result in too many errors, so failing completely.\n";
           $errors[] = array(
             'error' => $err,
@@ -383,7 +382,6 @@ echo "HERE :(\n";
           $line   = fgets($fh);
           $result = fwrite($fifo['fh'], $line);
           if ($result === false) {
-echo "HERE 2 :(\n";
             $err      = "Could not write to a destination FIFO.  This will result in too many errors, so failing completely.\n";
             $errors[] = array(
               'error' => $err,
@@ -393,6 +391,11 @@ echo "HERE 2 :(\n";
           }
         }
         fclose($fifo['fh']);
+        sleep(1);
+        foreach($fifo['ph']['pipes'] as $pipe) {
+          fclose($pipe);
+        }
+        proc_close($fifo['ph']['ph']);
       }
 
       fclose($fh); // this will also unlink the temporary file 
@@ -467,10 +470,13 @@ echo "HERE 2 :(\n";
         }
       }
       fclose($fifo['fh']);
+      sleep(1);
+      foreach($fifo['ph']['pipes'] as $pipe) {
+        fclose($pipe);
+      }
+      proc_close($fifo['ph']['ph']);
     }
  
-    fclose($fh);
-    
     if (!empty($errors))
       return $errors;
     
@@ -575,7 +581,7 @@ echo "HERE 2 :(\n";
     
     #unlink the file so it disappears when this process dies
     unlink($path);
-    
+
     return (array(
       'fh' => $fh,
       'ph' => array(
