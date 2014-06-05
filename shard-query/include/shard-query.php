@@ -1745,11 +1745,7 @@ class ShardQuery {
     }
     
     //the first table is always prefixed by FROM
-    if($state->mysql_version['supports_partition_hint']) {
-      $sql = "FROM " . $tables[0]['table'] . $alias;
-    } else {
-      $sql = "FROM " . $tables[0]['table'] . $alias;
-    }
+    $sql = "FROM " . $tables[0]['table'] . $alias;
     
     $cnt = count($tables);
     
@@ -2126,10 +2122,11 @@ class ShardQuery {
       $out_queries[] = $q;
     }
     
-    if(empty($out_queries))
-      $out_queries = array(
+    /*if(empty($out_queries))
+      ($out_queries = array(
         "1=1"
       );
+    */
     
     return array_values($out_queries);
   }
@@ -2899,7 +2896,7 @@ class ShardQuery {
         $select['shard_group'] = ' GROUP BY ' . $select['shard_group'];
       
       $queries = array();
-      $where_base = " WHERE 1=1 ";
+      $where_base = " 1=1 ";
       
       if(!empty($state->push_where)) {
         $where_base .= ' AND ' . join(' ', $state->push_where);
@@ -2955,6 +2952,8 @@ class ShardQuery {
         $explain_query = "EXPLAIN PARTITIONS " . $select['shard_sql'] . ' ' . $where;
         
         $stmt = $state->DAL->my_query($explain_query);
+        $state->added_where = 0;
+        if($where == "") $where = " WHERE 1=1";
         while($row = $state->DAL->my_fetch_assoc($stmt)) {
           $table_or_alias = $row['table'];
           $partitions = $row['partitions'];
@@ -2968,6 +2967,7 @@ class ShardQuery {
                     $expr = preg_replace("/" . $table_info['partition_info']['partition_expression'] . "/", $table_info['alias'] . '.' . $table_info['partition_info']['partition_expression'], $expr);
                   }
                   $queries[] = $select['shard_sql'] . ' ' . $where . ' AND ' . $expr;
+                  $state->added_where = 1;
                 }
               }
             }
@@ -2975,11 +2975,10 @@ class ShardQuery {
         }
         
       }
-      
+
+      $where_base  = $state->added_where != 1 ? " WHERE $where_base " : " AND 1=1 ";
       if(empty($where_clauses)) {
-        $where_clauses = array(
-          $where_base
-        );
+        $where_clauses = array($where_base);
       } else {
         $old_clauses = $where_clauses;
         $where_clauses = array();
@@ -2987,7 +2986,7 @@ class ShardQuery {
           $where_clauses[] = $where_base . ' AND ' . $new_where_clause;
         }
       }
-      
+
       #queries is empty if no partition parallelism was added
       #parallelism may still have been added from BETWEEN clauses ($where_clauses may be an array of clauses)	
       if(empty($queries)) {
