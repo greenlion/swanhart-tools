@@ -84,6 +84,7 @@ class ShardQuery {
     $state->push_where = array();
     $state->used_distinct = false;
     $state->windows = array();
+    $state->added_where = false;
     
     return $state;
   }
@@ -1425,6 +1426,10 @@ class ShardQuery {
       switch($clause['expr_type']) {
         
         case 'function':
+          $item .= " {$clause['base_expr']}(";
+          $this->concat_all_subtrees($clause['sub_tree'], $item, $depth + 1, $clause['expr_type']);
+          $item .= ")";
+        break;
         case 'aggregate_function':
         case 'expression':
           $item .= " {$clause['base_expr']} ";
