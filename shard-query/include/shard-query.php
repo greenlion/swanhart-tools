@@ -1118,8 +1118,9 @@ class ShardQuery {
           $coord_query .= $base_expr . "(";
         }
          $first = 0;
+
         foreach($clause['sub_tree'] as $sub_pos => $sub_clause) {
-          if($sub_clause['expr_type'] == 'colref' || $sub_clause['expr_type'] == 'aggregate_function' || $sub_clause['expr_type'] == 'function') {
+          if($sub_clause['expr_type'] == 'colref' || $sub_clause['expr_type'] == 'aggregate_function' || $sub_clause['expr_type'] == 'function' || $sub_clause['expr_type'] == 'expression') {
             $this->process_select_item($pos + 1, $sub_clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, true, $coord_odku, $clause, $state, "", $clause, $custom_functions,$winfunc_num, $winfunc_query);
           } else {
             if($winfunc_num !== false) { 
@@ -1138,8 +1139,9 @@ class ShardQuery {
         }
         if($winfunc_num !== false) {
           $winfunc_query .= ") ";
-        } elseif(!$skip_alias) { 
-          $coord_query .= ") $alias";
+        } else  {
+          $coord_query .= ")";
+          if(!$skip_alias) $coord_query .= " $alias";
         } 
         break;
       
