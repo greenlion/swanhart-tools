@@ -72,8 +72,8 @@ END IF;
 
 IF NOT flexviews.has_aggregates(v_mview_id) THEN
   DROP TEMPORARY TABLE IF EXISTS apply_gsn;
-  CREATE TEMPORARY TABLE apply_gsn(uow_id bigint, dml_type tinyint signed, gsn bigint, primary key(uow_id,gsn)) engine=innodb;
-  set v_sql=concat('insert into apply_gsn select distinct uow_id, dml_type, fv$gsn gsn from ',
+  CREATE TEMPORARY TABLE apply_gsn(uow_id bigint, dml_type tinyint signed, gsn bigint, primary key(uow_id,dml_type,gsn)) engine=innodb;
+  set v_sql=concat('insert ignore into apply_gsn select distinct uow_id, dml_type, fv$gsn gsn from ',
                     v_delta_table,' where uow_id > ', v_refreshed_to_uow_id, ' and uow_id <= ', v_until_uow_id);
   set @v_sql = v_sql;
   PREPARE insert_stmt from @v_sql;
