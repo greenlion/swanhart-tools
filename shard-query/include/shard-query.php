@@ -2327,7 +2327,9 @@ class ShardQuery {
         return false;
       }
     } else {
-      $file_name = "{$this->state->shared_path}/{$file_name}";
+      if(!(strstr($file_name, 's3://') || strstr($file_name, 'http://') || strstr($file_name, 'https://'))) {
+        $file_name = "{$this->state->shared_path}/{$file_name}";
+      }
       if(!$SL->load_gearman($file_name, $table_name, null, null, $columns_str, $set_str, $ignore, $replace)) {
         $this->errors = $SL->errors;
       }

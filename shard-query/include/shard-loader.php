@@ -32,6 +32,8 @@ require_once("S3.php");
 if (!defined('SQ_DEBUG'))
   require_once('shard-query.php');
 
+ini_set('memory_limit', '4G'); // because CURL buffers into memory
+
 if (!function_exists('posix_mkfifo')) {
   function posix_mkfifo($path, $mode = '0444') {
     $mkfifo = trim(`which mkfifo`);
@@ -117,7 +119,6 @@ class ShardLoader {
         $result = $content_length;
       }
     }
-
     return $result;
   }
   protected function extract_s3_path($url) {
@@ -155,6 +156,14 @@ class ShardLoader {
         echo "Getting file offsets (may take awhile)\n";
         $info = $chunker->s3_find_offsets($s3, $bucket, $file,$info['size'],$chunk_size, $segment_count);
 
+      } elseif(strstr($path, "http://") || strstr($path, "https://")) {
+        $fs = curl_get_file_size($path);
+        if (!$fs) {
+          $this->errors[] = "Could not get size of $path";
+          return false;
+        }
+        $segment_count = floor($fs / $chunk_size);
+        $info = $chunker->http_find_offsets($path, $fs,$chunk_size, $segment_count);
       } else { /* NON-S3 load here */
         $fs = filesize($path);
 
@@ -163,7 +172,7 @@ class ShardLoader {
           return false;
         }
       
-        $segment_count = ceil($fs / $chunk_size);
+        $segment_count = floor($fs / $chunk_size);
         $info    = $chunker->find_offsets($path, $segment_count);
 
       }
@@ -211,6 +220,14 @@ class ShardLoader {
         $segment_count = floor($info['size'] / $chunk_size);
         echo "Getting file offsets (may take awhile)\n";
         $info = $chunker->s3_find_offsets($s3, $bucket, $file,$info['size'],$chunk_size, $segment_count);
+      } elseif(strstr($path, "http://") || strstr($path, "https://")) {
+        $fs = $this->curl_get_file_size($path);
+        if (!$fs) {
+          $this->errors[] = "Could not get size of $path";
+          return false;
+        }
+        $segment_count = floor($fs / $chunk_size);
+        $info = $chunker->http_find_offsets($path, $fs,$chunk_size, $segment_count);
 
       } else { /* NON-S3 load here */
         $fs = @filesize($path);
@@ -354,6 +371,33 @@ class ShardLoader {
         return $errors;
       }
       unlink($fname);
+    } elseif(strstr($path,'http://') || strstr($path,'https://')) {
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $path);
+        curl_setopt($curl, CURLOPT_USERAGENT, 'Shard-Query/loader');
+        curl_setopt($curl, CURLOPT_RANGE, $start_pos . "-" . $end_pos);
+        curl_setopt($curl, CURLOPT_BINARYTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        $result = curl_exec($curl);
+        curl_close($curl);
+        if (!$result) {
+          $errors[] = "could not open input stream or HTTP failure";
+          return $errors;
+        }
+        $fname = tempnam("/tmp", mt_rand(1,999999999));
+        if (!$fh = fopen($fname, 'wb')) {
+          $errors[] = "could not open output stream";
+          return $errors;
+        }
+        if(!fputs($fh, $result)) {
+          $errors[] = "Could not put contents into file";
+          return $errors;
+        }
+        unset($result);
+        $start_pos = 0; $end_pos = ftell($fh); // the "chunk" on disk starts at 0
+        fclose($fh);
+        $fh = fopen($fname, 'rb'); 
+        unlink($fname);
     } else {
       if (!$fh = fopen($path, 'rb')) {
         $errors[] = "could not open input stream or S3 failure";
@@ -417,7 +461,11 @@ class ShardLoader {
     while (!feof($fh) && ftell($fh) < $end_pos) {
       $line = fgets($fh);
       
-      $values                     = preg_split($regex, $line, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+      $values = preg_split($regex, $line, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+      if(count($values) == 0) {
+        $errors[] = "could not split line: $line\n";
+        return $errors;
+      }
       $values[count($values) - 1] = trim($values[count($values) - 1], $this->line_terminator);
       
       #lookup the value to see which shard it goes to

@@ -105,6 +105,44 @@ class ChunkIt extends StdClass {
         return $out;
     }
 
+    public function http_find_offsets($url, $size, $base_chunk_size, $chunks = 1) {
+
+        $info = array();
+        $info[0] = 0;
+        for($i=0; $i< $chunks; ++$i) {
+            echo ".";
+            $start = $i * $base_chunk_size;
+            $end = $start + $base_chunk_size;
+            $fname = tempnam("/tmp", mt_rand(1,999999999));
+            $curl = curl_init();
+            curl_setopt($curl, CURLOPT_URL, $url);
+            curl_setopt($curl, CURLOPT_USERAGENT, 'Shard-Query/loader');
+            curl_setopt($curl, CURLOPT_RANGE, $end. "-" . ($end+16384));
+            curl_setopt($curl, CURLOPT_BINARYTRANSFER, 1);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+            $result = curl_exec($curl);
+            curl_close($curl);
+            $fh = fopen($fname, 'rb');
+            unlink($fname); // so it disappears if we crash
+            fputs($fh, $result);
+            fseek($fh, 0, SEEK_SET);
+            
+            $offset = $this->find_chunk_boundary($fh, null);
+            $info[] = $offset += $end;
+            
+        }	
+
+        $out = array();
+        for($i=0;$i<count($info)-1;++$i) {
+            $start = $info[$i];
+            $length = $info[$i+1] - $start;
+            $end = $start + $length-1;
+            $out[] = array('start' => $start, 'length' => $length, 'end' => $end);
+        }
+        $out[] = array('start' => $info[count($info)-1], 'length' => $size - $info[count($info)-1], 'end' => $size);
+        return $out;
+    }
+
 
     private function find_chunk_boundary($fh, $start) {
         #fgets is only safe for terminators that end in \n, but it is an order of magnitude 
