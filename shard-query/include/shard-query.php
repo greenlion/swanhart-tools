@@ -2165,7 +2165,9 @@ class ShardQuery {
     $columns_str = null;
     $set_str = null;
     $lines_starting_by = "";
+    $chunk_size = 16 * 1024 *1024;
 
+    $sql = trim($sql, ';');
     $regex = "/[A-Za-z_.]+\(.*?\)+|\(.*?\)+|\"(?:[^\"]|\"|\"\")*\"+|'[^'](?:|\'|'')*'+|`(?:[^`]|``)*`+|[^ ,]+ |,/x"; $regex = trim($regex);
     preg_match_all($regex, $sql, $matches, PREG_OFFSET_CAPTURE);
     $tokens = $matches[0];
@@ -2190,6 +2192,7 @@ class ShardQuery {
         continue;
       }
 
+
       if($skip_next) { $skip_next = false; continue; }
       $token = $token[0];
       switch(strtolower($token)) {
@@ -2197,6 +2200,29 @@ class ShardQuery {
         case 'data':
         case 'low_priority':
         case 'concurrent':
+          break;
+
+        /* allow configuration of the size of each chunk from the file */
+        case 'chunksize':
+          $chunk_size = $tokens[$key+1][0];
+
+          $base = substr($chunk_size, 0, strlen($chunk_size)-1);
+          $lastchar = substr($chunk_size, -1);
+          switch(strtolower($lastchar)) {
+            case 'b':
+              $chunk_size = $base;
+              break;
+            case 'k':
+              $chunk_size = $base * 1024;
+              break; 
+            case 'm':
+              $chunk_size = $base * 1024 * 1024;
+              break; 
+            case 'g':
+              $chunk_size = $base * 1024 * 1024 * 1024;
+              break; 
+          }
+          $skip_next = true;
           break;
 
         case 'replace':
@@ -2293,7 +2319,7 @@ class ShardQuery {
 
     $lines_terminated_by = str_replace("\\n", "\n", $lines_terminated_by);
     #TODO: Handle setting the shard_key in the SET clause
-    $SL = new ShardLoader($this, $fields_terminated_by, $fields_enclosed_by, $lines_terminated_by, true /*useFifo*/, 16 * 1024 * 1024, $charset, $ignore, $replace, $lines_starting_by, $fields_escaped_by);
+    $SL = new ShardLoader($this, $fields_terminated_by, $fields_enclosed_by, $lines_terminated_by, true /*useFifo*/, $chunk_size, $charset, $ignore, $replace, $lines_starting_by, $fields_escaped_by);
 
     if($local) {
       if(!$SL->load($file_name, $table_name, null, null, $columns_str, $set_str, $ignore, $replace)) {
