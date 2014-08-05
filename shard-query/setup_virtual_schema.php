@@ -122,7 +122,7 @@ if(empty($config['gearman'])) {
 	write_line("A gearman port was not seen in your config.  Enter a port number to use: [7001]");
 	$gearman_port = read_line();
 	if(!trim($gearman_port)) $gearman_port = 7001;
-	$gearman = array( array('hostname' => $gearman_host, 'port' => $gearman_port, 'is_local' => true) );
+	$gearman = array( array('hostname' => $gearman_host, 'port' => $gearman_port, 'is_local' => 1) );
 } else {
 	/*
 	Use externally managed gearmand
@@ -134,7 +134,7 @@ if(empty($config['gearman'])) {
 	$gearman = array();
 	foreach($gearmen as $server) {
 		list($host, $port) = explode(':', $server);
-		$gearman[] = array( 'hostname' => $host, 'port' => $port, 'is_local' => false ); 
+		$gearman[] = array( 'hostname' => $host, 'port' => $port, 'is_local' => 0 ); 
 		
 	}
 }
@@ -313,9 +313,9 @@ echo "* Populating gearman servers\n";
 $mapper->conn->my_query("delete IGNORE from gearman_job_servers where schema_id = $schema_id");
 
 foreach($gearman as $server) {
-        $server['is_local']=false;
+        $server['is_local'] = 0;
 	$sql = "INSERT INTO gearman_job_servers (schema_id, hostname, port, local) VALUES(";
-	$sql .= "$schema_id, '{$server['hostname']}',{$server['port']}, '{$server['is_local']}')"; 
+	$sql .= "$schema_id, '{$server['hostname']}',{$server['port']}, {$server['is_local']})"; 
 
 	$mapper->conn->my_query($sql) or die("SETUP FAILED" . $mapper->conn->my_error() . "\n");
 
