@@ -101,7 +101,7 @@ class DooDigestAuth{
         $data['username'] = (isset($match[1]))?$match[1]:null;
         $res = preg_match('/nonce=\"([^\"]+)\"/i', $txt, $match);
         $data['nonce'] = $match[1];
-        $res = preg_match('/nc=([0-9]+)/i', $txt, $match);
+        $res = preg_match('/nc=([0-9a-z]+)/i', $txt, $match);
         $data['nc'] = $match[1];
         $res = preg_match('/cnonce=\"([^\"]+)\"/i', $txt, $match);
         $data['cnonce'] = $match[1];
