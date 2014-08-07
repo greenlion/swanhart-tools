@@ -565,7 +565,7 @@ class ShardLoader {
     if (!unlink($path))
       return false;
     
-    if (!posix_mkfifo($path, '0444'))
+    if (!posix_mkfifo($path, '0666'))
       return false;
 
     if($ignore == "") $ignore=""; else $ignore = "IGNORE";
