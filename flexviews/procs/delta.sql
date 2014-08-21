@@ -321,6 +321,10 @@ tableLoop: LOOP
                               ' AND ', v_mview_table_alias, '.uow_id <=', v_uow_id_end); 
 END LOOP;
 
+IF(v_where_clause != '' AND LOWER(SUBSTR(v_where_clause,1,6)) != 'where ') THEN
+  SET v_where_clause = CONCAT('WHERE ', v_where_clause);
+END IF;
+
 RETURN v_where_clause;
 
 END;;
