@@ -640,10 +640,10 @@ EOREGEX
 	function delete_row() {
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','update_before'), $this->row, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','update_before'), $this->row, $this->db, $this->base_table,$this->gsn_hwm);
                         return;
 		} elseif($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','delete'), $this->row, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','delete'), $this->row, $this->db, $this->base_table, $this->gsn_hwm);
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
 		$this->tables[$key]=array('schema'=>$this->db ,'table'=>$this->base_table); 
@@ -679,10 +679,10 @@ EOREGEX
 	function insert_row() {
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','update_after'), $this->row, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','update_after'), $this->row, $this->db, $this->base_table, $this->gsn_hwm);
                         return;
 		} elseif($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','insert'), $this->row, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','insert'), $this->row, $this->db, $this->base_table, $this->gsn_hwm);
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
 		$this->tables[$key]=array('schema'=>$this->db ,'table'=>$this->base_table); 
