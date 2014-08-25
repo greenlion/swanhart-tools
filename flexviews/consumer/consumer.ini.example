@@ -77,6 +77,12 @@ failure_log_file=flex_cdc_log.log
 ;where to send an email with a tail of the flexcdc.err file
 failure_email_address=root@localhost
 
+;If you want to create a plugin that gets row changes instead of using the default
+;logging mechanism, specify the plugin file here
+
+;The example plugin prints out all the rows that are sent to it - THEY ARE NOT LOGGED INTO THE MVLOG TABLE
+;plugin=example_plugin.php
+
 ;The SOURCE is where the change logs are read from.  This does not have to be the same as the local machine.
 ;this user requires "grant replication client,replication slave"
 [source]

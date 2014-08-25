@@ -139,10 +139,10 @@ EOREGEX
 		switch($connection_type) {
 			case 'source': 
 				/*TODO: support unix domain sockets */
-				$handle = mysql_connect($S['host'] . ':' . $S['port'], $S['user'], $S['password'], true) or die1('Could not connect to MySQL server:' . mysql_error());
+				$handle = @mysql_connect($S['host'] . ':' . $S['port'], $S['user'], $S['password'], true) or die1('Could not connect to MySQL server:' . mysql_error());
 				return $handle;
 			case 'dest':
-				$handle = mysql_connect($D['host'] . ':' . $D['port'], $D['user'], $D['password'], true) or die1('Could not connect to MySQL server:' . mysql_error());
+				$handle = @mysql_connect($D['host'] . ':' . $D['port'], $D['user'], $D['password'], true) or die1('Could not connect to MySQL server:' . mysql_error());
 				return $handle;
 		}
 		return false;
@@ -174,6 +174,11 @@ EOREGEX
 			foreach($vals as $val) {
 				$this->onlyDatabases[] = trim($val);
 			}
+		}
+
+		if(!empty($settings['flexcdc']['plugin'])) {
+			require_once($settings['flexcdc']['plugin']);
+			$this->plugin = true;
 		}
 
 		if(!empty($settings['flexcdc']['skip_before_update'])) $this->skip_before_update = $settings['flexcdc']['skip_before_update'];
@@ -634,6 +639,12 @@ EOREGEX
 	/* Called when a row is deleted, or for the old image of an UPDATE */
 	function delete_row() {
 		$this->gsn_hwm+=1;
+		if($this->DML == "UPDATE" && $this->plugin) {
+			call_user_func(array('FlexCDC_Plugin','update_before'), $this->row, $this->gsn_hwm);
+                        return;
+		} elseif($this->plugin) {
+			call_user_func(array('FlexCDC_Plugin','delete'), $this->row, $this->gsn_hwm);
+                }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
 		$this->tables[$key]=array('schema'=>$this->db ,'table'=>$this->base_table); 
 		if ( $this->bulk_insert ) {
@@ -653,11 +664,11 @@ EOREGEX
 				$col = mysql_real_escape_string($col);
 				$row[] = "'$col'";
 			}
-      if( $this->DML == "UPDATE" && $this->mark_updates ) {
-        $this->dml_type=-2;
-      } else {
-        $this->dml_type=-1;
-      }
+			if( $this->DML == "UPDATE" && $this->mark_updates ) {
+				$this->dml_type=-2;
+			} else {
+				$this->dml_type=-1;
+			}
 			$valList = "({$this->dml_type}, @fv_uow_id, {$this->binlogServerId},{$this->gsn_hwm}," . implode(",", $row) . ")";
 			$sql = sprintf("INSERT INTO `%s`.`%s` VALUES %s", $this->mvlogDB, $this->mvlog_table, $valList );
 			my_mysql_query($sql, $this->dest) or die1("COULD NOT EXEC SQL:\n$sql\n" . mysql_error() . "\n");
@@ -667,6 +678,12 @@ EOREGEX
 	/* Called when a row is inserted, or for the new image of an UPDATE */
 	function insert_row() {
 		$this->gsn_hwm+=1;
+		if($this->DML == "UPDATE" && $this->plugin) {
+			call_user_func(array('FlexCDC_Plugin','update_after'), $this->row, $this->gsn_hwm);
+                        return;
+		} elseif($this->plugin) {
+			call_user_func(array('FlexCDC_Plugin','insert'), $this->row, $this->gsn_hwm);
+                }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
 		$this->tables[$key]=array('schema'=>$this->db ,'table'=>$this->base_table); 
 		if ( $this->bulk_insert ) {
@@ -686,11 +703,11 @@ EOREGEX
 				$col = mysql_real_escape_string($col);
 				$row[] = "'$col'";
 			}
-      if( $this->DML == "UPDATE" && $this->mark_updates ) {
-        $this->dml_type=2;
-      } else {
-        $this->dml_type=1;
-      }
+			if( $this->DML == "UPDATE" && $this->mark_updates ) {
+				$this->dml_type=2;
+			} else {
+				$this->dml_type=1;
+			}
 			$valList = "({$this->dml_type}, @fv_uow_id, $this->binlogServerId,{$this->gsn_hwm}," . implode(",", $row) . ")";
 			$sql = sprintf("INSERT INTO `%s`.`%s` VALUES %s", $this->mvlogDB, $this->mvlog_table, $valList );
 			my_mysql_query($sql, $this->dest) or die1("COULD NOT EXEC SQL:\n$sql\n" . mysql_error() . "\n");
