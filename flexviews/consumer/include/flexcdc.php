@@ -65,12 +65,59 @@ function my_mysql_query($a, $b=NULL, $debug=false) {
 
 class FlexCDC {
 	static function concat() {
-    	$result = "";
-    	for ($i = 0;$i < func_num_args();$i++) {
-      		$result .= func_get_arg($i);
-    	}
-    	return $result;
-  	}
+		$result = "";
+		for ($i = 0;$i < func_num_args();$i++) {
+			$result .= func_get_arg($i);
+		}
+		return $result;
+	}
+
+	protected function cleanup_row($db, $table, &$the_row) {
+		foreach($the_row as $pos => $col) {
+			if($col[0] == "'") {
+				$col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
+			}
+			$datatype = $this->table_ordinal_datatype($db,$table,$pos+1);
+			if(strtoupper($col) === "NULL") $datatype="NULL";
+			switch(trim($datatype)) {
+				case 'NULL':
+				break;
+
+				case 'int':
+				case 'tinyint':
+				case 'mediumint':
+				case 'smallint':
+				case 'bigint':
+				case 'serial':
+				case 'decimal':
+				case 'float':
+				case 'double':
+					if($this->table_ordinal_is_unsigned($db,$table,$pos+1)) {
+						if($col[0] == "-" && strpos($col, '(')) {
+							$col = substr($col, strpos($col,'(')+1, -1);
+						}
+					} else {
+						if(strpos($col,' ')) $col = substr($col,0,strpos($col,' '));
+					}
+
+				break;
+
+				case 'timestamp':
+					$col = 'from_unixtime(' . $col . ')';
+				break;
+
+				case 'datetime': 
+					$col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
+				break;
+
+				default:
+					if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
+				break;
+			}
+			$row[] = $col;
+		}
+		return $row;
+	}
   	
   	static function split_sql($sql) {
 		$regex=<<<EOREGEX
@@ -112,6 +159,7 @@ EOREGEX
 	
 	protected $binlogServerId=1;
 
+	protected $uow_id;
 	protected $gsn_hwm;
 	protected $dml_type;
 
@@ -123,6 +171,8 @@ EOREGEX
 	public  $delimiter = ';';
 
 	protected $log_retention_interval = "10 day";
+
+	protected $plugin = false;
 	public function get_source($new = false) {
 		if($new) return $this->new_connection(SOURCE);
 		return $this->source;
@@ -229,7 +279,7 @@ EOREGEX
 		$this->initialize_dest();
 		$this->get_source_logs();
 		$this->cleanup_logs();
-		
+		$this->uow_id = null;		
 	}
 	
 	public function table_exists($schema, $table) {
@@ -606,6 +656,14 @@ EOREGEX
 		 
 		$sql = "SET @fv_uow_id := LAST_INSERT_ID();";
 		my_mysql_query($sql, $this->dest) or die1("COULD NOT EXEC:\n$sql\n" . mysql_error($this->dest));
+ 
+		$sql = "SELECT @fv_uow_id id from dual";
+		$stmt = my_mysql_query($sql, $this->dest) or die1("COULD NOT EXEC:\n$sql\n" . mysql_error($this->dest));
+                $row = mysql_fetch_assoc($stmt);
+		$this->uow_id = $row['id'];
+		if($this->plugin) {
+			call_user_func(array('FlexCDC_Plugin', 'begin_trx'), $this->uow_id, $this->gsn_hwm);
+		}
 
 	}
 
@@ -624,6 +682,12 @@ EOREGEX
 		$sql = sprintf($sql, rtrim($this->timeStamp),$this->gsn_hwm);
 		my_mysql_query($sql, $this->dest) or die('COULD NOT UPDATE ' . $this->mvlogDB . "." . $this->mview_uow . ':' . mysql_error($this->dest) . "\n");
 		my_mysql_query("COMMIT", $this->dest) or die1("COULD NOT COMMIT TRANSACTION;\n" . mysql_error());
+
+		if($this->plugin) {
+			call_user_func(array('FlexCDC_Plugin', 'commit_trx'), $this->uow_id, $this->gsn_hwm);
+		}
+
+		$this->uow_id = null;
 	}
 
 	/* Called when a transaction rolls back */
@@ -633,6 +697,10 @@ EOREGEX
 		#update the capture position and commit, because we don't want to keep reading a truncated log
 		$this->set_capture_pos();
 		my_mysql_query("COMMIT", $this->dest) or die1("COULD NOT COMMIT TRANSACTION LOG POSITION UPDATE;\n" . mysql_error());
+		if($this->plugin) {
+			call_user_func(array('FlexCDC_Plugin', 'rollback_trx'), $this->uow_id);
+		}
+		$this->uow_id = null;
 		
 	}
 
@@ -640,10 +708,10 @@ EOREGEX
 	function delete_row() {
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','update_before'), $this->row, $this->db, $this->base_table,$this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','update_before'), $this->cleanup_row($this->db, $this->base_table, $this->row), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm);
                         return;
 		} elseif($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','delete'), $this->row, $this->db, $this->base_table, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','delete'), $this->cleanup_row($this->db, $this->base_table, $this->row), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm);
 			return;
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
@@ -680,10 +748,10 @@ EOREGEX
 	function insert_row() {
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','update_after'), $this->row, $this->db, $this->base_table, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','update_after'), $this->cleanup_row($this->db, $this->base_table, $this->row), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm);
                         return;
 		} elseif($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','insert'), $this->row, $this->db, $this->base_table, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','insert'), $this->cleanup_row($this->db, $this->base_table, $this->row), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm);
 			return;
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
@@ -729,83 +797,33 @@ EOREGEX
 				$mode = -1;
 			}		
 			$tables = array_keys($data);
+			$allowed = floor($this->max_allowed_packet * .9);  #allowed len is 90% of max_allowed_packet	
 			foreach($tables as $table) {
 				$rows = $data[$table];	
 				
 				$sql = sprintf("INSERT INTO %s VALUES ", $table);
 				foreach($rows as $the_row) {	
-					$row = array();
 					$gsn = $the_row['fv$gsn'];
 					$DML = $the_row['fv$DML'];
 					unset($the_row['fv$DML']);
 					unset($the_row['fv$gsn']);
-					foreach($the_row as $pos => $col) {
-						if($col[0] == "'") {
-							$col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
-							
-						}
-						$datatype = $this->table_ordinal_datatype($this->tables[$table]['schema'],$this->tables[$table]['table'],$pos+1);
-						if(strtoupper($col) === "NULL") $datatype="NULL";
-						switch(trim($datatype)) {
-							case 'NULL':
-								break;
-
-							case 'int':
-							case 'tinyint':
-							case 'mediumint':
-							case 'smallint':
-							case 'bigint':
-							case 'serial':
-							case 'decimal':
-							case 'float':
-							case 'double':
-								if($this->table_ordinal_is_unsigned($this->tables[$table]['schema'],$this->tables[$table]['table'],$pos+1)) {
-									if($col[0] == "-" && strpos($col, '(')) {
-										$col = substr($col, strpos($col,'(')+1, -1);
-									}
-								} else {
-									if(strpos($col,' ')) $col = substr($col,0,strpos($col,' '));
-								}
-
-								$last_point = strrpos($col, '.');
-								$first_point = strpos($col, '.');
-								if($last_point !== $first_point) {
-									$mod_str=substr($col, 0, $last_point-1);
-									$mod_str=str_replace('.','',$mod_str);
-									$col = $mod_str .= substr($col, $last_point);
-								}	
-							break;
-
-							case 'timestamp':
-								$col = 'from_unixtime(' . $col . ')';
-							break;
-
-							case 'datetime': 
-								$col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
-							break;
-
-							default:
-								if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
-							break;
-						}
-
-						$row[] = $col;
-					}
+					$db = $this->tables[$table]['schema'];	
+					$table = $this->tables[$table]['table'];	
+					$row = $this->cleanup_row($db, $table, $the_row);
 
 					if($valList) $valList .= ",\n";	
 
-  				if( $this->DML == "UPDATE" && $this->mark_updates ) {
-					  $mode=$mode*2;
+  					if( $this->DML == "UPDATE" && $this->mark_updates ) {
+						$mode=$mode*2;
 					}
 					$valList .= "($mode, @fv_uow_id, $this->binlogServerId,$gsn," . implode(",", $row) . ")";
 					$bytes = strlen($valList) + strlen($sql);
-					$allowed = floor($this->max_allowed_packet * .9);  #allowed len is 90% of max_allowed_packet	
 					if($bytes > $allowed) {
 						my_mysql_query($sql . $valList, $this->dest) or die1("COULD NOT EXEC SQL:\n$sql\n" . mysql_error() . "\n");
 						$valList = "";
 					}
-					
 				}
+					
 				if($valList) {
 					my_mysql_query($sql . $valList, $this->dest) or die1("COULD NOT EXEC SQL:\n$sql\n" . mysql_error() . "\n");
 					$valList = '';
