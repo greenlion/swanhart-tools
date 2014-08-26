@@ -644,6 +644,7 @@ EOREGEX
                         return;
 		} elseif($this->plugin) {
 			call_user_func(array('FlexCDC_Plugin','delete'), $this->row, $this->db, $this->base_table, $this->gsn_hwm);
+			return;
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
 		$this->tables[$key]=array('schema'=>$this->db ,'table'=>$this->base_table); 
@@ -683,6 +684,7 @@ EOREGEX
                         return;
 		} elseif($this->plugin) {
 			call_user_func(array('FlexCDC_Plugin','insert'), $this->row, $this->db, $this->base_table, $this->gsn_hwm);
+			return;
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
 		$this->tables[$key]=array('schema'=>$this->db ,'table'=>$this->base_table); 
