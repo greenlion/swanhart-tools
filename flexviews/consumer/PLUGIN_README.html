@@ -1,0 +1,132 @@
+<a title="Get swanhart-tools here, which comes with FlexCDC" href="http://github.com/greenlion/swanhart-tools" target="_blank" rel="nofollow">Swanhart-Tools</a> includes FlexCDC, a change data capture tool for MySQL. FlexCDC follows a server's binary log and usually writes "changelogs", which track the changes to tables in the database. I say usually because the latest version of <a title="Get swanhart-tools here, which comes with FlexCDC" href="http://github.com/greenlion/swanhart-tools" target="_blank" rel="nofollow">Swanhart-Tools</a> (only in github for now) supports FlexCDC plugins, which allow you to send the updates to a remote data source, or to any other place of your liking.  You can find out more about FlexCDC basics <a title="previous blog post" href="http://www.mysqlperformanceblog.com/2011/03/25/using-flexviews-part-two-change-data-capture/" target="_blank"> in a previous blog post.</a>
+<p>
+Please note that FlexCDC still needs to have source and destination instances defined in the configuration, even when using plugins.  This is because the FlexCDC state (how much into which binary log has FlexCDC progressed, and what tables are being captured) is stored in the "dest".  Normally when using a plugin, the source and destination instances will be the same. FlexCDC will create a 'flexviews' database with a number of state tables in the destination instance.  This also means you still have to use the create_mvlog.php or Flexview's create_mvlog(...) procedure to mark which tables to capture!  See the <a title="previous blog post" href="http://www.mysqlperformanceblog.com/2011/03/25/using-flexviews-part-two-change-data-capture/" target="_blank"> previous blog post</a> about FlexCDC.  
+<p>
+When you create the mvlog, there will still be a changelog table created in the dest, just like when not using a plugin.  This is because the INFORMATION_SCHEMA is used to get column datatypes and additional information (such as if an int is signed or unsigned) and this lookup is done against the table in the dest.  The reason this is needed, is because mysqlbinlog, the utility used to scrape the binlog, produces strange output for large signed integers (it provides the signed and unsigned version), thus FlexCDC must figure out the right one to choose from the actual DDL of the changelog table.  FlexCDC can't look at the DDL of the source table though, because the consumer may be behind, and the current structure may not match the structure of the rows in the log.
+</p>
+<strong>The new plugin system allows you to do a lot of nifty things like:</strong>
+<p>
+<ul>
+	<li>Replicate to external databases</li>
+	<li>Publish changes to a message queue (this is like Facebook's Wormhole)</li>
+	<li>Keep a remote cache server in sync</li>
+	<li>and more...</li>
+</ul>
+<p>
+The lastest version of Swanhart-Tools includes an Example plugin (in flexcdc/include/example_plugin.php) that simply prints the events that come through it, not logging them into the changelog table at all.  There is an example of the output at the end of the post.
+
+<p>
+<strong>The example plugin looks like this:</strong>
+<pre>&lt;?php
+class FlexCDC_Plugin {
+
+	static function begin_trx($uow_id, $gsn) {
+		echo "START TRANSACTION: trx_id, $uow_id, Prev GSN: $gsn";
+	}
+
+	static function commit_trx($uow_id, $gsn) {
+		echo "COMMIT: trx_id, $uow_id, Last GSN: $gsn";
+	}
+
+	static function rollback_trx($uow_id) {
+		echo "ROLLBACK: trx_id, $uow_idn";
+	}
+
+	static function insert($row, $db, $table, $trx_id, $gsn) {
+		echo "TRX_ID: $trx_id, Schema:$db, Table: $table, DML: INSERT, AT: $gsn"; print_r($row);	
+	}
+	
+	static function delete($row, $db, $table, $trx_id, $gsn) {
+		echo "TRX_ID: $trx_id, Schema:$db, Table: $table, DML: DELETE, AT: $gsn"; print_r($row);	
+	}
+	
+	static function update_before($row, $db, $table, $trx_id, $gsn) {
+		echo "TRX_ID: $trx_id, Schema:$db, Table: $table, DML: UPDATE (OLD), AT: $gsn"; print_r($row);	
+	}
+
+	static function update_after($row, $db, $table, $trx_id, $gsn) {
+		echo "TRX_ID: $trx_id, Schema:$db, Table: $table, DML: UPDATE (NEW), AT: $gsn"; print_r($row);	
+	}
+}
+
+</pre>
+<b>Important Note:</b> You <b>must</b> define all seven of these functions in your plugin, even if you do not plan to have actions for each of the change types - just leave the function body empty to do no action (the call is simply a noop that case.) Note that the plugin functions must be declared <strong>STATIC</strong>.  This is due to the way that FlexCDC calls the functions.
+
+<p>
+<b>Transaction state callbacks</b>
+There are three callback functions which notify the plugin of changes in <b>transaction state</b>.  Before I go into what they do, I want to note the $trx_id and $gsn parameters which are present in every callback.  Each transaction is assigned a monotonically increasing transaction identifier.  This sequence uniquely identifies each transaction that FlexCDC processes.  In addition, each row change is assigned a unique sequence number which FlexCDC calls the Generic Sequence Number (or GSN).  
+
+<p>
+As you can see, the start_trx(...) callback (called when a transaction starts) is passed both the new transaction number and also the highest GSN used in the previous transaction.  This is called the GSN high water mark (GSNHWM).  At transaction commit, the commit_trx(...) callback is called and the transaction id and the last GSN assigned in the transaction are passed into the callback.  This same value will appear as the GSNHWM in the next start_trx(...) callback.  Finally, at rollback any sequence numbers assigned in that transaction will be re-used, so no GSN is passed to the rollback callback, but a transaction id is, which lets you determine exactly which transaction is rolling back.
+
+<p>
+<b>Row change callbacks</b>
+
+<p>
+Each of the four row change callback functions capture a particular change to the data set. Each of the functions take five parameters. The first ($row) is an array which contains the row being acted upon.  The second ($db) is the schema which contains the row.  The third ($table) is the table that contains the row.  Each callback also receives the transaction identifier, and of course, each row change is assigned a unique GSN.  
+
+<p>
+For example:
+<p>
+An update will fire both update_before(...) and update_after(...) callbacks with the row images before and after the change, respectively.  There is an example of this at the end of the post.
+
+<p>
+<strong>Configuring FlexCDC to use a plugin
+<p>
+</strong>FlexCDC uses a configuration file called consumer.ini by default.  To the [flexcdc] section add:
+<p>
+<strong>plugin=<em>plugin_file.php</em></strong>
+<p>
+
+<p>
+The plugin must be in the FlexCDC <em>include/ </em>directory.  You will find example_plugin.php in this directory, to serve as an example.
+<p>
+
+<strong>How it works
+<p>
+</strong>Flexviews uses mysqlbinlog to decode the binary log from the source server.  It uses the --decode-rows=ROWS option to decode RBR into a format which can be parsed by an external utility.  FlexCDC collects information about each transaction and the row changes that happen in the database (which means it requires ROW based binary logging to be used.)  When a plugin is defined the normal actions used by FlexCDC are overridden with the callback functions.  
+
+<p>
+Here is the output from the example plugin, for an update that affected 3 rows (update test.t3 set c1 = c1 - 1):
+<p>
+<pre>
+START TRANSACTION: trx_id, 36, Prev GSN: 77
+TRX_ID: 36, Schema:test, Table: t3, DML: UPDATE (OLD), AT: 78
+Array
+(
+    [0] => 2
+    [1] => 1
+)
+TRX_ID: 36, Schema:test, Table: t3, DML: UPDATE (NEW), AT: 79
+Array
+(
+    [0] => 1
+    [1] => 1
+)
+TRX_ID: 36, Schema:test, Table: t3, DML: UPDATE (OLD), AT: 80
+Array
+(
+    [0] => 0
+    [1] => 2
+)
+TRX_ID: 36, Schema:test, Table: t3, DML: UPDATE (NEW), AT: 81
+Array
+(
+    [0] => -1
+    [1] => 2
+)
+TRX_ID: 36, Schema:test, Table: t3, DML: UPDATE (OLD), AT: 82
+Array
+(
+    [0] => 0
+    [1] => 2
+)
+TRX_ID: 36, Schema:test, Table: t3, DML: UPDATE (NEW), AT: 83
+Array
+(
+    [0] => -1
+    [1] => 2
+)
+COMMIT: trx_id, 36, Last GSN: 83
+
+</pre>
