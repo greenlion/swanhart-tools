@@ -2,15 +2,15 @@
 class FlexCDC_Plugin {
 
 	static function begin_trx($uow_id, $gsn) {
-		echo "START TRANSACTION: trx_id, $uow_id, Prev GSN: $gsn\n";
+		echo "START TRANSACTION: trx_id: $uow_id, Prev GSN: $gsn\n";
 	}
 
 	static function commit_trx($uow_id, $gsn) {
-		echo "COMMIT: trx_id, $uow_id, Last GSN: $gsn\n";
+		echo "COMMIT: trx_id: $uow_id, Last GSN: $gsn\n";
 	}
 
 	static function rollback_trx($uow_id) {
-		echo "ROLLBACK: trx_id, $uow_id\n";
+		echo "ROLLBACK: trx_id: $uow_id\n";
 	}
 
 	static function insert($row, $db, $table, $trx_id, $gsn) {
