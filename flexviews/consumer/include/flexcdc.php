@@ -72,7 +72,7 @@ class FlexCDC {
 		return $result;
 	}
 
-	protected function cleanup_row($db, $table, &$the_row) {
+	protected function cleanup_row($db, $table, &$the_row, $get_column_names = false) {
 		foreach($the_row as $pos => $col) {
 			if($col[0] == "'") {
 				$col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
@@ -115,6 +115,17 @@ class FlexCDC {
 				break;
 			}
 			$row[] = $col;
+		}
+
+		if($get_column_names) {
+			$names = $this->table_get_column_names($db, $table);
+			if(!empty($names)) {
+				$old_row = $row;
+				$row = array();
+				foreach($names as $key => $name) {
+					$row[$name] = $old_row[$key];
+				}
+			}
 		}
 		return $row;
 	}
@@ -292,6 +303,29 @@ EOREGEX
 			return true;
 		}
 		return false;
+	}
+
+	public function table_get_column_names($schema, $table) {
+		static $cache;
+		$key = $schema . $table;
+		if(!empty($cache[$key])) {
+			return $cache[$key];
+		}
+		$log_name = 'mvlog_' . md5(md5($schema) . md5($table));
+		$table  = mysql_real_escape_string($table, $this->dest);
+
+		$sql = 'select column_name from information_schema.columns where table_schema="%s" and table_name="%s" and ordinal_position > 4 order by ordinal_position';
+		$sql = sprintf($sql, $this->mvlogDB, $log_name);
+
+		$stmt = my_mysql_query($sql, $this->dest);
+		$columns = array();
+		while($row = mysql_fetch_array($stmt) ) {
+			$columns[] = $row[0];
+		}
+
+		$cache[$key] = $columns;
+		return $columns;
+		
 	}
 
 	public function table_ordinal_datatype($schema,$table,$pos) {
@@ -708,10 +742,10 @@ EOREGEX
 	function delete_row() {
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','update_before'), $this->cleanup_row($this->db, $this->base_table, $this->row), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','update_before'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm);
                         return;
 		} elseif($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','delete'), $this->cleanup_row($this->db, $this->base_table, $this->row), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','delete'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm);
 			return;
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
@@ -748,10 +782,10 @@ EOREGEX
 	function insert_row() {
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','update_after'), $this->cleanup_row($this->db, $this->base_table, $this->row), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','update_after'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm);
                         return;
 		} elseif($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','insert'), $this->cleanup_row($this->db, $this->base_table, $this->row), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm);
+			call_user_func(array('FlexCDC_Plugin','insert'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm);
 			return;
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
@@ -809,7 +843,7 @@ EOREGEX
 					unset($the_row['fv$gsn']);
 					$db = $this->tables[$table]['schema'];	
 					$table = $this->tables[$table]['table'];	
-					$row = $this->cleanup_row($db, $table, $the_row);
+					$row = $this->cleanup_row($db, $table, $the_row,false);
 
 					if($valList) $valList .= ",\n";	
 
