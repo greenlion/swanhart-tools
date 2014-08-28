@@ -22,6 +22,7 @@ error_reporting(E_ALL);
 ini_set('memory_limit', 1024 * 1024 * 1024);
 define('SOURCE', 'source');
 define('DEST', 'dest');
+require_once('plugin_interface.php');
 
 /* 
 The exit/die() functions normally exit with error code 0 when a string is passed in.
@@ -236,10 +237,32 @@ EOREGEX
 				$this->onlyDatabases[] = trim($val);
 			}
 		}
-
+		$this->plugin = false;
 		if(!empty($settings['flexcdc']['plugin'])) {
-			require_once($settings['flexcdc']['plugin']);
-			$this->plugin = true;
+			$this->plugin = array();
+			$files= explode(',',$settings['flexcdc']['plugin']);
+			foreach($files as $file) {
+				require_once(trim($file));
+			}
+		}
+
+		if(is_array($this->plugin) && !empty($settings['flexcdc']['plugin_order'])) {
+			$plugins = explode(',',$settings['flexcdc']['plugin_order']);
+			foreach($plugins as $plugin) {
+				$this->plugin[] = $plugin;
+			}
+                }
+
+		#if a file is provided for loading plugins, but no order is given, then a single
+		#plugin called FlexCDC_Plugin will be used
+		if(is_array($this->plugin) && empty($this->plugin)) {
+			$this->plugin[] = 'FlexCDC_Plugin';
+		} 
+
+		if(is_array($this->plugin)) {
+			foreach($this->plugin as $plugin) {
+				call_user_func(array($plugin, 'plugin_init'), $this);
+			}
 		}
 
 		if(!empty($settings['flexcdc']['skip_before_update'])) $this->skip_before_update = $settings['flexcdc']['skip_before_update'];
@@ -696,7 +719,9 @@ EOREGEX
                 $row = mysql_fetch_assoc($stmt);
 		$this->uow_id = $row['id'];
 		if($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin', 'begin_trx'), $this->uow_id, $this->gsn_hwm);
+			foreach($this->plugin as $plugin) {
+				call_user_func(array($plugin, 'begin_trx'), $this->uow_id, $this->gsn_hwm, $this);
+			}
 		}
 
 	}
@@ -718,7 +743,9 @@ EOREGEX
 		my_mysql_query("COMMIT", $this->dest) or die1("COULD NOT COMMIT TRANSACTION;\n" . mysql_error());
 
 		if($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin', 'commit_trx'), $this->uow_id, $this->gsn_hwm);
+			foreach($this->plugin as $plugin) {
+				call_user_func(array($plugin, 'commit_trx'), $this->uow_id, $this->gsn_hwm,$this);
+			}
 		}
 
 		$this->uow_id = null;
@@ -732,7 +759,9 @@ EOREGEX
 		$this->set_capture_pos();
 		my_mysql_query("COMMIT", $this->dest) or die1("COULD NOT COMMIT TRANSACTION LOG POSITION UPDATE;\n" . mysql_error());
 		if($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin', 'rollback_trx'), $this->uow_id);
+			foreach($this->plugin as $plugin) {
+				call_user_func(array($plugin, 'rollback_trx'), $this->uow_id,$this);
+			}
 		}
 		$this->uow_id = null;
 		
@@ -742,10 +771,14 @@ EOREGEX
 	function delete_row() {
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','update_before'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm);
+			foreach($this->plugin as $plugin) {
+				call_user_func(array($plugin,'update_before'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm,$this);
+			}
                         return;
 		} elseif($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','delete'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm);
+			foreach($this->plugin as $plugin) {
+				call_user_func(array($plugin,'delete'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm, $this);
+			}
 			return;
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
@@ -782,10 +815,14 @@ EOREGEX
 	function insert_row() {
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','update_after'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm);
+			foreach($this->plugin as $plugin) {
+				call_user_func(array($plugin,'update_after'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm,$this);
+			}
                         return;
 		} elseif($this->plugin) {
-			call_user_func(array('FlexCDC_Plugin','insert'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm);
+			foreach($this->plugin as $plugin) {
+				call_user_func(array($plugin,'insert'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm,$this);
+			}
 			return;
                 }
 		$key = '`' . $this->mvlogDB . '`.`' . $this->mvlog_table . '`';
@@ -1385,5 +1422,12 @@ EOREGEX
 		return true;
 	
 	}
-}
 
+	public static function shutdown_plugins($instance) {
+		if($instance->plugin) {
+			foreach($instance->plugin as $plugin) {
+				call_user_func(array($plugin,'plugin_deinit'), $instance);
+			}
+		}
+	}
+}

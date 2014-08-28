@@ -8,13 +8,17 @@ $ERROR_FILE=false;
 if (function_exists('pcntl_signal')) {
 	pcntl_signal(SIGTERM, "sig_handler");
 	pcntl_signal(SIGHUP,  "sig_handler");
+	pcntl_signal(SIGINT,  "sig_handler");
 }
 
 function sig_handler($signo)
 {
+	global $cdc;
      switch ($signo) {
          case SIGTERM:
          case SIGHUP:
+         case SIGINT:
+	     FlexCDC::shutdown_plugins($cdc);
 	     die1(0);
      }
 }
@@ -102,7 +106,7 @@ if(empty($settings['flexcdc']['error_log'])) {
 	$error_log = $settings['flexcdc']['error_log'];
 }
 
-
+global $cdc;
 $cdc = new FlexCDC($settings);
 #capture changes forever (-1):
 $cdc->capture_changes(-1);
