@@ -249,7 +249,7 @@ EOREGEX
 		if(is_array($this->plugin) && !empty($settings['flexcdc']['plugin_order'])) {
 			$plugins = explode(',',$settings['flexcdc']['plugin_order']);
 			foreach($plugins as $plugin) {
-				$this->plugin[] = $plugin;
+				$this->plugin[] = trim($plugin);
 			}
                 }
 
