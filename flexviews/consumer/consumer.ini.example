@@ -83,6 +83,15 @@ failure_email_address=root@localhost
 ;The example plugin prints out all the rows that are sent to it - THEY ARE NOT LOGGED INTO THE MVLOG TABLE
 ;plugin=example_plugin.php
 
+;You can load more than one file with plugins:
+;plugin=file1.php,file2.php 
+
+;plugin_order specifies in which order to load the plugins.  It contains the classname to run (default FlexCDC_Plugin)
+;plugin_order=FlexCDC_Plugin
+
+;Of course, if you want more than one plugin, each MUST have a unique name (again this is the CLASS name in the file(s) loaded above)
+;plugin_order=Class1,Class2
+
 ;The SOURCE is where the change logs are read from.  This does not have to be the same as the local machine.
 ;this user requires "grant replication client,replication slave"
 [source]
