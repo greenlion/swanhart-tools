@@ -517,7 +517,8 @@ EOREGEX
 				$this->delimiter = ';';
 	
 				if ($row['exec_master_log_pos'] < 4) $row['exec_master_log_pos'] = 4;
-				$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-position=%d %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_size'], $row['master_log_file']);
+				#$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-position=%d %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_size'], $row['master_log_file']);
+				$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-never %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_file']);
 				$execCmdLine .= " 2>&1";
 				echo "-- $execCmdLine\n";
 				$proc = popen($execCmdLine, "r");
@@ -697,10 +698,11 @@ EOREGEX
 	}
 
 	/* Update the binlog_consumer_status table to indicate where we have executed to. */
-	function set_capture_pos() {
+	function set_capture_pos($commit=false) {
 		$sql = sprintf("UPDATE `" . $this->mvlogDB . "`.`" . $this->binlog_consumer_status . "` set exec_master_log_pos = %d where master_log_file = '%s' and server_id = %d", $this->binlogPosition, $this->logName, $this->serverId);
 		
 		my_mysql_query($sql, $this->dest) or die1("COULD NOT EXEC:\n$sql\n" . mysql_error($this->dest));
+		if($commit) my_mysql_query("COMMIT", $this->dest) or die1("COULD NOT EXEC:\n$sql\n" . mysql_error($this->dest));
 		
 	}
 
@@ -943,7 +945,6 @@ EOREGEX
 				$this->delimiter = trim($args);
 				break;
 				
-			#ignore SET and USE for now.  I don't think we need it for anything.
 			case 'SET':
 				my_mysql_query($sql, $this->dest);	
 				break;
@@ -1219,11 +1220,19 @@ EOREGEX
 			#Control information from MySQLbinlog is prefixed with a hash comment.
 			if($prefix[0] == "#") {
 				$binlogStatement = "";
-				if (preg_match('/^#([0-9]+\s+[0-9:]+)\s+server\s+id\s+([0-9]+)\s+end_log_pos ([0-9]+).*/', $line,$matches)) {
+				if (preg_match('/^#([0-9]+\s+[0-9:]+)\s+server\s+id\s+([0-9]+)\s+end_log_pos ([0-9]+)(.*)/', $line,$matches)) {
 					$this->timeStamp = $matches[1];
 					$this->binlogPosition = $matches[3];
 					$this->binlogServerId = $matches[2];
-					#$this->set_capture_pos();
+					if($at = strpos($line, 'Rotate to ')) {
+						$this->set_capture_pos(true);
+						$substr = substr($line, $at);
+						$vals = explode(' ', $substr);
+						$this->logName = $vals[2];
+						$this->binlogPosition = $vals[5];
+						$this->set_capture_pos(true);
+					}
+
 				} else {
 					#decoded RBR changes are prefixed with ###				
 					if($prefix == "### I" || $prefix == "### U" || $prefix == "### D") {
