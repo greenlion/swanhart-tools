@@ -699,8 +699,8 @@ EOREGEX
 
 	/* Update the binlog_consumer_status table to indicate where we have executed to. */
 	function set_capture_pos($commit=false) {
-		$sql = sprintf("UPDATE `" . $this->mvlogDB . "`.`" . $this->binlog_consumer_status . "` set exec_master_log_pos = %d where master_log_file = '%s' and server_id = %d", $this->binlogPosition, $this->logName, $this->serverId);
-		
+		#$sql = sprintf("UPDATE `" . $this->mvlogDB . "`.`" . $this->binlog_consumer_status . "` set exec_master_log_pos = %d where master_log_file = '%s' and server_id = %d", $this->binlogPosition, $this->logName, $this->serverId);
+		$sql = sprintf("INSERT INTO `" . $this->mvlogDB . "`.`" . $this->binlog_consumer_status . "` VALUES(%d, '%s',%d, %d) ON DUPLICATE KEY UPDATE exec_master_log_pos = %d", $this->serverId, $this->logName,0, $this->binlogPosition, $this->binlogPosition);
 		my_mysql_query($sql, $this->dest) or die1("COULD NOT EXEC:\n$sql\n" . mysql_error($this->dest));
 		if($commit) my_mysql_query("COMMIT", $this->dest) or die1("COULD NOT EXEC:\n$sql\n" . mysql_error($this->dest));
 		
