@@ -47,8 +47,12 @@ function my_mysql_query($a, $b=NULL, $debug=false) {
 	if($debug) echo "$a\n";
 
 	if($b) {
+		
+	mysql_set_charset('utf8',$b);
 	$r = mysql_query($a, $b);
-		} else { 
+		} else {
+			
+	mysql_set_charset('utf8');
 	$r = mysql_query($a);
 	}
 
