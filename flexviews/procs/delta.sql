@@ -43,6 +43,7 @@ DECLARE v_mview_fqn TEXT CHARACTER SET UTF8;
 -- suppress DROP IF EXISTS warnings
 DECLARE CONTINUE HANDLER FOR 1051
 BEGIN END;
+call flexviews.update_refresh_step_info(v_mview_id,'APPLY_BEGIN');
 
 SELECT mview_name,
        mview_schema,
@@ -264,6 +265,8 @@ END IF;
      SET refreshed_to_uow_id = IF(v_until_uow_id > incremental_hwm, incremental_hwm, v_until_uow_id)
    WHERE mview_id = v_mview_id;
 
+  call flexviews.update_refresh_step_info(v_mview_id,'APPLY_END');
+
 END;;
 
 DROP FUNCTION IF EXISTS flexviews.get_delta_where;;
@@ -346,6 +349,7 @@ DECLARE v_group_clause TEXT CHARACTER SET UTF8;
 DECLARE v_sql TEXT CHARACTER SET UTF8 default '';
 DECLARE v_mview_table_alias TEXT CHARACTER SET UTF8;
 DECLARE v_delta_table TEXT CHARACTER SET UTF8;
+call flexviews.update_refresh_step_info(v_mview_id,'EXEC_REFRESH_STEP_START');
 
 SELECT CONCAT(mview_schema, '.', mview_name, '_delta')
   INTO v_delta_table
@@ -392,6 +396,7 @@ CALL flexviews.rlog(v_sql);
 
 -- Execute the SQL, returning the UOW_ID into v_uow_id, which is an OUT parameter
 call flexviews.uow_execute(v_sql, v_uow_id);
+call flexviews.update_refresh_step_info(v_mview_id,'EXECUTE_REFRESH_STEP_END');
 
 END;;
 
@@ -421,6 +426,8 @@ DECLARE v_next_depth TINYINT;
 -- suppress DROP IF EXISTS warnings
 DECLARE CONTINUE HANDLER FOR 1051
 BEGIN END;
+
+call flexviews.update_refresh_step_info(v_mview_id,'EXECUTE_REFRESH_START');
 
 -- when we recurse, v_start_uow_id IS NULL
 IF v_start_uow_id IS NULL THEN
@@ -614,6 +621,7 @@ UPDATE flexviews.mview
    SET incremental_hwm = v_until_uow_id
  WHERE mview_id = v_mview_id;
 
+call flexviews.update_refresh_step_info(v_mview_id,'EXECUTE_REFRESH_END');
 END;;
 
 DROP FUNCTION IF EXISTS `get_delta_from` ;;
@@ -1126,7 +1134,6 @@ DECLARE v_message TEXT CHARACTER SET UTF8 default '';
 DECLARE v_leave_loop BOOLEAN DEFAULT FALSE;
 DECLARE v_sql TEXT CHARACTER SET UTF8;
 DECLARE v_error BOOLEAN DEFAULT FALSE;
-
 -- this 'loop' gives us an easy way to only do the necessary checks
 theLoop:LOOP
 
@@ -1203,7 +1210,6 @@ END IF;
 
 LEAVE theLoop;
 END LOOP;
-
 END;;
 
 DROP PROCEDURE IF EXISTS flexviews.rlog;;

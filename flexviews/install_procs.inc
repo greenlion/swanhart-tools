@@ -51,6 +51,7 @@ USE flexviews;
 \. ./procs/show_warnings.sql
 \. ./procs/star_transform.sql
 \. ./procs/uow.sql
+\. ./procs/update_refresh_step_info.sql
 \. ./procs/get_setting.sql
 \. ./procs/fvrand.sql
 \. ./procs/refresh_all.sql

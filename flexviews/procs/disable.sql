@@ -62,6 +62,7 @@ BEGIN
   -- suppress DROP IF EXISTS warnings
   DECLARE CONTINUE HANDLER FOR 1051
   BEGIN END;
+  call flexviews.update_refresh_step_info(v_mview_id,'DISABLE_BEGIN');
 
   SET max_sp_recursion_depth := 255;
 
@@ -122,6 +123,7 @@ BEGIN
    END IF;
    -- restore SESSION max_sp_recursion_depth
    SET max_sp_recursion_depth := bkp_max_sp_recursion_depth;
+   call flexviews.update_refresh_step_info(v_mview_id,'DISABLE_END');
 END ;;
 
 DELIMITER ;

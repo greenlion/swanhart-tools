@@ -64,6 +64,8 @@ body: BEGIN
   DECLARE CONTINUE HANDLER FOR 1051
   BEGIN END;
 
+  call flexviews.update_refresh_step_info(v_mview_id,'ENABLE_START');
+
   SELECT mview_name, 
          mview_schema, 
 	 mview_enabled, 
@@ -213,6 +215,8 @@ body: BEGIN
       -- A subview will only be created if necessary
       CALL flexviews.create_child_views(v_mview_id);
     END IF;
+    
+    call flexviews.update_refresh_step_info(v_mview_id,'ENABLE_END');
 END ;;
 
 DELIMITER ;

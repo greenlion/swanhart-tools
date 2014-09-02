@@ -101,6 +101,8 @@ DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
 
   IF v_mode = 'FULL' THEN SET v_mode = 'BOTH'; END IF;
 
+  CALL flexviews.update_refresh_step_info(v_mview_id, concat('REFRESH_START: ',v_mode));
+
   -- get the table name and schema of the given mview_id
   SELECT
       mview_refresh_type,
@@ -335,8 +337,11 @@ DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
       END;
     END IF;
   ELSE
+    CALL flexviews.update_refresh_step_info(v_mview_id, concat('UNSUPPORTED REFRESH METHOD:',v_mode));
     CALL flexviews.signal(' XYZ UNSUPPORTED REFRESH METHOD'); 
   END IF;
+
+  CALL flexviews.update_refresh_step_info(v_mview_id, concat('REFRESH_END: ',v_mode));
 END ;;
 
 DELIMITER ;

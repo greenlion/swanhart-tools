@@ -1,5 +1,13 @@
-# This script only works if you are running 1.6.0rc1 or greater.  If you are running an older verions, uninstall and reinstall
 use flexviews;
+-- This is the only MyISAM table in Flexviews.  It is
+-- a table that keeps track of the last refresh step
+-- for a view for monitoring purposes
+CREATE TABLE IF NOT EXISTS flexviews.refresh_step_info(
+  mview_id int(11) not null PRIMARY KEY,
+  last_step varchar(255) not null,
+  last_step_at TIMESTAMP NOT NULL
+) DEFAULT CHARSET=UTF8
+ENGINE=MYISAM;
 
-select 'Upgrade not available!\nCall flexviews.disable() for all your views, then drop the flexviews database and follow normal install procedures' as '';
+\. install_procs.inc
 
