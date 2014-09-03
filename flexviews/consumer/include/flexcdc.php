@@ -47,9 +47,11 @@ function my_mysql_query($a, $b=NULL, $debug=false) {
 	if($debug) echo "$a\n";
 
 	if($b) {
-	$r = mysql_query($a, $b);
-		} else { 
-	$r = mysql_query($a);
+		mysql_ping($b);
+		$r = mysql_query($a, $b);
+	} else { 
+		mysql_ping();
+		$r = mysql_query($a);
 	}
 
 	if(!$r) {
