@@ -330,9 +330,15 @@ EOREGEX
 		return false;
 	}
 
-	public function table_get_column_names($schema, $table) {
+	public function table_get_column_names($schema, $table, $invalidate_cache = false) {
 		static $cache;
 		$key = $schema . $table;
+
+		if ($invalidate_cache) {
+			unset($cache[$key]);
+			return;
+		}
+
 		if(!empty($cache[$key])) {
 			return $cache[$key];
 		}
@@ -1152,6 +1158,8 @@ EOREGEX
 							my_mysql_query($sql, $this->dest) or die1($sql . "\n" . mysql_error($this->dest) . "\n");
 							$this->mvlogList = array();
 							$this->refresh_mvlog_cache();
+						} else {
+							$this->table_get_column_names($old_schema, $old_base_table, true); // column names may have been changed, invalidate cache
 						}
 					}
 				}	
