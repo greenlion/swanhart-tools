@@ -292,7 +292,7 @@ EOREGEX
 		$this->auto_changelog = $settings['flexcdc']['auto_changelog'];		
 		#shortcuts
 
-		if(!empty($settings['raise_warnings']) && $settings['raise_warnings'] != 'false') {
+		if(!empty($settings['flexcdc']['raise_warnings']) && $settings['flexcdc']['raise_warnings'] != 'false') {
  			$this->raiseWarnings=true;
 		}
 
