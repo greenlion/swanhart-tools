@@ -1261,7 +1261,8 @@ EOREGEX
 								 		$this->create_mvlog($this->db, $this->base_table);  
 								 		$this->refresh_mvlog_cache();
 								}
-							} else {
+							}
+							if(!empty($this->mvlogList[$this->db . $this->base_table])) {
 								$this->mvlog_table = $this->mvlogList[$this->db . $this->base_table];
 								$lastLine = $this->process_rowlog($proc, $line);
 							}
