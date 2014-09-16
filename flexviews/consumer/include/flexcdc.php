@@ -292,7 +292,7 @@ EOREGEX
 		$this->auto_changelog = $settings['flexcdc']['auto_changelog'];		
 		#shortcuts
 
-		if(!empty($settings['raise_warnings']) && $settings['raise_warnings'] != 'false') {
+		if(!empty($settings['flexcdc']['raise_warnings']) && $settings['flexcdc']['raise_warnings'] != 'false') {
  			$this->raiseWarnings=true;
 		}
 
@@ -959,7 +959,7 @@ EOREGEX
 
 			case 'USE':
 				$this->activeDB = trim($args);	
-				$this->activeDB = str_replace($this->delimiter,'', $this->activeDB);
+				$this->activeDB = trim(str_replace($this->delimiter,'', $this->activeDB), '`"'); // TODO: parse this better: http://dev.mysql.com/doc/refman/5.6/en/identifiers.html
 				break;
 				
 			#NEW TRANSACTION
@@ -1071,9 +1071,6 @@ EOREGEX
 				}
 				if(!preg_match('/\s+table\s+([^ ]+)/i', $sql, $matches)) return;
 				
-				if(empty($this->mvlogList[str_replace('.','',trim($matches[1]))])) {
-					return;
-				}
 				$table = $matches[1];
 				#switch table name to the log table
 				if(strpos($table, '.')) {
@@ -1085,6 +1082,10 @@ EOREGEX
 				  $old_base_table = $table;
 				}
 				unset($table);
+
+				if(empty($this->mvlogList[$old_schema.$old_base_table])) {
+					return;
+				}
 				
 				$old_log_table = 'mvlog_' . md5(md5($old_schema) . md5($old_base_table));
 				
@@ -1260,7 +1261,8 @@ EOREGEX
 								 		$this->create_mvlog($this->db, $this->base_table);  
 								 		$this->refresh_mvlog_cache();
 								}
-							} else {
+							}
+							if(!empty($this->mvlogList[$this->db . $this->base_table])) {
 								$this->mvlog_table = $this->mvlogList[$this->db . $this->base_table];
 								$lastLine = $this->process_rowlog($proc, $line);
 							}
