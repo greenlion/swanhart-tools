@@ -64,8 +64,8 @@ class ShardLoader {
   public function __construct($SQ, $delimiter = ",", $enclosure = "", $line_terminator = "\n", $use_fifo = true, $chunk_size = DEFAULT_CHUNK_SIZE, 
                               $charset = 'latin1', $ignore = false, $replace = false, $line_starter="", $escape = "\\") {
     $this->SQ              = $SQ;
-    $delimiter             = str_replace(array( '\\'), array( "\\\\"), $delimiter); 
-    $escape                = str_replace(array( '\\'), array( "\\\\"), $escape);
+    #$delimiter             = str_replace(array( '\\'), array( "\\\\"), $delimiter); 
+    #$escape                = str_replace(array( '\\'), array( "\\\\"), $escape);
 
     $this->delimiter       = $delimiter;
     $this->enclosure       = $enclosure;
@@ -565,7 +565,7 @@ class ShardLoader {
     if (!unlink($path))
       return false;
     
-    if (!posix_mkfifo($path, '0666'))
+    if (!posix_mkfifo($path, 0666))
       return false;
 
     if($ignore == "") $ignore=""; else $ignore = "IGNORE";
