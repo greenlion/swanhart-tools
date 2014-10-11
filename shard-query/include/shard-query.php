@@ -2948,6 +2948,7 @@ class ShardQuery {
           } else {
             $alias = $table_info['alias'];
           }
+          $alias = trim($alias,'`');
           if($table_info['partition_info']['partition_names'][0] == "") {
             $select['shard_sql'] = str_replace('%p' . $alias, "", $select['shard_sql']);
           }
@@ -2961,6 +2962,7 @@ class ShardQuery {
           } else {
             $alias = $table_info['alias'];
           }
+          $alias = trim($alias,'`');
           if($table_info['partition_info']['partition_names'][0] != "") {
             if(empty($queries)) {
               foreach($table_info['partition_info']['partition_names'] as $x => $partition_name) {

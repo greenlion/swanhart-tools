@@ -227,7 +227,8 @@ class PDODAL implements SimpleDALinterface
     function enumerate_partitions($schema_name, $table_name, $all_partition_types, $conn = null) {
 	switch($this->server['dsn-prefix']) {
 		case 'mysql':
-
+                        $schema_name=trim($schema_name,'`');
+                        $table_name=trim($table_name,'`');
 			$sql = SimpleDAL::get_mysql_partition_sql($schema_name, $table_name, $all_partition_types);
 
 		break;
