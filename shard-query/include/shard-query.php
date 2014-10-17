@@ -3362,7 +3362,7 @@ class ShardQuery {
       }
     }
     
-    #        $this->cleanup_tables($state);
+    $this->cleanup_tables($state);
     
     return $stmt;
     
@@ -3403,7 +3403,6 @@ class ShardQuery {
   }
   
   function cleanup_tables(&$state = null) {
-return true;
     
     if(!isset($state))
       $state = $this->state;
