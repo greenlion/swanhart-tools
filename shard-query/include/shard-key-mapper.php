@@ -257,7 +257,7 @@ class DirectoryShardKeyMapper implements ShardKeyMapper{
 	
 	public function get_shards($schema_name = null, $coord_only = false) {
 
-		if(isset($this->shard_cache[isset($schema_name) ? $schema_name : '.'])) return $this->shard_cache[isset($schema_name) ? $schema_name : '.'];
+		if(!$coord_only && isset($this->shard_cache[isset($schema_name) ? $schema_name : '.'])) return $this->shard_cache[isset($schema_name) ? $schema_name : '.'];
 		if(!isset($schema_name)) {
 			$sql = "SELECT shards.*,username as user FROM shards join schemata on schema_id = schemata.id where is_default_schema = true";
 		} else {
@@ -280,7 +280,7 @@ class DirectoryShardKeyMapper implements ShardKeyMapper{
 			$shards[$row['shard_name']] = $shard;
 		}
 	
-		$this->shard_cache[isset($schema_name) ? $schema_name : '.'] = $shards;
+		if(!$coord_only) $this->shard_cache[isset($schema_name) ? $schema_name : '.'] = $shards;
 
 		return $shards;
 
