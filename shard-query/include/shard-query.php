@@ -4131,11 +4131,10 @@ class ShardQuery {
           }
           $values .= "($rowvals)";
         } 
-
-      }
-      if($values != "") {
-        $dal2->my_query($insert_sql . $values);
-        if($this->check_error($dal2)) return false;
+        if($values != "") {
+          $dal2->my_query($insert_sql . $values);
+          if($this->check_error($dal2)) return false;
+        }
       }
       return true;
     } else { /* load goes to specific shards */
