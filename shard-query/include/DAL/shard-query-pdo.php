@@ -77,7 +77,7 @@ class PDODAL implements SimpleDALinterface
 
     function &my_unbuffered_query($query, $conn = null)
     {
-        if(SQ_DEBUG) echo "DRV_PDO_UB:$sql\n";
+        if(SQ_DEBUG) echo "DRV_PDO_UB:$query\n";
         if (isset($conn)) {
            $conn->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
            $res = $this->my_query($query, $conn);
@@ -90,8 +90,9 @@ class PDODAL implements SimpleDALinterface
 
     function &my_fetch_assoc($stmt = null)
     {
-        if (!$stmt)
+        if ($stmt === null)
             $stmt = $this->stmt;
+	if(!$stmt) return false;
         $r = $stmt->fetch(PDO::FETCH_ASSOC);
 	return $r;
     }
@@ -255,6 +256,7 @@ class PDODAL implements SimpleDALinterface
 	}	
 		
 	$stmt = $this->my_query($sql, $conn);
+	if(!$stmt) return false;
 	$rows = null;
 	$partition_names = array();
 	$partition_expression = null;
