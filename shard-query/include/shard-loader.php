@@ -630,7 +630,7 @@ class ShardLoader {
     if($replace == "") $replace=""; else $replace = "REPLACE";
 
     #note $ignore and replace are mutually exclusive in the SQL grammar - putting them together produces a error if both are used which is good
-    $load = "LOAD DATA INFILE \"$path\" {$replace}{$ignore} INTO TABLE `{$shard['db']}`.`$table`";
+    $load = "LOAD DATA LOCAL INFILE \"$path\" {$replace}{$ignore} INTO TABLE `{$shard['db']}`.`$table`";
     if($this->charset !== "" && $this->charset !== null) $load .= " CHARACTER SET {$this->charset} ";
     $sql  = "";
     
