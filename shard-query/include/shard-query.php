@@ -1804,7 +1804,7 @@ class ShardQuery {
         $tables[$i]['join_type'] = ' LEFT JOIN ';
       if($tables[$i]['join_type'] == 'RIGHT')
         $tables[$i]['join_type'] = ' RIGHT JOIN ';
-      if($tables[$i]['join_type'] == 'NATURAL');
+      if($tables[$i]['join_type'] == 'NATURAL')
         $tables[$i]['join_type'] = ' NATURAL JOIN ';
 
       $sql .= $tables[$i]['join_type'] . ' ' . $tables[$i]['table'] . $alias . ' ' . $tables[$i]['ref_type'] . $tables[$i]['ref_clause'];
