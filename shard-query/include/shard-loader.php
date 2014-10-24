@@ -187,6 +187,27 @@ class ShardLoader {
     
   }
 
+  public function load_from_handle($fh, $table, $chunk_size = null) {
+    if($chunk_size === null) $chunk_size = 1024 * 1024 * 256;
+    $buffer = array();
+    $buflen = 0;
+
+    while($line = fgets($fh)) {
+      $buffer[] = $line;
+      $buflen += strlen($line);
+
+      if($buflen >= $chunk_size) {
+        $this->load_segment($buffer, $table, null, null, null, null, null, null,true);
+        $buflen = 0;
+        $buffer = array();
+      }
+    }
+    if($buflen > 0) {
+      $this->load_segment($buffer, $table, null, null, null, null, null, null, true);
+    }
+    if(!isset($this->errors)) $this->errors=array(); 
+    
+  }
   
   /*
   Load a file via gearman.  Again, by default, split the file into 16MB chunks
@@ -278,7 +299,7 @@ class ShardLoader {
     
   }
   
-  public function load_segment($path, $table, $start_pos, $end_pos, $columns_str = null, $set_str = null, $ignore="", $replace="") {
+  public function load_segment(&$path, $table, $start_pos, $end_pos, $columns_str = null, $set_str = null, $ignore="", $replace="", $from_buffer = null) {
     $SQ             = $this->SQ;
     $shard_col_pos  = null;
     $errors         = array();
@@ -287,12 +308,15 @@ class ShardLoader {
     $bucket = null; 
     $file = null;
 
-    if(!is_array($path)) { 
+    $buffer = false; 
+    if($from_buffer === null && !is_array($path)) { 
       if (!trim($path))
         throw new Exception('Empty path not supported');
-    } else {
+    } elseif($from_buffer === null) {
       $bucket = $path[1];
       $file = $path[2];
+    } else {
+      $buffer = &$path;
     }
 
     $delimiter = $this->delimiter;
@@ -371,7 +395,7 @@ class ShardLoader {
         return $errors;
       }
       unlink($fname);
-    } elseif(strstr($path,'http://') || strstr($path,'https://')) {
+    } elseif($from_buffer === null && (strstr($path,'http://') || strstr($path,'https://'))) {
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $path);
         curl_setopt($curl, CURLOPT_USERAGENT, 'Shard-Query/loader');
@@ -399,9 +423,11 @@ class ShardLoader {
         $fh = fopen($fname, 'rb'); 
         unlink($fname);
     } else {
-      if (!$fh = fopen($path, 'rb')) {
-        $errors[] = "could not open input stream or S3 failure";
-        return $errors;
+      if($from_buffer===null) {
+        if (!$fh = fopen($path, 'rb')) {
+          $errors[] = "could not open input stream or S3 failure";
+          return $errors;
+        }
       }
     }
     
@@ -420,18 +446,33 @@ class ShardLoader {
           );
           return $errors;
         }
-        if (fseek($fh, $start_pos, SEEK_SET) === -1)
-          throw new Exception('could not seek to start pos');
-        while (!feof($fh) && ftell($fh) < $end_pos) {
-          $line   = fgets($fh);
-          $result = fwrite($fifo['fh'], $line);
-          if ($result === false) {
-            $err      = "Could not write to a destination FIFO.  This will result in too many errors, so failing completely.\n";
-            $errors[] = array(
-              'error' => $err,
-              'file_pos' => $line_start
-            );
-            return $errors;
+
+        if($from_buffer === null) {
+          if (fseek($fh, $start_pos, SEEK_SET) === -1)
+            throw new Exception('could not seek to start pos');
+          while (!feof($fh) && ftell($fh) < $end_pos) {
+            $line   = fgets($fh);
+            $result = fwrite($fifo['fh'], $line);
+            if ($result === false) {
+              $err      = "Could not write to a destination FIFO.  This will result in too many errors, so failing completely.\n";
+              $errors[] = array(
+                'error' => $err,
+                'file_pos' => $line_start
+              );
+              return $errors;
+            }
+          }
+        } else {
+	  foreach($buffer as $line) {
+            $result = fwrite($fifo['fh'], $line);
+            if ($result === false) {
+              $err      = "Could not write to a destination FIFO.  This will result in too many errors, so failing completely.\n";
+              $errors[] = array(
+                'error' => $err,
+                'file_pos' => $line_start
+              );
+              return $errors;
+            }
           }
         }
         fclose($fifo['fh']);
@@ -456,11 +497,26 @@ class ShardLoader {
     Figure out on which shard this row belongs.  A buffer for each shard is created.  Each buffer is loaded serially.
     */
     $out_data = array();
-    if (fseek($fh, $start_pos, SEEK_SET) === -1)
-      throw new Exception('could not seek to start pos');
-    while (!feof($fh) && ftell($fh) < $end_pos) {
-      $line = fgets($fh);
-      
+    if($from_buffer === null) {
+      if (fseek($fh, $start_pos, SEEK_SET) === -1) {
+        throw new Exception('could not seek to start pos');
+      }
+    }
+    #while ($!feof($fh) && ftell($fh) < $end_pos) {
+    while (1) {
+      /* exit conditions for loop are either EOF on input, read past chunk boundary or consume all pre-filled buffer*/
+      if($from_buffer !== null && empty($buffer)) { 
+        break;
+      } elseif($from_buffer === null) {
+        if(feof($fh) || ftell($fh) >= $end_pos)  {
+          break;
+        }
+      }
+      if($from_buffer === null) { 
+          $line = fgets($fh);
+      } else {
+          $line = array_pop($buffer);
+      }
       $values = preg_split($regex, $line, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
       if(count($values) == 0) {
         $errors[] = "could not split line: $line\n";
@@ -495,7 +551,9 @@ class ShardLoader {
         $out_data[$shard_name] = array();
       $out_data[$shard_name][] = $line;
     }
-    
+   
+    #print_r($out_data); exit;
+ 
     foreach ($out_data as $shard_name => $lines) {
       $fifo = $this->start_fifo($table, $SQ->state->shards[$shard_name], $columns_str, $set_str, $ignore, $replace);
       if (!$fifo) {
@@ -572,7 +630,8 @@ class ShardLoader {
     if($replace == "") $replace=""; else $replace = "REPLACE";
 
     #note $ignore and replace are mutually exclusive in the SQL grammar - putting them together produces a error if both are used which is good
-    $load = "LOAD DATA LOCAL INFILE \"$path\" {$replace}{$ignore} INTO TABLE `{$shard['db']}`.`$table` CHARACTER SET {$this->charset}";
+    $load = "LOAD DATA INFILE \"$path\" {$replace}{$ignore} INTO TABLE `{$shard['db']}`.`$table`";
+    if($this->charset !== "" && $this->charset !== null) $load .= " CHARACTER SET {$this->charset} ";
     $sql  = "";
     
     $delimiter = $this->delimiter;
@@ -616,7 +675,8 @@ class ShardLoader {
     }
     $cmdline .= " -e '{$load}'";
     $pipes = null;
-   
+  
+#   echo "CMDLINE: $cmdline\n";
  
     #open the MySQL client reading from the FIFO
     $ph = proc_open($cmdline, array(), $pipes);
