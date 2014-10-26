@@ -21,7 +21,7 @@ class PDODAL implements SimpleDALinterface
         return false;
     }
     
-    function &my_connect($server = null, $force_new = true)
+    function &my_connect($server = null, $force_new = false)
     {
         if (!$server)
             return false;
@@ -31,11 +31,10 @@ class PDODAL implements SimpleDALinterface
         if (empty($server['password']))
             $server['password'] = '';
        	if(!isset($server['dsn-prefix'])) $server['dsn-prefix'] = isset($server['rdbms_type']) ? $server['rdbms_type'] : $server['shard_rdbms'];
-        if (isset($server['db']))
+        if (!isset($server['db']))
             $dsn = $server['dsn-prefix'] . ':host=' . $server['host'] . (!empty($server['port']) ? ';port=' . $server['port'] : '');
         else
             $dsn = $server['dsn-prefix'] . ':host=' . $server['host'] . (!empty($server['port']) ? ';port=' . $server['port'] : '') . ';dbname=' . $server['db'];
-        
         
         try {
             $conn = new PDO($dsn, $server['user'], $server['password']);
@@ -47,6 +46,7 @@ class PDODAL implements SimpleDALinterface
         
         $this->conn   = $conn;
         $this->server = $server;
+		$this->conn_config = $server;
         return $conn;
     }
     
@@ -64,15 +64,25 @@ class PDODAL implements SimpleDALinterface
     {
 	if(SQ_DEBUG) echo "DRV_PDO:$sql\n";
         if (isset($conn)) {
-		$conn->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
-		$this->stmt = $conn->query($sql);
+			$conn->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+			$this->stmt = $conn->query($sql);
         } elseif ($this->conn) {
-		$this->conn->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
-		$this->stmt = $this->conn->query($sql);
+			$this->conn->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+			$this->stmt = $this->conn->query($sql);
         } else {
             return false;
         }
         return $this->stmt;
+    }
+
+    function my_ping($conn = null) {
+		if(!$conn) $conn = $this->conn;
+		try {
+            $this->my_query('SELECT 1');
+        } catch (PDOException $e) {
+            $this->my_connect($this->conn_config);            // Don't catch exception here, so that re-connect fail will throw exception
+        } 
+		return true;
     }
 
     function &my_unbuffered_query($query, $conn = null)

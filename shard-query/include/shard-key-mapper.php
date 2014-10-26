@@ -83,7 +83,7 @@ class DirectoryShardKeyMapper implements ShardKeyMapper{
 	}
 
 	private function execute($sql, $check_for_errors = true) {
-
+		$this->conn->my_ping();
 		$stmt = $this->conn->my_query($sql);
 	
 		if($check_for_errors) {
