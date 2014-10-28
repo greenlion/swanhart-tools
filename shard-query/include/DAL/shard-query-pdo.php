@@ -5,7 +5,7 @@ class PDODAL implements SimpleDALinterface
     private $conn = null;
     private $stmt = null;
     private $server = null;
-    function __construct($server = null, $connect = true, $force_new = true)
+    function __construct($server = null, $connect = true, $force_new = false)
     {
         if ($connect)
             $this->my_connect($server, $connect, $force_new);
