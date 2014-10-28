@@ -85,6 +85,7 @@ class ShardQuery {
     $state->used_distinct = false;
     $state->windows = array();
     $state->added_where = false;
+    $state->used_star = false;
     
     return $state;
   }
@@ -255,21 +256,41 @@ class ShardQuery {
     
     if(empty($state->shard_sql[0]) || strtolower(substr($state->shard_sql[0], 0, 6)) !== "select")
       return;
-    
-    $sql = "CREATE TABLE IF NOT EXISTS {$state->table_name} ";
-    $create_subquery = str_replace('1=1', '0=1', $state->shard_sql[0]);
-    
-    $added_key = 0; 
-    $args = "";
+    $sql = $state->shard_sql[0];
+    $sql = preg_replace('/\s+limit\s+\d+,*\s*\d*/i', '', $sql) . ' LIMIT 0';
+
+    if(!$state->DAL->my_select_db($state->tmp_shard['db'])) {
+      $this->errors[] = 'While aggregating result: ' . $state->DAL->my_error();
+      $stmt = false;
+      return false;
+    } 
+ echo $sql . "\n";
+
+    if(!$stmt = $state->DAL->my_query($sql)) {
+      $this->errors[] = 'While getting coordinator columns: ' . $state->DAL->my_error();
+      return false;
+    }
+
+    $meta = $state->DAL->my_metadata($stmt);
+    for($i=0;$i<count($meta);++$i) {
+      $columns[$meta[$i]['name']] = 1;
+    }
+    $columns_sql = "";
+    foreach($columns as $column => $discard) {
+      if($columns_sql) $columns_sql .= ",";
+      $columns_sql .= "$column VARCHAR(255)";
+    }
+
+    $args = $columns_sql;
     if(stristr($state->shard_sql[0], 'GROUP BY')) {
       if(!empty($state->agg_key_cols) && $state->agg_key_cols) {
-        $added_key = 1;
+        if($args != "") $args .= ",";
         $args .= "UNIQUE KEY gb_key (" . $state->agg_key_cols . ")";
       }
     }
 
     if(!empty($state->windows)) {
-      if($added_key) $args .= ",";
+      if($args !== "") $args .= ",";
       $args .= "wf_rownum bigint auto_increment, key(wf_rownum)";
       foreach($state->windows as $num => $win) {
         $args .= ",";
@@ -277,18 +298,13 @@ class ShardQuery {
       }
     }
     if($args) $args = "($args)";
-    
-    $sql .= "$args ENGINE=" . $state->engine;
-    $sql .= " AS $create_subquery ";
+     
+    $sql = "CREATE TABLE " . $state->table_name . " $args"; 
+    $sql .= " ENGINE=" . $state->engine;
 
-    if(!$state->DAL->my_select_db($state->tmp_shard['db'])) {
-      $this->errors[] = 'While aggregating result: ' . $state->DAL->my_error();
-      $stmt = false;
-    } else {
-      if(!$stmt = $state->DAL->my_query($sql)) {
-        $this->errors[] = 'While creating coordinator table: ' . $state->DAL->my_error();
-        return false;
-      }
+    if(!$stmt = $state->DAL->my_query($sql)) {
+      $this->errors[] = 'While creating coordinator view: ' . $state->DAL->my_error();
+      return false;
     }
   }
   
@@ -630,13 +646,21 @@ class ShardQuery {
 
     /* handle SELECT * 
      */
-    if(!empty($clause['base_expr']) && $clause['base_expr'] == "*") {
-      if($pos === 0) {
-        $shard_query .= "*";
-        $coord_query .= "*";
+    if(!empty($clause['base_expr']) && ($clause['base_expr'] == "*" || strpos($clause['base_expr'],'.*'))) {
+      if(strpos($clause['base_expr'],'.')) {
+	$shard_query .= $clause['base_expr'];
+	if($state->used_star == false) $coord_query .= "*";
+	$state->used_star = true;
         return true;
       } else {
-        $clause['expr_type'] = 'operator';
+        if($pos === 0) {
+          $shard_query .= "*";
+          $coord_query .= "*";
+	  $state->used_star = true;
+          return true;
+        } else {
+          $clause['expr_type'] = 'operator';
+        }
       }
     }
     
@@ -2433,7 +2457,7 @@ class ShardQuery {
 
       $sql = preg_replace("/\s+FROM\s+(LAST|FIRST)\s+/i","FROM_$1 ", $sql);
 
-      $state->parsed = $this->parser->parse($sql,true);
+      $state->parsed = $this->parser->parse($sql);
     } else {
       $state->parsed = $sql;
     }

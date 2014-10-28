@@ -235,6 +235,17 @@ class PDODAL implements SimpleDALinterface
         return $this->my_real_escape_string($string, $conn);
     }
 
+    function my_metadata($stmt = null) {
+        if($stmt === null) $stmt = $this->stmt;
+	if($stmt === false) return false;
+        $cnt = $stmt->columnCount();
+        $meta = array();
+        for($i=0;$i<$cnt;++$i) {
+            $meta[] = $stmt->getColumnMeta($i);
+        }
+	return $meta;
+    }
+
     function enumerate_partitions($schema_name, $table_name, $all_partition_types, $conn = null) {
 	switch($this->server['dsn-prefix']) {
 		case 'mysql':
