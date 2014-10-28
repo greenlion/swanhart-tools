@@ -37,7 +37,7 @@ class PDODAL implements SimpleDALinterface
             $dsn = $server['dsn-prefix'] . ':host=' . $server['host'] . (!empty($server['port']) ? ';port=' . $server['port'] : '') . ';dbname=' . $server['db'];
         
         try {
-            $conn = new PDO($dsn, $server['user'], $server['password']);
+            $conn = new PDO($dsn, $server['user'], $server['password'], array(PDO::MYSQL_ATTR_LOCAL_INFILE => 1));
         }
         catch (PDOException $e) {
             echo 'Connection failed: ' . $e->getMessage();
@@ -142,7 +142,7 @@ class PDODAL implements SimpleDALinterface
         
         //reconnect with dbname=
         try {
-            $conn = new PDO($server['dsn-prefix'] . ':host=' . $server['host'] . (!empty($server['port']) ? ';port=' . $server['port'] : '') . ';dbname=' . $db, $server['user'], $server['password']);
+            $conn = new PDO($server['dsn-prefix'] . ':host=' . $server['host'] . (!empty($server['port']) ? ';port=' . $server['port'] : '') . ';dbname=' . $db, $server['user'], $server['password'],array(PDO::MYSQL_ATTR_LOCAL_INFILE => 1));
         }
         catch (PDOException $e) {
             echo 'Connection failed: ' . $e->getMessage();
