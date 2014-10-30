@@ -18,12 +18,18 @@ function help() {
 }
 
 function main() {
-        $params = get_commandline(array("table=","delimiter="));
+        $params = get_commandline(array("table=","delimiter=","schema="));
 	if(!empty($params['table'])) {
 		$table = $params['table'];
 	} else {
 		echo "Table name (--table) is required\n";
 		exit(-1);
+	}
+
+	if(!empty($params['schema'])) {
+		$schema = $params['schema'];
+	} else {
+		$schema = null;
 	}
 
 	if(!empty($params['delimiter'])) {
@@ -34,7 +40,7 @@ function main() {
 #	echo "LOAD FROM STDIN: TABLE: $table DELIMITER: $delimiter\n";
 
 	$fh = fopen('php://stdin', 'r') or die('Could not open STDIN');
-	$SQ = new ShardQuery();
+	$SQ = new ShardQuery($schema);
 	$SL = new ShardLoader($SQ, $delimiter, "", "\n", true, null, null, null, null, "", "\\n");
 	$SL->load_from_handle($fh, $table);
 	if(!empty($SL->errors)) { print_r($SL->errors); exit(1); }
