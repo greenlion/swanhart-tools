@@ -48,7 +48,7 @@ CREATE TABLE `gearman_job_servers` (
   `pid` int(11) DEFAULT NULL,
   `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `hostname_port_unique` (`hostname`,`port`),
+  UNIQUE KEY `hostname_port_unique` (`hostname`,`port`,schema_id),
   KEY `schema_id` (`schema_id`),
   CONSTRAINT `gearman_job_servers_ibfk_1` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`)
 )  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
