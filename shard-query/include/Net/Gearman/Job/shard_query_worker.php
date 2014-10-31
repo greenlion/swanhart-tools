@@ -25,7 +25,6 @@ class Net_Gearman_Job_shard_query_worker extends Net_Gearman_Job_Common {
 		$resultset = null;
 		if(!isset($arg->schema_name)) $arg->schema_name=null;
 		$SQ = new ShardQuery($arg->schema_name);
-		print_r($arg);
 
 		if(empty($arg->sql) || !trim($arg->sql)) return false;
 
@@ -40,14 +39,15 @@ class Net_Gearman_Job_shard_query_worker extends Net_Gearman_Job_Common {
 
 			if(preg_match('/show\s+databases/i', $arg->sql)) {
 				$databases = $SQ->state->mapper->get_schemata();
+				$rows = array();
 
 				$fields = array(array( 'type' => 250, 'name' => 'Database'));
-			/*	$rows = array();
+				$rows = array();
 				foreach($databases as $schema_info) {
 					$rows[] = array($schema_info['schema_name']);
 				}		
-			*/
-				$rows = array(array($SQ->state->schema_name));
+			
+				#$rows = array(array($SQ->state->schema_name));
 
 				$resultset = array('fields' => &$fields, 'rows' => &$rows);
 
@@ -58,7 +58,8 @@ class Net_Gearman_Job_shard_query_worker extends Net_Gearman_Job_Common {
 					$fields[] = array( 'type' => 250, 'name' => $field );
 				}
 				while($row = $DAL->my_fetch_array($stmt,MYSQL_NUM)) $rows[] = $row;
-				print_r($rows);
+				if(!$rows) $rows=null;
+				if(!$fields) $fields=null;
 				$resultset = array('fields' => &$fields, 'rows'=>&$rows);
 			}
 

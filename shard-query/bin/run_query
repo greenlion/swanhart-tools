@@ -46,7 +46,7 @@ function help() {
 }
 
 function main() {
-	$params = get_commandline();
+	$params = get_commandline(array('file='));
 
 	if(has_short_opt('help',$params)) help();
 
@@ -57,6 +57,12 @@ function main() {
 
 	if(empty($params['file'])) {
 		$params['file'] = 'php://stdin';
+	}
+
+	if(!empty($params['schema'])) {
+		$schema = $params['schema'];
+	} else {
+		$schema=null;
 	}
 
 	$fh = fopen($params['file'],'r');
@@ -77,7 +83,7 @@ function main() {
 #		$shard_query = null;	
 		if(feof($fh) || substr($sql,-1) == ";") {
 
-			if(!isset($shard_query)) $shard_query = new ShardQuery();
+			if(!isset($shard_query)) $shard_query = new ShardQuery($schema);
 
 			unset($shard_query->errors);
 			if(!empty($shard_query->errors)) {
