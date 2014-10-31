@@ -264,7 +264,6 @@ class ShardQuery {
       $stmt = false;
       return false;
     } 
- echo $sql . "\n";
 
     if(!$stmt = $state->DAL->my_query($sql)) {
       $this->errors[] = 'While getting coordinator columns: ' . $state->DAL->my_error();
@@ -1868,6 +1867,7 @@ class ShardQuery {
   }
   
   protected function process_where($where, &$state = null) {
+
     $state->in_lists = array();
     $prev = "";
     $next_is_shard_column = false;
@@ -2091,8 +2091,11 @@ class ShardQuery {
           $state->extra_tables[] = $sub_table_name;
           $state->extra_tables = array_merge($state->extra_tables, $sub_state->extra_tables);
           
+        } elseif($clause['expr_type'] == 'function') {
+           $sub_vals = "";
+           $sub_vals = $this->concat_all_subtrees($clause['sub_tree'], $sub_vals);
+           $this->append_all($queries, "{$clause['base_expr']}($sub_vals)");      
         } else {
-          
           $this->append_all($queries, $clause['base_expr']);
           
         }
