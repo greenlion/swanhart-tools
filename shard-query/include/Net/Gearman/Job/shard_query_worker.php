@@ -58,8 +58,8 @@ class Net_Gearman_Job_shard_query_worker extends Net_Gearman_Job_Common {
 					$fields[] = array( 'type' => 250, 'name' => $field );
 				}
 				while($row = $DAL->my_fetch_array($stmt,MYSQL_NUM)) $rows[] = $row;
-				if(!$rows) $rows=null;
-				if(!$fields) $fields=null;
+				if(!$rows) $rows=array(array('no tables in schema'));
+				if(!$fields) $fields=array(array('type'=>250, 'name' => 'Tables'));
 				$resultset = array('fields' => &$fields, 'rows'=>&$rows);
 			}
 
