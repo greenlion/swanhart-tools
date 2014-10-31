@@ -49,7 +49,7 @@ class Net_Gearman_Job_shard_query_worker extends Net_Gearman_Job_Common {
 			
 				#$rows = array(array($SQ->state->schema_name));
 
-				$resultset = array('fields' => &$fields, 'rows' => &$rows);
+				$resultset = array('fields' => &$fields, 'rows' => $rows);
 
 			} elseif( $stmt = $DAL->my_query($arg->sql)) {
 				$row = $DAL->my_fetch_assoc();
