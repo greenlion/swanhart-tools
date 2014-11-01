@@ -1,5 +1,5 @@
 <?php
-/* vim: set expandtab tabstop=4 shiftwidth=4 encoding=utf-8: */
+/* vim: set expandtab tabstop=4 shiftwidth=4 encoding=utf-8 */
 /* $Id: */
 /*
 Copyright (c) 2010, Justin Swanhart
@@ -637,7 +637,7 @@ class DirectoryShardKeyMapper implements ShardKeyMapper{
 
 
 	public function get_column($schema_name = null) {
-
+		$column = false;
 		if(!isset($schema_name)) {
 			$sql = "select sequence_name as column_name from column_sequences join schemata on schema_id = schemata.id where sequence_type = 'shard_column' and is_default_schema = true";
 		} else {
@@ -647,6 +647,7 @@ class DirectoryShardKeyMapper implements ShardKeyMapper{
 		while( $row = $this->conn->my_fetch_assoc($stmt) ) {
 			$column = $row['column_name'];
 		}
+
 		return $column;
 
 	}

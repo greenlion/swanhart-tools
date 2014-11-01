@@ -201,6 +201,11 @@ class ShardQuery {
       $mapper,
       'map'
     ));
+
+    if(!$column) {
+      $this->errors[] = "Could not find shard column or could not find schema definition";
+      return false;
+    }
     
     /* One shard acts as the coordination shard.  A table is created on this shard
     to coallesce the results from the other shards.  
@@ -325,6 +330,8 @@ class ShardQuery {
       unset($this->state);
       $this->state = $this->set_schema($schema_name);
     }
+
+    if(!$state) return false;
 
     if($this->async)
       $keep_result = true;
