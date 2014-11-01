@@ -150,7 +150,6 @@ class FromProcessor extends AbstractProcessor {
             }
 
             switch ($upper) {
-            case 'NATURAL':
             case 'CROSS':
             case ',':
             case 'INNER':
@@ -159,12 +158,12 @@ class FromProcessor extends AbstractProcessor {
 
             case 'OUTER':
             case 'JOIN':
-                if ($token_category === 'LEFT' || $token_category === 'RIGHT') {
+                if ($token_category === 'NATURAL' || $token_category === 'LEFT' || $token_category === 'RIGHT') {
                     $token_category = '';
                     $parseInfo['next_join_type'] = strtoupper(trim($prevToken)); // it seems to be a join
                 }
                 break;
-
+            case 'NATURAL':
             case 'LEFT':
             case 'RIGHT':
                 $token_category = $upper;
