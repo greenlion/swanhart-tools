@@ -281,10 +281,11 @@ class ShardQuery {
     }
 
     $args = $columns_sql;
+    $ukey = "";
     if(stristr($state->shard_sql[0], 'GROUP BY')) {
       if(!empty($state->agg_key_cols) && $state->agg_key_cols) {
-        if($args != "") $args .= ",";
-        $args .= "UNIQUE KEY gb_key (" . $state->agg_key_cols . ")";
+        if($ukey != "") $ukey .= ",";
+        $ukey = "UNIQUE KEY gb_key (" . $state->agg_key_cols . ")";
       }
     }
 
@@ -302,8 +303,15 @@ class ShardQuery {
     $sql .= " ENGINE=" . $state->engine;
 
     if(!$stmt = $state->DAL->my_query($sql)) {
-      $this->errors[] = 'While creating coordinator view: ' . $state->DAL->my_error();
+      $this->errors[] = 'While creating coordinator table: ' . $state->DAL->my_error();
       return false;
+    }
+
+    if($ukey !== "") {
+      $sql = "ALTER TABLE " . $state->table_name . " ADD $ukey";
+      if(!$stmt = $state->DAL->my_query($sql)) {
+        $this->messages[] = "COULD NOT ADD KEY $ukey TO COORDINATOR TABLE - ON DUPLICATE KEY UPDATE will not be effective"; 
+      }
     }
   }
   
