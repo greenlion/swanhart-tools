@@ -331,7 +331,7 @@ class ShardQuery {
       $this->state = $this->set_schema($schema_name);
     }
 
-    if(!$state) return false;
+    if(!$this->state) return false;
 
     if($this->async)
       $keep_result = true;
