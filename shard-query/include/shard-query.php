@@ -654,7 +654,7 @@ class ShardQuery {
   
   protected function process_select_item($pos, &$clause, &$shard_query = "", &$coord_query = "", &$push_select = array(), &$group_aliases = array(), &$error = array(), $skip_alias = false, &$coord_odku, $prev_clause = null, &$state, $alias, $parent, &$custom_functions,$winfunc_num=false, &$winfunc_query = "") {
     $return = array();
-    $no_pushdown_limit = true;
+    $no_pushdown_limit = false;
     $non_distrib = false;
     $new_alias = "";
 
@@ -2161,7 +2161,8 @@ class ShardQuery {
         }
         
         foreach($shard_ids as $shard) {
-          $shard_name = array_pop(array_keys($shard));
+          $shards = array_keys($shard);
+          $shard_name = array_pop($shards);
           $output_map[$shard_name] = $this->shards[$shard_name];
           $state->messages[$shard_name] = "Mapped query to shard: $shard_name";
         }
