@@ -2,14 +2,8 @@ What is Flexviews?
 ==
 Flexviews is a unique open source project. Flexviews is a materialized views implementation for MySQL. It includes a simple API that is used to create *materialized views* and to refresh them.  The advantage of using Flexviews is that the materialized views are _incrementally refreshed_, that is, the views are updated efficiently by using special logs which record the changes to database tables.  Flexviews includes tools which create and maintain these logs.  The views created by Flexviews include support for JOINs and for all major aggregation functions.
 
-Here is the list of basic system requirements:
-* http://code.google.com/p/flexviews/wiki/Requirements
-
 You can find the complete manual here:
-* http://flexviews.googlecode.com/svn/trunk/manual.html
-
-You can find additional information in the wiki:
-* http://code.google.com/p/flexviews/w/list
+* http://greenlion.github.io/swanhart-tools/flexviews/manual.html
 
 What is a materialized view?
 --
