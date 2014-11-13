@@ -215,7 +215,8 @@ echo "\033[2J\033[;H";
 if(empty($config['aws_access_key'])) {
   if(!$used_s3) {
     write_line("Do you want to enter an AWS access key? This will be used if you want to load from S3. (y/n) [n]");
-    $answer = read_line();
+    //$answer = read_line();
+    $answer = "n";
   }
   if($used_s3 || substr(strtolower(trim($answer)),0,1) == 'y') {
     write_line("Enter AWS access key (you will be asked for the secret key in a moment): ");
@@ -226,7 +227,8 @@ if(empty($config['aws_access_key'])) {
 if(empty($config['aws_secret_key'])) {
   if(!$used_s3) {
     write_line("Do you want to enter an AWS secret key? This will be used if you want to load from S3. (y/n) [n]");
-    $answer = read_line();
+    //$answer = read_line();
+    $answer = "n";
   }
   if($used_s3 || substr(strtolower(trim($answer)),0,1) == 'y') {
     write_line("Enter AWS secret key: ");
