@@ -212,7 +212,7 @@ fi
 
 if [ ! -f /root/.proxy_started ]; then
 echo "START PROXY"
-grep mysqlproxy.lua /etc/rc.ld/rc.local >dev/null || echo "/usr/local/mysql-proxy/bin/mysql-proxy -s /usr/share/shard-query/proxy/mysqlproxy.lua --daemon" >> /etc/rc.d/rc.local
+grep mysqlproxy.lua /etc/rc.ld/rc.local >/dev/null || echo "/usr/local/mysql-proxy/bin/mysql-proxy -s /usr/share/shard-query/proxy/mysqlproxy.lua --daemon" >> /etc/rc.d/rc.local
 /usr/local/mysql-proxy/bin/mysql-proxy -s /usr/share/shard-query/proxy/mysqlproxy.lua --daemon
 provisioned=$((provisioned+1))
 touch /root/.proxy_started
