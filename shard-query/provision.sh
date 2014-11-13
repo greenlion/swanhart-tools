@@ -147,7 +147,7 @@ fi
 if [ ! -f /root/.virtual_schema_created ]; then
 echo "CREATE VIRTUAL SCHEMA"
 cd /usr/share/shard-query/
-php setup_virtual_schema.php --ini=/usr/share/shard-query/provision.ini --user=shardquery --password=CHANGEME
+php setup_virtual_schema.php --batch --ini=/usr/share/shard-query/provision.ini --user=shardquery --password=CHANGEME
 
 cd /usr/share/shard-query/bin
 ./start_workers

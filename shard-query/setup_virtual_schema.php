@@ -58,6 +58,10 @@ if(has_short_opt(array('h','help'), $params)) {
 	directory_setup_help();
 	exit;
 }
+$batch_mode = false;
+if(has_short_opt('batch',$params)) {
+        $batch_mode = true;
+}
 echo "\033[2J\033[;H";
 
 echo "* Reading config\n";
@@ -201,7 +205,11 @@ if(isset($config['is_default_schema'])) $is_default_schema = $config['is_default
 
 if(empty($config['shared_path'])) {
   write_line("Please enter a shared filesystem path available on all nodes (for a default s3 bucket use s3://bucketname): [/tmp]");
-  $shared_path = read_line();
+  if ($batch_mode) {
+    $shared_path = "";
+  } else {
+    $shared_path = read_line();
+  }
   if($shared_path == "") $shared_path = "/tmp";
   $config['shared_path'] = $shared_path;
 } 
@@ -215,8 +223,11 @@ echo "\033[2J\033[;H";
 if(empty($config['aws_access_key'])) {
   if(!$used_s3) {
     write_line("Do you want to enter an AWS access key? This will be used if you want to load from S3. (y/n) [n]");
-    //$answer = read_line();
-    $answer = "n";
+    if ($batch_mode) {
+      $answer = "n";
+    } else {
+      $answer = read_line();
+    }
   }
   if($used_s3 || substr(strtolower(trim($answer)),0,1) == 'y') {
     write_line("Enter AWS access key (you will be asked for the secret key in a moment): ");
@@ -227,8 +238,11 @@ if(empty($config['aws_access_key'])) {
 if(empty($config['aws_secret_key'])) {
   if(!$used_s3) {
     write_line("Do you want to enter an AWS secret key? This will be used if you want to load from S3. (y/n) [n]");
-    //$answer = read_line();
-    $answer = "n";
+    if ($batch_mode) {
+      $answer = "n";
+    } else {
+      $answer = read_line();
+    }
   }
   if($used_s3 || substr(strtolower(trim($answer)),0,1) == 'y') {
     write_line("Enter AWS secret key: ");
