@@ -46,7 +46,7 @@ function &get_commandline($more_longopts=array()) {
 	array_shift($args);
 
 	$shortOpts = 'h::v::';
-	$longOpts  = array('user=','ini=', 'password=', 'host=', 'db=', 'port=','help==','verbose==', 'method=', 'gearman=','inlist=','between=','directory=','push_where','inlist_merge_threshold==','inlist_merge_size==','coord_engine==','schema=');
+	$longOpts  = array('user=','ini=', 'password=', 'host=', 'db=', 'port=','help==','verbose==', 'method=', 'gearman=','inlist=','between=','directory=','push_where','inlist_merge_threshold==','inlist_merge_size==','coord_engine==','schema=','batch');
 
 	$longOpts = array_merge($longOpts, $more_longopts);
 
