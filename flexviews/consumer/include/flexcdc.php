@@ -43,7 +43,7 @@ function echo1($message) {
 
 }
 
-function my_mysql_query($a, $b=NULL, $debug=false) {
+function my_mysql_query($a, $b=NULL, $debug=true) {
 	if($debug) echo "$a\n";
 
 	if($b) {
@@ -525,8 +525,8 @@ EOREGEX
 				$this->delimiter = ';';
 	
 				if ($row['exec_master_log_pos'] < 4) $row['exec_master_log_pos'] = 4;
-				#$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-position=%d %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_size'], $row['master_log_file']);
-				$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-never %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_file']);
+				$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-position=%d %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_size'], $row['master_log_file']);
+				#$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-never %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_file']);
 				$execCmdLine .= " 2>&1";
 				echo "-- $execCmdLine\n";
 				$proc = popen($execCmdLine, "r");
