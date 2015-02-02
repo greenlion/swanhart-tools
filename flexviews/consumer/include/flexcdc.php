@@ -43,7 +43,7 @@ function echo1($message) {
 
 }
 
-function my_mysql_query($a, $b=NULL, $debug=true) {
+function my_mysql_query($a, $b=NULL, $debug=false) {
 	if($debug) echo "$a\n";
 
 	if($b) {
