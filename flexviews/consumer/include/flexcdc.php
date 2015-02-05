@@ -77,9 +77,6 @@ class FlexCDC {
 
 	protected function cleanup_row($db, $table, &$the_row, $get_column_names = false) {
 		foreach($the_row as $pos => $col) {
-			if($col[0] == "'") {
-				$col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
-			}
 			$datatype = $this->table_ordinal_datatype($db,$table,$pos+1);
 			if(strtoupper($col) === "NULL") $datatype="NULL";
 			switch(trim($datatype)) {
@@ -114,7 +111,7 @@ class FlexCDC {
 				break;
 
 				default:
-					if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . mysql_real_escape_string(trim($col,"'")) . "'";
+					if(!is_numeric(trim($col,'')) && strtoupper($col) !== 'NULL') $col = "'" . str_replace("'","''",trim($col,"'")) . "'";
 				break;
 			}
 			$row[] = $col;
@@ -807,7 +804,8 @@ EOREGEX
 				if($col[0] == "'") {
 					 $col = trim($col,"'");
 				}
-				$col = mysql_real_escape_string($col);
+				//$col = mysql_real_escape_string($col);
+				$col = str_replace("'","''", $col);
 				$row[] = "'$col'";
 			}
 			if( $this->DML == "UPDATE" && $this->mark_updates ) {
@@ -817,6 +815,7 @@ EOREGEX
 			}
 			$valList = "({$this->dml_type}, @fv_uow_id, {$this->binlogServerId},{$this->gsn_hwm}," . implode(",", $row) . ")";
 			$sql = sprintf("INSERT INTO `%s`.`%s` VALUES %s", $this->mvlogDB, $this->mvlog_table, $valList );
+
 			my_mysql_query($sql, $this->dest) or die1("COULD NOT EXEC SQL:\n$sql\n" . mysql_error() . "\n");
 		}
 	}
@@ -851,7 +850,8 @@ EOREGEX
 				if($col[0] == "'") {
 					 $col = trim($col,"'");
 				}
-				$col = mysql_real_escape_string($col);
+				//$col = mysql_real_escape_string($col);
+				$col = str_replace("'","''",$col);
 				$row[] = "'$col'";
 			}
 			if( $this->DML == "UPDATE" && $this->mark_updates ) {
