@@ -184,6 +184,9 @@ EOREGEX
 	protected $log_retention_interval = "10 day";
 
 	protected $plugin = false;
+
+	protected $hasStopNever = false;
+
 	public function get_source($new = false) {
 		if($new) return $this->new_connection(SOURCE);
 		return $this->source;
@@ -226,6 +229,7 @@ EOREGEX
 		if(!$this->cmdLine) {
 			die1("could not find mysqlbinlog!",2);
 		}
+		$this->hasStopNever = (bool)system($this->cmdLine . ' --help | grep stop-never|wc -l');
 		$this->settings = $settings;
 		
 		
@@ -522,8 +526,11 @@ EOREGEX
 				$this->delimiter = ';';
 	
 				if ($row['exec_master_log_pos'] < 4) $row['exec_master_log_pos'] = 4;
-				$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-position=%d %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_size'], $row['master_log_file']);
-				#$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-never %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_file']);
+				if(!$this->hasStopNever) {
+					$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-position=%d %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_size'], $row['master_log_file']);
+				} else {
+					$execCmdLine = sprintf("%s --base64-output=decode-rows -v -R --start-position=%d --stop-never %s", $this->cmdLine, $row['exec_master_log_pos'], $row['master_log_file']);
+				}
 				$execCmdLine .= " 2>&1";
 				echo "-- $execCmdLine\n";
 				$proc = popen($execCmdLine, "r");
@@ -877,6 +884,7 @@ EOREGEX
 				$data = $this->deletes;
 				$mode = -1;
 			}		
+
 			$tables = array_keys($data);
 			$allowed = floor($this->max_allowed_packet * .9);  #allowed len is 90% of max_allowed_packet	
 			foreach($tables as $table) {
@@ -889,8 +897,8 @@ EOREGEX
 					unset($the_row['fv$DML']);
 					unset($the_row['fv$gsn']);
 					$db = $this->tables[$table]['schema'];	
-					$table = $this->tables[$table]['table'];	
-					$row = $this->cleanup_row($db, $table, $the_row,false);
+					$table2 = $this->tables[$table]['table'];	
+					$row = $this->cleanup_row($db, $table2, $the_row,false);
 
 					if($valList) $valList .= ",\n";	
 
