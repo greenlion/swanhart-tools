@@ -320,11 +320,11 @@ EOREGEX
 	
 	public function table_exists($schema, $table) {
 		$sql = "select 1 from information_schema.tables where table_schema = '$schema' and table_name='$table' limit 1";
-		$stmt = @my_mysql_query($sql, $this->dest);
+		$stmt = my_mysql_query($sql, $this->dest) or die(mysqli_error($this->dest));
 		if(!$stmt) return false;
 
-		if(mysqli_fetch_array($stmt) !== false) {
-			mysqli_free_result($stmt);
+		$row=mysqli_fetch_array($stmt);
+		if(is_array($row)) {
 			return true;
 		}
 		return false;
