@@ -227,15 +227,12 @@ IF v_cnt_column is not null THEN
 
 END IF;
 
-/*
   -- CLEAN UP THE DELTA LOG
   SET v_sql = CONCAT('DELETE FROM ', v_delta_table, ' WHERE dml_type is null OR  uow_id <= ', v_until_uow_id);
   SET @v_sql = v_sql;
   PREPARE delete_stmt FROM @v_sql;
   EXECUTE delete_stmt;
   DEALLOCATE PREPARE delete_stmt;
-*/
-
   
   -- Fix aggregate tables without group by attributes when they go to zero rows
   SET v_sql = CONCAT('SELECT COUNT(*) INTO @mv_count FROM (select 1 from  ', v_mview_schema, '.', v_mview_name, ' LIMIT 1) x_select ');
