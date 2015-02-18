@@ -953,7 +953,7 @@ SELECT COUNT(*)
   INTO v_count    
   FROM flexviews.mview_expression m
  WHERE m.mview_id = v_mview_id
-   AND m.mview_expr_type in ('GROUP','SUM','COUNT' );
+   AND m.mview_expr_type not in ('COLUMN','KEY','WHERE','PRIMARY','UNIQUE');
 
 IF v_count > 0 THEN return TRUE; END IF;
 
