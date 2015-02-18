@@ -202,10 +202,10 @@ EOREGEX
 		switch($connection_type) {
 			case 'source': 
 				/*TODO: support unix domain sockets */
-				$handle = mysqli_connect($S['host'] . ':' . $S['port'], $S['user'], $S['password'] ) or die1('Could not connect to MySQL server:' . mysqli_error($handle));
+				$handle = mysqli_connect($S['host'] , $S['user'], $S['password'], null, $S['port'] ) or die1('Could not connect to MySQL server:' . mysqli_connect_error());
 				return $handle;
 			case 'dest':
-				$handle = mysqli_connect($D['host'] . ':' . $D['port'], $D['user'], $D['password'] ) or die1('Could not connect to MySQL server:' . mysqli_error($handle));
+				$handle = mysqli_connect($D['host'] , $D['user'], $D['password'], null, $D['port'] ) or die1('Could not connect to MySQL server:' . mysqli_error($handle));
 				return $handle;
 		}
 		return false;
