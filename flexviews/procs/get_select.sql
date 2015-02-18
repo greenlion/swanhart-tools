@@ -66,7 +66,7 @@ selectLoop: LOOP
     SET v_select_list = '';    
   END IF;    
 
-  IF SUBSTR(v_mview_alias,1,1) != '`' THEN
+  IF SUBSTR(v_mview_alias,1,1) != '`' AND v_mview_expr_type != 'AVG' AND v_mview_expr_type != 'PERCENTILE' THEN
      SET v_mview_alias = CONCAT('`',v_mview_alias,'`');
   END IF;
 
