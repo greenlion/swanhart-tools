@@ -4,10 +4,8 @@ VERBOSE=1
 HOST=$1
 USER=$2
 PASS=$3
-if [ "$HOST" = "" ]
+if [ "$HOST" != "" ]
 then
-  HOST=""
-else
   HOST="-h $HOST"
 fi
 
@@ -18,10 +16,8 @@ else
   USER="-u $USER"
 fi
 
-if [ "$PASS" = "" ]
+if [ "$PASS" != "" ]
 then
-  PASS=""
-else
   PASS="-p $PASS"
 fi
 
@@ -36,7 +32,7 @@ do
     $SHUTCMD || exit 1
     exit 0
   fi
-  if [ "$VERBOSE" != 0 ]; then echo "Slave still has $COUNT open temp tables"; fi;
+  if [ "$VERBOSE" != "0" ]; then echo "Slave still has $COUNT open temp tables"; fi;
   sleep $SLEEPTIME
 done
 exit 1 #should never reach here
