@@ -1,4 +1,6 @@
 #!/bin/bash
+SLEEPTIME=".25"
+VERBOSE=1
 HOST=$1
 USER=$2
 PASS=$3
@@ -24,8 +26,8 @@ else
 fi
 
 SHUTCMD="mysqladmin $USER $HOST $PASS shutdown"
-echo $SHUTCMD
 
+LOOP_COUNTER=0
 while [ 1 ] 
 do
   COUNT=`mysqladmin $USER $HOST $PASS extended-status | grep Slave_open |cut -d "|" -f3 | cut -d ' ' -f2`
@@ -35,7 +37,7 @@ do
     $SHUTCMD || exit 1
     exit 0
   fi
-  echo "Slave still has $COUNT open temp tables"
-  sleep 1
+  if [ "$VERBOSE" != 0 ]; then echo "Slave still has $COUNT open temp tables"; fi;
+  sleep $SLEEPTIME
 done
 exit 1 #should never reach here
