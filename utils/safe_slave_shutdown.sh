@@ -27,7 +27,6 @@ fi
 
 SHUTCMD="mysqladmin $USER $HOST $PASS shutdown"
 
-LOOP_COUNTER=0
 while [ 1 ] 
 do
   COUNT=`mysqladmin $USER $HOST $PASS extended-status | grep Slave_open |cut -d "|" -f3 | cut -d ' ' -f2`
