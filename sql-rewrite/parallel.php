@@ -1,5 +1,5 @@
 <?php
-require_once('PHP-SQL-Parser/php-sql-parser.php');
+require_once('parser/php-sql-parser.php');
 require_once('rewriteengine.php');
 
 class RewriteParallelRule extends RewriteBaseRule {
@@ -446,11 +446,11 @@ class RewriteParallelRule extends RewriteBaseRule {
 		
 		$this->agg_key_cols = ltrim($this->task_group,'GROUP BY ');
 		
-		$explain = "Parallel rewrite optimizer messages:";
+		$explain = "Parallel re-write optimizer messages:";
 		if ($this->agg_key_cols) {
-			$explain .= "\n	* The following projections may be selected for a UNIQUE CHECK on the storage node operation:\n	{$this->agg_key_cols}\n";
+			$explain .= "\n	* The following GROUP BY expressions will be selected for a indexed merge operation: {$this->agg_key_cols}\n"; 
 			if ($this->task_odku !== "")
-				$explain .= "\n	* storage node result set merge optimization enabled:\n	ON DUPLICATE KEY UPDATE " . $this->task_odku;
+				$explain .= "\n	* Merge operation will incrementally maintain the following expressions:\n	ON DUPLICATE KEY UPDATE " . $this->task_odku;
 		}
 		
 		if (isset($this->messages)) {
@@ -459,10 +459,10 @@ class RewriteParallelRule extends RewriteBaseRule {
 			}
 		}
 		
-		$explain .= "\n\nSQL TO SEND TO SHARDS:\n";
+		$explain .= "\n\nSQL TO SEND TO THREADS:\n";
 		$explain .= print_r($this->task_sql, true);
 		
-		$explain .= "SQL TO SEND TO COORDINATOR NODE:\n{$this->final_sql}\n";
+		$explain .= "RESULT SQL:\n{$this->final_sql}\n";
 		
 		$this->explain = $explain;
 		
@@ -945,7 +945,7 @@ class RewriteParallelRule extends RewriteBaseRule {
 			$item = "";
 			$this->concat_all_subtrees($tables[$i]['ref_clause'],$item);
 			if ($tables[$i]['ref_type'] == 'USING') {
-				$tables[$i]['ref_clause'] = "(" . trim($tables[$i]['base_expr']) . ")";
+				$tables[$i]['ref_clause'] = trim($tables[$i]['ref_clause'][0]['base_expr']);
 			} elseif ($tables[$i]['ref_type'] == 'ON') {
 				$item = "";
 				$this->concat_all_subtrees($tables[$i]['ref_clause'],$item);

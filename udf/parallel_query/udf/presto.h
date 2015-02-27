@@ -1,5 +1,6 @@
+#ifndef PRESTO_H
+#define PRESTO_H 1
 #include <mysql.h>
-
 #include <sstream>	// std::ostringstream
 #include <algorithm>	// std::sort
 #include <memory>	// std::unique_ptr
@@ -14,7 +15,6 @@
 #define MAXSTR 766
 #endif
 
-
 /* to remind me of the signatures */
 extern "C" { 
 /*	my_bool fb_create_init(UDF_INIT *initid, UDF_ARGS *args, char* message);
@@ -24,3 +24,5 @@ extern "C" {
 	char* fb_file_get_contents(UDF_INIT *initid, UDF_ARGS *args,char *result, long long *length, char *is_null, char *error);
 */
 }
+
+#endif

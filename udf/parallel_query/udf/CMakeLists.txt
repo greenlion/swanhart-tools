@@ -44,4 +44,4 @@ set_target_properties(PROPERTIES VERSION 1.0.0 SOVERSION 1)
 target_link_libraries(presto general php5)
 target_link_libraries(presto general phpembed)
 
-install(TARGETS presto DESTINATION lib)
+install(TARGETS presto DESTINATION ${PROJECT_SOURCE_DIR}/lib)
