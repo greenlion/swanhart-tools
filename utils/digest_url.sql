@@ -1,3 +1,4 @@
+\. strings.sql
 delimiter ;;
 DROP FUNCTION IF EXISTS digest_url;;
 CREATE FUNCTION digest_url(
@@ -63,7 +64,7 @@ BEGIN
 
   RETURN CONCAT('/', v_retval);
 
-END;
+END
 ;;
 
 delimiter ;
