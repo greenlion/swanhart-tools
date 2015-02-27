@@ -1,0 +1,9 @@
+language: php
+
+branches:
+    except:
+        - /^PHP-5\.3.*/
+        - /^PHP-5\.4.*/
+
+notifications:
+    email: false

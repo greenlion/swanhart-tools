@@ -1,0 +1,1 @@
+cmd='/home/justin/swanhart-tools/udf/parallel_query/php/configure;--prefix=/home/justin/swanhart-tools/udf/parallel_query'
