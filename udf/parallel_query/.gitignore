@@ -1,3 +1,4 @@
 CMakeFiles
 *cache*.txt
 tmp/
+build/*
