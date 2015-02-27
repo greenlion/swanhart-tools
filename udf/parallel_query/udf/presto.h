@@ -1,7 +1,4 @@
 #include <mysql.h>
-#include <ibis.h>
-#include <mensa.h>	// ibis::mensa
-#include <twister.h>
 
 #include <sstream>	// std::ostringstream
 #include <algorithm>	// std::sort

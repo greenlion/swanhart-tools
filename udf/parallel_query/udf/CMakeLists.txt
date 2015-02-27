@@ -6,8 +6,6 @@ SET(presto_LIB_SRCS
   presto.h
 )
 
-include_directories(.)
-
 # =========================================================
 MACRO (APPEND_CMAKE_INSTALL_RPATH RPATH_DIRS)
    IF (NOT ${ARGC} EQUAL 1)
@@ -34,11 +32,16 @@ MACRO (APPEND_CMAKE_INSTALL_RPATH RPATH_DIRS)
      ENDIF ( NOT ${RPATH_DIR} STREQUAL "" )
    ENDFOREACH ( RPATH_DIR )
 ENDMACRO ( APPEND_CMAKE_INSTALL_RPATH )
-
 APPEND_CMAKE_INSTALL_RPATH(".;/usr/local/lib")
+
+find_package(MySQL REQUIRED)
+link_directories(${MYSQL_LIB_DIR} ${PROJECT_SOURCE_DIR}/lib)
+link_libraries(${MYSQL_CLIENT_LIBS})
+
 add_library(presto SHARED ${presto_LIB_SRCS})
 set_target_properties(PROPERTIES VERSION 1.0.0 SOVERSION 1)
-install(TARGETS presto DESTINATION ../../lib)
 
 target_link_libraries(presto general php5)
 target_link_libraries(presto general phpembed)
+
+install(TARGETS presto DESTINATION lib)

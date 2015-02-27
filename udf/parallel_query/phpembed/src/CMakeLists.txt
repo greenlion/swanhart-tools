@@ -13,7 +13,7 @@ SET(phpembed_LIB_SRCS
    php_tok.h
 )
 
-include_directories("../include" "../include/php" "../include/php/sapi" "../include/php/sapi/embed" "../include/php/ext" "../include/php/ext/date" "../include/php/ext/date/lib" "../include/php/ext/ereg" "../include/php/ext/ereg/regex" "../include/php/ext/pcre" "../include/php/ext/pcre/pcrelib" "../include/php/ext/sqlite3" "../include/php/ext/sqlite3/libsqlite" "../include/php/ext/filter" "../include/php/ext/hash" "../include/php/ext/iconv" "../include/php/ext/json" "../include/php/ext/pdo" "../include/php/ext/session" "../include/php/ext/spl" "../include/php/ext/sqlite" "../include/php/ext/sqlite/libsqlite" "../include/php/ext/sqlite/libsqlite/src" "../include/php/ext/standard" "../include/php/Zend" "../include/php/TSRM" "../include/php/include" "../include/php/main" "../include/php/main/streams")
+include_directories("${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/include/php" "${PROJECT_SOURCE_DIR}/include/php/sapi" "${PROJECT_SOURCE_DIR}/include/php/sapi/embed" "${PROJECT_SOURCE_DIR}/include/php/ext" "${PROJECT_SOURCE_DIR}/include/php/ext/date" "${PROJECT_SOURCE_DIR}/include/php/ext/date/lib" "${PROJECT_SOURCE_DIR}/include/php/ext/ereg" "${PROJECT_SOURCE_DIR}/include/php/ext/ereg/regex" "${PROJECT_SOURCE_DIR}/include/php/ext/pcre" "${PROJECT_SOURCE_DIR}/include/php/ext/pcre/pcrelib" "${PROJECT_SOURCE_DIR}/include/php/ext/sqlite3" "${PROJECT_SOURCE_DIR}/include/php/ext/sqlite3/libsqlite" "${PROJECT_SOURCE_DIR}/include/php/ext/filter" "${PROJECT_SOURCE_DIR}/include/php/ext/hash" "${PROJECT_SOURCE_DIR}/include/php/ext/iconv" "${PROJECT_SOURCE_DIR}/include/php/ext/json" "${PROJECT_SOURCE_DIR}/include/php/ext/pdo" "${PROJECT_SOURCE_DIR}/include/php/ext/session" "${PROJECT_SOURCE_DIR}/include/php/ext/spl" "${PROJECT_SOURCE_DIR}/include/php/ext/sqlite" "${PROJECT_SOURCE_DIR}/include/php/ext/sqlite/libsqlite" "${PROJECT_SOURCE_DIR}/include/php/ext/sqlite/libsqlite/src" "${PROJECT_SOURCE_DIR}/include/php/ext/standard" "${PROJECT_SOURCE_DIR}/include/php/Zend" "${PROJECT_SOURCE_DIR}/include/php/TSRM" "${PROJECT_SOURCE_DIR}/include/php/include" "${PROJECT_SOURCE_DIR}/include/php/main" "${PROJECT_SOURCE_DIR}/include/php/main/streams")
 
 # =========================================================
 MACRO (APPEND_CMAKE_INSTALL_RPATH RPATH_DIRS)
@@ -48,6 +48,8 @@ APPEND_CMAKE_INSTALL_RPATH(".;/usr/local/lib")
 add_library(phpembed SHARED ${phpembed_LIB_SRCS})
 set_target_properties(phpembed PROPERTIES VERSION 4.2.0 SOVERSION 4)
 
-target_link_libraries(phpembed general php5)
 
-install(TARGETS phpembed DESTINATION lib)
+FIND_LIBRARY(PHP5_LIBRARY php5 ${PROJECT_SOURCE_DIR}/lib)
+target_link_libraries(phpembed ${PHP5_LIBRARY})
+
+install(TARGETS phpembed DESTINATION ${PROJECT_SOURCE_DIR}/lib)
