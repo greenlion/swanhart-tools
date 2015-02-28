@@ -10,5 +10,6 @@ ExternalProject_Add(
   BUILD_COMMAND make -j   
   BUILD_IN_SOURCE 1
 )
+find_package(ZLIB REQUIRED)
 add_subdirectory(phpembed)
 add_subdirectory(udf)

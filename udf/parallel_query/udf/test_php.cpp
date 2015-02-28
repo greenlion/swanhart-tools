@@ -2,6 +2,7 @@
 #include "presto.h"
 #include "myphp.h"
 #include <iostream>
+#include "rewriteengine.h"
 
 #define DEBUG 1
 
@@ -12,6 +13,27 @@
 /* This function hooks rewrite related PHP output to the general log*/ 
 void php_log_output(const char *str){
 	std::cout << str;
+}
+
+bool eval_compressed_header(php &p,char *hdr) {
+	LOGGER("Enter uncompress_header");
+	char script[] =  
+R"end(
+function uncompress_header($hdr) {
+  $hdr = explode(',',$hdr);
+  $data = "";
+  for($i=0;$i<count($hdr);++$i) {
+    $c = $hdr[$i];
+    $data .= chr($c);
+  }
+  $data = gzuncompress($data);
+  return($data);  
+}
+)end";
+	p.eval_string("%s", script);
+	char* ce = p.call_c_string( "uncompress_header", "s", hdr );
+	if(ce == NULL) return false;
+	return (!p.eval_string("%s", ce));
 }
 
 /* You must delete out_plan when done only if the function returns true */
@@ -71,9 +93,14 @@ R"eod({
     }
   }
 })eod"; 
+
+	php php_ctx(true);
+	std::cout << "RESULT: " << eval_compressed_header(php_ctx,RWENGINE) << "\n";
+
+	
+exit(1);
 	std::string sql = "select a, count(*) from tX where a = 30 group by 1";
 	php_array *plan=NULL;
-	php php_ctx(true);
 	php_ctx.set_message_function(php_log_output);
 	php_ctx.set_output_function(php_log_output);
 	php_ctx.set_error_function(php_log_output);
