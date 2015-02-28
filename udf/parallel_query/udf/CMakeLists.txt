@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-literal-sufix -Wno-write-strings")
 SET(presto_LIB_SRCS
   php.cpp
   presto.cpp

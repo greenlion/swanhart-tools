@@ -1,0 +1,3 @@
+LD_LIBRARY_PATH=../lib
+g++ test_php.cpp -o p -std=c++11 -L ../lib/ -lphpembed -I ../phpembed/src -I ../include/php/sapi/embed/ -I ../include/php/Zend -I ../include/php/ -I ../include/php/TSRM/ -I /usr/include/mysql/ -I ../include/php/main/ -Wno-literal-suffix $* || exit 1
+./p

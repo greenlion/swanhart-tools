@@ -27,4 +27,15 @@ function EXEC_RULES($s, $t, $p, $set, $r) {
 function GET_INDEX($ary, $idx) { 
   return($ary[$idx]); 
 }; 
+
+function GET_GLOBAL($var) {
+	if(!isset($GLOBALS[$var])) return false;
+	return $GLOBALS[$var];
+}
+
+function SET_GLOBAL($var,$val) {
+	if(!$var) return false;
+	$GLOBALS[$var] = $val;
+	return true;
+}
 ?>

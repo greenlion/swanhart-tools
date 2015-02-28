@@ -38,7 +38,6 @@
  * @license   http://www.debian.org/misc/bsd.license  BSD License (3 Clause)
  * @version   SVN: $Id$
  */
-
 require_once dirname(__FILE__) . '/positions/PositionCalculator.php';
 require_once dirname(__FILE__) . '/processors/DefaultProcessor.php';
 

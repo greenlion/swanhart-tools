@@ -12,6 +12,7 @@
  * Include the SQL parser 
  */
 require_once('parser/php-sql-parser.php');
+require_once('util.php');
 
 /**
  * @global array $GLOBALS['REWRITE_PARSER']
