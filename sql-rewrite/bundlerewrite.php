@@ -2,8 +2,7 @@
 $srcRoot = ".";
 $buildRoot = ".";
 $outfile = "rewriteengine.phar";
-$outhdr = "rewriteengine.h";
-$from = "";
+$uu = "rewrite.cpp";
 
 echo "Generating phar\n";
 $phar = new Phar("$buildRoot/$outfile", 
@@ -15,25 +14,13 @@ foreach($files as $file) $phar[$file] = file_get_contents($file);
 $phar->buildFromDirectory('parser','/[.]php$/');
 
 $phar->setStub($phar->createDefaultStub("parallel.php"));
-
-unset($phar);
-$phar = file_get_contents($outfile);
-echo "Generating header\n";
-
-echo "Compressing phar file\n";
-$phar = gzcompress($phar);
-
-$out = "const unsigned char RWENGINE[] = {";
-$data = "";
-for($i=0;$i<strlen($phar);++$i) {
-  if($data) $data .= ',';
-  $c = $phar[$i];
-  $data .= ord($c);
+$phar = trim(file_get_contents($outfile));
+$data = trim(base64_encode($phar));
+$data = explode("\n", $data);
+$out = "";
+foreach($data as $line) {
+  $out .= base64_encode($line);
 }
-$len=strlen($data);
 
-$out .= $data . "};\n";
-
-$out .= "#define RWENGINE_SZ = $len;\n";
-
-echo "Wrote " . file_put_contents($outhdr, $out) . " bytes to header file\n";
+$out = "const char rwenginephar[] =\n\"$out\";";
+file_put_contents($uu, trim($out));

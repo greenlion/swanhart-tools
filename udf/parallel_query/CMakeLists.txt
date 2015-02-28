@@ -6,7 +6,7 @@ ExternalProject_Add(
   php
   INSTALL_DIR ${CMAKE_CURRENT_SOURCE_DIR} 
   SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/php
-  CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/php/configure --prefix=${CMAKE_CURRENT_SOURCE_DIR} --disable-libxml --disable-dom --disable-simplexml --disable-xml --disable-xmlreader --disable-xmlwriter --disable-pear --enable-embed
+  CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/php/configure --prefix=${CMAKE_CURRENT_SOURCE_DIR} --disable-libxml --disable-dom --disable-simplexml --disable-xml --disable-xmlreader --disable-xmlwriter --disable-pear --enable-embed --with-zlib
   BUILD_COMMAND make -j   
   BUILD_IN_SOURCE 1
 )

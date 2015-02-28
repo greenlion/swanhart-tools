@@ -2,12 +2,14 @@
 #include "presto.h"
 #include "myphp.h"
 #include <iostream>
-#include "rewriteengine.h"
-
+#include <string>
+extern std::string rwenginephar;
 #define DEBUG 1
 
 #define LOGGER(msg) \
 	if(DEBUG) std::cerr << msg << "\n"; else ;
+
+#define echo std::cout << 
 
 
 /* This function hooks rewrite related PHP output to the general log*/ 
@@ -15,47 +17,27 @@ void php_log_output(const char *str){
 	std::cout << str;
 }
 
-bool eval_compressed_header(php &p,char *hdr) {
-	LOGGER("Enter uncompress_header");
-	char script[] =  
-R"end(
-function uncompress_header($hdr) {
-  $hdr = explode(',',$hdr);
-  $data = "";
-  for($i=0;$i<count($hdr);++$i) {
-    $c = $hdr[$i];
-    $data .= chr($c);
-  }
-  $data = gzuncompress($data);
-  return($data);  
-}
-)end";
-	p.eval_string("%s", script);
-	char* ce = p.call_c_string( "uncompress_header", "s", hdr );
-	if(ce == NULL) return false;
-	return (!p.eval_string("%s", ce));
-}
+
 
 /* You must delete out_plan when done only if the function returns true */
 bool rewrite_engine(php &p, std::string sql, std::string partjson,  php_array *out_plan) {
-	LOGGER("Enter rewrite_engine"); 
+std::cout << "STRLEN: " << strlen(rwenginephar.c_str());
+exit(3);
+//	LOGGER("Enter rewrite_engine"); 
 
-	std::string s;
-	s  = "set_include_path('../scripts');\n"; 
-        s += "require_once('rewriteengine/rewriteengine.php'); \n"; 
-	s += "require_once('rewriteengine/util.php'); \n"; 
-	s += "$sql=<<<EOSQL\n"; 
-        s +=  sql ; 
-        s += "\nEOSQL;\n";
-	LOGGER("SCRIPT:\n----------------------------\n" << s << "----------------------------")
+//	LOGGER("Initialize engine with eval")
 
-	/* Initialize the rewrite script */
-	php_ret retval = p.eval_string("%s", s.c_str());
- 
-	if(SUCCESS != retval) { 
+	// rewritephar is defined in rewrite.cpp
+	if(p.eval_string("$b64 = \"%s\";", rwenginephar.c_str())) return false;
+	if(p.eval_string("echo 'LEN:' . strlen($b64);")) exit(2);
+exit(1);
+
+	if(p.eval_string("eval($data);")) { echo "BLARGH\n"; exit(1); }
+	if(p.eval_string("$sql = '%s';", sql.c_str())) {
 		printf("%s", "Could not eval PHP!\n"); 
 		return false;
-	}
+	}	
+
 	/*GET_GLOBAL is in rewriteengine/utils.php*/
 	unsigned len=0;
 	char vararg[]="s";
@@ -74,7 +56,6 @@ bool rewrite_engine(php &p, std::string sql, std::string partjson,  php_array *o
 
 
 int main(int argc, char**argv) {
-
 	std::string json=
 R"eod({
   "query_block": {
@@ -95,10 +76,6 @@ R"eod({
 })eod"; 
 
 	php php_ctx(true);
-	std::cout << "RESULT: " << eval_compressed_header(php_ctx,RWENGINE) << "\n";
-
-	
-exit(1);
 	std::string sql = "select a, count(*) from tX where a = 30 group by 1";
 	php_array *plan=NULL;
 	php_ctx.set_message_function(php_log_output);
