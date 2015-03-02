@@ -2,25 +2,19 @@
 $srcRoot = ".";
 $buildRoot = ".";
 $outfile = "rewriteengine.phar";
-$uu = "rewrite.cpp";
+$b64 = "rewrite.cpp";
 
 echo "Generating phar\n";
 $phar = new Phar("$buildRoot/$outfile", 
   FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::KEY_AS_FILENAME,
   $outfile);
 
-$files=array('parallel.php', 'rewriteengine.php', 'util.php');
-foreach($files as $file) $phar[$file] = file_get_contents($file);
-$phar->buildFromDirectory('parser','/[.]php$/');
+$phar->buildFromDirectory('.','/[.]php$/');
 
-$phar->setStub($phar->createDefaultStub("parallel.php"));
-$phar = trim(file_get_contents($outfile));
-$data = trim(base64_encode($phar));
-$data = explode("\n", $data);
-$out = "";
-foreach($data as $line) {
-  $out .= base64_encode($line);
-}
+$phar->setStub($phar->createDefaultStub("parser/parallel.php"));
+$phar = file_get_contents($outfile);
+require($outfile);
 
-$out = "const char rwenginephar[] =\n\"$out\";";
-file_put_contents($uu, trim($out));
+$data = base64_encode($phar);
+$out = "extern const char rwenginephar[];\nconst char rwenginephar[] =\n\"$data\";";
+file_put_contents($b64, $out);
