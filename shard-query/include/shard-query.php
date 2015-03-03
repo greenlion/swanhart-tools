@@ -281,9 +281,15 @@ class ShardQuery {
     }
     $columns_sql = "";
     foreach($columns as $column => $discard) {
+      if($column == "wf_rownum") {
+        $columns_sql = "wf_rownum bigint auto_increment primary key";
+	continue;
+      }
+      //elseif($column  preg_match('/^wf[0-9]+(?:_(?:ob){0,1}hash){0,1}$/',$column) ) continue;
       if($columns_sql) $columns_sql .= ",";
       $columns_sql .= "$column VARCHAR(255)";
     }
+
 
     $args = $columns_sql;
     $ukey = "";
@@ -294,14 +300,6 @@ class ShardQuery {
       }
     }
 
-    if(!empty($state->windows)) {
-      if($args !== "") $args .= ",";
-      $args .= "wf_rownum bigint auto_increment, key(wf_rownum)";
-      foreach($state->windows as $num => $win) {
-        $args .= ",";
-        $args .= "wf{$num} tinytext null";
-      }
-    }
     if($args) $args = "($args)";
      
     $sql = "CREATE TABLE " . $state->table_name . " $args"; 
