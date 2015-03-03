@@ -186,3 +186,4 @@ VALUES ('between',now()),
 ('shared_path', now()),
 ('aws_access_key', now()),
 ('aws_secret_key', now());
+\. sq_helper.sql
