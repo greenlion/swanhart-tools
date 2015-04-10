@@ -1427,7 +1427,7 @@ EOREGEX
 			}
 	
 			$row = mysqli_fetch_array($cur_columns);
-			if( $row === false ) $v_done = true;
+			if( $row === false || $row === null ) $v_done = true;
 	
 			if( $row ) {
 				$v_column_name = '`'. $row[0] . '`';
