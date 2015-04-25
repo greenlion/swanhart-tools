@@ -1040,6 +1040,12 @@ EOREGEX
 						$old_schema = $s[0];
 						$old_base_table = $s[1];
 					}
+
+					// Make sure we are tracking the old table.
+					if (!array_key_exists($old_table . $old_base_table, $this->mvlogList)) {
+						continue;
+					}
+					
 					$old_log_table = 'mvlog_' . md5(md5($old_schema) . md5($old_base_table));
 					
 					$new_table = $tokens[4];
