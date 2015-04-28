@@ -1,28 +1,52 @@
+#!/usr/bin/php
 <?php
+set_include_path(get_include_path() . ':.:/home/justin.swanhart/benchmark/shard-query/include');
+require_once('shard-query.php');
 class DRV_MYSQL extends StdClass {
 	var $_handle = false;
 	var $_opts = "";
 	function _connect($DB=false) {
 		global $options;
 		if(!$this->_handle)	{
-			$this->_handle = mysql_connect($options->DB_HOST . ':' . $options->DB_PORT,$options->DB_USER,$options->DB_PASS,true);
+			$this->_handle = mysqli_connect($options->DB_HOST,$options->DB_USER,$options->DB_PASS);
 		}
-		mysql_select_db($DB ? $DB : $options->DB_SCHEMA,$this->_handle);
+		mysqli_select_db($this->_handle,$DB ? $DB : $options->DB_SCHEMA);
 	}
 
 	function run_query($sql,$DB=false) {
-		echo $sql . "\n";
-		$sql = str_replace(';',' LIMIT 0;',$sql);
 		$this->_connect($DB);		
-		$stmt = mysql_query($sql,$this->_handle);
+		$stmt = mysqli_query($this->_handle,$sql);
 		if(!$stmt) {
-			echo(mysql_error());
+			echo(mysqli_error($this->_handle));
 			echo "\n$sql\n";
 			exit;
 			return -1;
 		}
 	}
 }
+
+class DRV_SQ extends StdClass {
+	var $_handle = false;
+	var $_opts = "";
+	function _connect($DB=false) {
+		global $options;
+		if(!$DB)$DB = $options->DB_SCHEMA;
+		if(!$this->_handle) {
+			$this->_handle = new ShardQuery($DB);
+		}
+	}
+	function run_query($sql,$DB=false) {
+		$this->_connect($DB);		
+		$stmt = $this->_handle->query($sql);
+		if(!$stmt) {
+			echo "\n$sql\n";
+			print_r($this->_handle->errors);
+			exit;
+			return -1;
+		}
+	}
+}
+
 
 function def($const, $key, $default) {
 	global $cmdline, $VERBOSE;
@@ -47,7 +71,7 @@ function write_result($qID, $resTime) {
 	$fp = fopen("result.log", "a") or die('could not open result.log for writing!');
 
 	if (flock($fp, LOCK_EX)) { // do an exclusive lock
-    fwrite($fp, $options->WORKLOAD . "\t" . $options->RUN_INFO . "\t" .$qID . "\t" . "$resTime\n");
+    fwrite($fp, $options->WORKLOAD . "/{$options->DB_SCHEMA}\t" . $options->RUN_INFO . "\t" .$qID . "\t" . "$resTime\n");
     flock($fp, LOCK_UN); 
 	} else {
 		die('could not lock result file');
@@ -68,10 +92,10 @@ def("DB_USER",'u', 'root');
 def("DB_PASS",'p', false);
 def("DB_PORT",'P', '3306');
 def("DB_DRIVER",'d', 'mysql');
-def("WORKLOAD",'W', 'SSB');
+def("WORKLOAD",'W', 'ssb');
 def("LOOP_COUNT",'L', 1);
 def("SCALE", 'F', 1);
-def("DB_SCHEMA",'S',strtolower($options->WORKLOAD) . '_sf' . $options->SCALE);
+def("DB_SCHEMA",'S','tokudb');
 def("RANDOMIZE", 'r', 'false');
 
 require_once($options->WORKLOAD . '.php');
@@ -81,18 +105,20 @@ echo "------------------------------------------------\n";
 foreach($options as $key => $val) {
 	echo str_pad($key, 18, ' ', STR_PAD_RIGHT) . "|  $val\n";
 }
-if(empty($cmdline)) { 
-	echo "\nCommand line options:\n-Fscale_factor -Hhost -Pport -ppass -Uuser -Sschema -Ddbname -Lloopcount -Irun_information -Wworkload -rrandomize\n"; 
-	exit; 
+foreach($argv as $v) {
+	if($v == "--help") {
+		echo "\nCommand line options:\n-d driver -Fscale_factor -Hhost -Pport -ppass -Uuser -Sschema -Ddbname -Lloopcount -Irun_information -Wworkload -rrandomize\n"; 
+		exit; 
+	}
 }
 echo "\n";
 
 for($z=0;$z<$options->LOOP_COUNT;++$z) {
 		if($options->RANDOMIZE !== 'false') shuffle($q[$options->WORKLOAD]);
-	
-		$db = new DRV_MYSQL;
-		foreach($q[$options->WORKLOAD] as $qry) {
-			echo "running {$qry['qid']}\n";
+		$driver="DRV_" . $options->DB_DRIVER;	
+		$db = new $driver;
+		foreach($q as $qry) {
+			echo "{$qry['qid']}: ";
 			$time=microtime(true);
 			if($db->run_query($qry['template'],$options->DB_SCHEMA)) {
 				$time=-1;
@@ -100,6 +126,7 @@ for($z=0;$z<$options->LOOP_COUNT;++$z) {
 				$time = microtime(true) - $time;
 			}
 			write_result($qry['qid'], $time);
+			echo "$time\n";
 		}
 }
 
