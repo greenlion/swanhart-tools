@@ -15,9 +15,9 @@ By caching result set data into a real table, the data can be accessed much more
 
 Here are some blog posts I wrote that might make this clearer:
 --
-* [Introduction to Flexviews](http://www.mysqlperformanceblog.com/2011/03/23/using-flexviews-part-one-introduction-to-materialized-views/)
-* [Change data capture](http://www.mysqlperformanceblog.com/2011/03/25/using-flexviews-part-two-change-data-capture/)
-* [Performance](http://www.mysqlperformanceblog.com/2011/04/04/flexviews-part-3-improving-query-performance-using-materialized-views/)
+* [Introduction to Flexviews](https://www.percona.com/blog/2011/03/23/using-flexviews-part-one-introduction-to-materialized-views/)
+* [Change data capture](https://www.percona.com/blog/2011/03/25/using-flexviews-part-two-change-data-capture/)
+* [Performance](https://www.percona.com/blog/2011/04/04/flexviews-part-3-improving-query-performance-using-materialized-views/)
 
 Refresh Methods
 --
