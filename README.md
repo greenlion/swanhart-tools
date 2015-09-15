@@ -3,13 +3,12 @@ swanhart-tools
 
 This is where you can find most open source tools written and primarily maintained by Justin Swanhart
 
-Please consider donating to Swanhart-Tools:
-https://www.gittip.com/greenlion/
+Shard-Query - MPP scaleout for MySQL with window functions and support for complex SQL (basically open source RedShift)
+
+[http://shardquery.com]
+
+Flexviews - Incrementally refreshable (fast refresh) materialized views (like oracle materialized views or DB2 materialized views)
+
+[http://flexvie.ws]
 
 
-LICENSE UPDATE: TO SWANHART OPEN LICENSE
-New clause #1:
-The following companies:
-Percona staffing llc, and any associated parent, child or ancillary entities
-
-May not download, retain, install, operate, or in any way associate themselves with this software.  This is without exception.  
