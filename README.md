@@ -12,4 +12,4 @@ New clause #1:
 The following companies:
 Percona staffing llc, and any associated parent, child or ancillary entities
 
-May not download, retain, install, operate, or in any way associate themselves with this software.  This is without exception.  Any use must immediately and permanently cease.  Violation of this license will be pursued in a court of law.
+May not download, retain, install, operate, or in any way associate themselves with this software.  This is without exception.  
