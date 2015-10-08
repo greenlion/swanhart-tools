@@ -1,5 +1,5 @@
 <?php
-require_once('parser/parallel.php');
+require_once('parallel.php');
 
 $sql = "select a, count(*) from some_table st join c1 where c2 = 'open' group by a /* having count(*) > 0*/;";
 $table_info = array(

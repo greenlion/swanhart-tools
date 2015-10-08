@@ -1,5 +1,5 @@
 <?php
-require_once('phar://rewriteengine.phar/parser/parallel.php');
+require_once('phar://rewriteengine.phar/parallel.php');
 
 
 $sql = "select a, count(*) from some_table st join c1 where c2 = 'open' group by a /* having count(*) > 0*/;";
