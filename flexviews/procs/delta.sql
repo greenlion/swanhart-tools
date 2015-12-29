@@ -353,11 +353,6 @@ SELECT CONCAT(mview_schema, '.', mview_name, '_delta')
   FROM flexviews.mview
  WHERE mview_id = v_mview_id;
 
-SELECT mview_table_alias
-  INTO v_mview_table_alias
-  FROM flexviews.mview_table
- WHERE mview_table_id = v_mview_table_id;
-
 SET v_where_clause = flexviews.get_delta_where(v_mview_id, v_depth);
 SET @delta_where = v_where_clause;
 
@@ -371,6 +366,12 @@ SET v_select_clause = flexviews.get_delta_select(v_mview_id, v_method, v_mview_t
 
 SET @delta_select = v_select_clause;
 SET @least_gsn = flexviews.get_delta_least_gsn(v_depth);
+
+SELECT mview_table_alias
+  INTO v_mview_table_alias
+  FROM flexviews.mview_table
+ WHERE mview_table_id = v_mview_table_id;
+ 
 SET v_select_clause = CONCAT('SELECT (', v_mview_table_alias, '.dml_type * ', v_method, ') as dml_type,', flexviews.get_delta_least_uowid(v_depth), ' as uow_id,', @least_gsn ,' as fv$gsn ', IF(v_select_clause != '', concat(',', v_select_clause), ''));
 
 
