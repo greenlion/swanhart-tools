@@ -126,6 +126,19 @@ worker:BEGIN
   DECLARE v_qid BIGINT DEFAULT 0;
   DECLARE v_sql_text LONGTEXT DEFAULT 'SELECT 1';
 
+  -- FIXME: 
+  -- These control the backoff in the loop waiting
+  -- for queries to be placed in the q table.  You
+  -- can change the values here but they should be
+  -- sufficient for most setups. I'll convert them
+  -- to configuration variables later.
+  DECLARE v_min_wait BIGINT DEFAULT 0;
+  DECLARE v_inc_wait DECIMAL DEFAULT 0.001;
+  DECLARE v_max_wait DECIMAL 0.1;
+
+  -- current wait time 
+  DECLARE v_wait DECIMAL DEFAULT 0;
+
   SELECT value
     INTO v_thread_count
     FROM async.settings
@@ -178,39 +191,24 @@ worker:BEGIN
     LEAVE worker;
   END IF;
 
-/*
-  CREATE TABLE async.q (
-    q_id bigint auto_increment primary key,
-    sql_text longtext not null,
-    created_on timestamp,
-    started_on datetime default null,
-    completed_on datetime default null,
-    parent bigint default null, 
-    completed boolean default FALSE,
-    state enum ('WAITING','RUNNING','ERROR','COMPLETED') NOT NULL DEFAULT 'WAITING',
-    errno INTEGER DEFAULT NULL,
-    errmsg TEXT DEFAULT NULL
-  ) ;
-*/
   -- The execution loop to grab queries from the queue and run them
   run_block:BEGIN
     DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
     BEGIN
       GET DIAGNOSTICS CONDITION 1
       @errno = RETURNED_SQLSTATE, @errmsg = MESSAGE_TEXT;
-      UPDATE q
-         SET state = 'ERROR',
-             errno = @errno,
-             errmsg = @errmsg,
-             state = 'COMPLETED',
-             completed_on = NOW()
-       WHERE q_id = v_q_id;
+      SET v_wait := v_min_wait;
     END;
  
     run_loop:LOOP
+      set @errno = NULL;
+      set @errmsg = NULL;
       BEGIN TRANSACTION;
 
-      -- get the next SQL to run
+      -- get the next SQL to run.  This SQL makes the q
+      -- table a LIFO queue because the last unexecuted
+      -- statement is the next to be run.  This ensures
+      -- that the time taken to lock the queue is small
       SELECT q_id,
              sql_text
         INTO v_q_id,
@@ -222,32 +220,60 @@ worker:BEGIN
       FOR UPDATE 
       LIMIT 1;
 
-      -- mark it as running
-      UPDATE q 
-         SET started_on = NOW(), 
-               state='RUNNING'
-       WHERE q_id = v_q_id;
+      -- Increase the wait if there was no SQL found to
+      -- execute.  
+      IF(q_id IS NULL) THEN
 
-      -- unlock the record
-      COMMIT;
+        SET v_wait := v_wait + v_inc_wait;
+        IF(v_wait > v_max_wait) THEN
+          SET v_wait := v_max_wait;
+        END IF;
 
-      BEGIN TRANSACTION;
-      SET @v_sql := v_sql_text;
-      PREPARE stmt FROM @v_sql;
-      EXECUTE stmt;
-      DEALLOCATE PREPARE stmt;
-      COMMIT;
+        -- let go of the lock on the q!
+        ROLLBACK; 
 
-      BEGIN TRANSACTION;
+      ELSE 
+        -- mark it as running
+        UPDATE q 
+           SET started_on = NOW(), 
+                 state='RUNNING'
+         WHERE q_id = v_q_id;
 
-      UPDATE q
-         SET state = 'COMPLETED',
-             errno = @errno,
-             errmsg = @errmsg,
-             completed = TRUE
-       WHERE q_id = v_q_id;
+        -- unlock the record (don't block the q)
+        COMMIT;
 
-      COMMIT;
+        BEGIN TRANSACTION;
+
+        -- the output of the SELECT statement must go into a table
+        -- other statements like INSERT or CALL can not return a 
+        -- resultset
+        IF(SUBSTR(TRIM(LOWER(v_sql_text)),1,6) = 'select') THEN
+          SET @v_sql := CONCAT('CREATE TABLE async.rs_', v_q_id, ' AS ', v_sql_text);
+        END IF;
+
+        PREPARE stmt FROM @v_sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
+        UPDATE q
+           SET state = IF(@errno IS NOT NULL, 'COMPLETED', 'ERROR'),
+               errno = @errno,
+               errmsg = @errmsg,
+               completed = TRUE,
+               completed_on = SYSDATE()
+         WHERE q_id = v_q_id;
+
+        COMMIT;
+
+        -- reset the wait time to min because something
+        -- was executed
+        SET v_wait := v_min_wait;
+      END IF;
+
+      -- wait a bit for the next SQL so that we aren't
+      -- spamming MySQL with queries to execute an
+      -- empty queue
+      SLEEP(v_wait);
 
     END LOOP;  
 
