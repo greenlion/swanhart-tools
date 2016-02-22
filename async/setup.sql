@@ -37,57 +37,223 @@ MODIFIES SQL DATA
 SQL SECURITY DEFINER
 BEGIN
 
-	CREATE TABLE async.q (
-  	q_id bigint auto_increment primary key,
-		query longtext not null,
+  -- LIFO queue of queries
+  CREATE TABLE async.q (
+    q_id bigint auto_increment primary key,
+    sql_text longtext not null,
     created_on timestamp,
+    started_on datetime default null,
     completed_on datetime default null,
-  	parent bigint default null, 
+    parent bigint default null, 
     completed boolean default FALSE,
-    state enum ('WAITING','RUNNING','ERROR') NOT NULL DEFAULT 'WAITING'
+    state enum ('WAITING','RUNNING','ERROR') NOT NULL DEFAULT 'WAITING',
+    errno INTEGER DEFAULT NULL,
+    errmsg TEXT DEFAULT NULL
   ) ;
-
+  
+  -- list of running worker threads
   -- note this is a slightly unusual innodb table:
   -- the auto_inc is not the PK
   CREATE TABLE threads (
-		worker_id bigint auto_increment,
-		thread_id bigint not null,
-		start_time timestamp,
-		exec_count bigint not null default 0,
+    worker_id bigint auto_increment,
+    thread_id bigint not null,
+    start_time timestamp,
+    exec_count bigint not null default 0,
+    thread_num integer,
     KEY(worker_id),
     PRIMARY KEY(start_time, thread_id)
-	);
+  );
 
   CREATE TABLE settings(
-		variable varchar(64) primary key, 
-		value varchar(64) DEFAULT 'thread_count'
-	) CHARSET=UTF8 COLLATE=UTF8_GENERAL_CI engine = InnoDB;
+    variable varchar(64) primary key, 
+    value varchar(64) DEFAULT 'thread_count'
+  ) CHARSET=UTF8 COLLATE=UTF8_GENERAL_CI engine = InnoDB;
   
   INSERT INTO async.settings VALUES ('thread_count', '8');
       
 END;;
 
-
-CREATE DEFINER=root@localhost FUNCTION async.running_thread_count()
+CREATE DEFINER=root@localhost PROCEDURE async.count_running_threads(OUT v_count BIGINT)
 READS SQL DATA
 SQL SECURITY DEFINER
 BEGIN
-	DECLARE v_count BIGINT DEFAULT 0;
+  DECLARE v_version TEXT DEFAULT '5.6';
+  DECLARE v_has_ps BOOLEAN DEFAULT FALSE;
+  DECLARE v_uptime BIGINT DEFAULT 0;
+
+  IF(@@performance_schema != 'ON') THEN
+    SIGNAL SQLSTATE '99999'   
+    SET MESSAGE_TEXT = 'The performance schema must be enabled to use this tool';
+  END IF;
+
+  IF((SELECT COUNT(*) FROM PERFORMANCE_SCHEMA.THREADS WHERE PROCESSLIST_USER=CURRENT_USER()) = 0) THEN
+    SIGNAL SQLSTATE '99999'   
+    SET MESSAGE_TEXT = CONCAT('The performance_schema.setup_actors table is not recording threads for the ', CURRENT_USER(), ' user');
+  END IF;
+
+  -- remove threads from table that are expired
+  BEGIN TRANSACTION;
+  SELECT variable_value
+    INTO v_uptime
+    FROM performance_schema.global_status
+   WHERE variable_name='uptime';
   
-  IF (@@performance_schema = 'ON') THEN
-  	SELECT count(*)
-			FROM performance_schema.threads
-			JOIN performance_schema.global_status
-				ON (variable_name='uptime')
-			JOIN threads
-		 USING (thread_id)
-		 WHERE now()-variable_value >= start_time;  
-	ELSE
-		
-	
+  DELETE 
+    FROM threads
+   WHERE start_time <= SYSDATE()-v_uptime;
+
+  COMMIT;
+  -- end cleanup
+  
+  SELECT count(*)
+    INTO v_count
+    FROM threads
+    JOIN processlist.threads 
+   USING (thread_id);
 
 END;;
 
+DROP PROCEDURE IF EXISTS async.run_worker;;
+
+CREATE DEFINER=root@localhost PROCEDURE async.worker()
+MODIFIES SQL DATA
+SQL SECURITY DEFINER
+worker:BEGIN
+  DECLARE v_thread_count BIGINT DEFAULT 8;
+  DECLARE v_running_threads BIGINT DEFAULT 0;
+  DECLARE v_next_thread BIGINT DEFAULT 1;
+  DECLARE v_got_lock BOOLEAN DEFAULT FALSE;
+  DECLARE v_qid BIGINT DEFAULT 0;
+  DECLARE v_sql_text LONGTEXT DEFAULT 'SELECT 1';
+
+  SELECT value
+    INTO v_thread_count
+    FROM async.settings
+   WHERE variable = 'thread_count';
+
+  IF(value IS NULL) THEN
+    SIGNAL SQLSTATE '99999'
+       SET MESSAGE_TEXT = 'assertion: missing thread_count variable';
+  END IF;
+
+  -- v_running_threads is an OUT param
+  CALL async.count_running_threads(v_running_threads);
+
+  -- leave procedure if enough threads are already running
+  IF(v_running_threads >= v_thread_count) THEN
+    LEAVE  worker;
+  END IF;
+
+  start_thread:LOOP
+    SET v_next_thread := v_thread_count;
+    IF(v_next_thread >= v_thread_count) THEN
+      LEAVE  start_thread;
+    END IF;
+  
+    SELECT GET_LOCK(CONCAT('thread#', v_next_thread),0) INTO v_got_lock;  
+    IF(v_got_lock IS NULL) THEN
+      SIGNAL SQLSTATE '99999'
+         SET MESSAGE_TEXT = 'assertion: get_lock acquire error';
+    END IF;
+
+    IF (v_got_lock = 1) THEN
+      -- if the old thread exited on error for some reason, clean it up
+      DELETE 
+        FROM threads 
+       WHERE thread_num = v_next_thread;
+
+      -- record details of the new thread
+      INSERT into threads(thread_id, start_time, exec_count, thread_num)
+      VALUES (connection_id(), sysdate(), 0, v_next_thread);
+
+      COMMIT;
+       
+      LEAVE start_thread;
+    END IF;
+
+  END LOOP;
+
+  -- already enough threads running so exit the stored routine
+  IF(v_next_thread > v_thread_count) THEN
+    LEAVE worker;
+  END IF;
+
+/*
+  CREATE TABLE async.q (
+    q_id bigint auto_increment primary key,
+    sql_text longtext not null,
+    created_on timestamp,
+    started_on datetime default null,
+    completed_on datetime default null,
+    parent bigint default null, 
+    completed boolean default FALSE,
+    state enum ('WAITING','RUNNING','ERROR','COMPLETED') NOT NULL DEFAULT 'WAITING',
+    errno INTEGER DEFAULT NULL,
+    errmsg TEXT DEFAULT NULL
+  ) ;
+*/
+  -- The execution loop to grab queries from the queue and run them
+  run_block:BEGIN
+    DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+    BEGIN
+      GET DIAGNOSTICS CONDITION 1
+      @errno = RETURNED_SQLSTATE, @errmsg = MESSAGE_TEXT;
+      UPDATE q
+         SET state = 'ERROR',
+             errno = @errno,
+             errmsg = @errmsg,
+             state = 'COMPLETED',
+             completed_on = NOW()
+       WHERE q_id = v_q_id;
+    END;
+ 
+    run_loop:LOOP
+      BEGIN TRANSACTION;
+
+      -- get the next SQL to run
+      SELECT q_id,
+             sql_text
+        INTO v_q_id,
+             v_sql_text
+        FROM q
+       WHERE completed = FALSE
+         AND state = 'WAITING'
+       ORDER BY q_id DESC
+      FOR UPDATE 
+      LIMIT 1;
+
+      -- mark it as running
+      UPDATE q 
+         SET started_on = NOW(), 
+               state='RUNNING'
+       WHERE q_id = v_q_id;
+
+      -- unlock the record
+      COMMIT;
+
+      BEGIN TRANSACTION;
+      SET @v_sql := v_sql_text;
+      PREPARE stmt FROM @v_sql;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      COMMIT;
+
+      BEGIN TRANSACTION;
+
+      UPDATE q
+         SET state = 'COMPLETED',
+             errno = @errno,
+             errmsg = @errmsg,
+             completed = TRUE
+       WHERE q_id = v_q_id;
+
+      COMMIT;
+
+    END LOOP;  
+
+  END run_block;
+  
+END;;
 /*
 
 CREATE DEFINER=root@localhost PROCEDURE async.setup()
@@ -328,7 +494,7 @@ BEGIN
                 SET v_sql = '';
                 SET v_created_table = TRUE;
                 SET v_col = 1;
-	        SET v_i := v_count;
+          SET v_i := v_count;
                 WHILE(v_i >= 1) DO
                     IF v_sql != '' THEN
                         SET v_sql := CONCAT(v_sql, ',\n');
