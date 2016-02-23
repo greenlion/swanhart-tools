@@ -28,6 +28,34 @@ CREATE DATABASE IF NOT EXISTS async;
 
 USE async;
 
+CREATE DEFINER=root@localhost PROCEDURE async.check_reqs()
+READS SQL DATA
+SQL SECURITY DEFINER
+BEGIN
+  IF(VERSION() LIKE '5.1%' OR VERSION() LIKE '5.5%') THEN
+		SIGNAL SQLSTATE '99999'
+		SET MESSAGE_TEXT = 'MySQL version 5.6+ is needed to use this tool';
+  END IF;
+
+  IF(@@performance_schema != 'ON') THEN
+    SIGNAL SQLSTATE '99999'   
+    SET MESSAGE_TEXT = 'The performance schema must be enabled to use this tool';
+  END IF;
+
+  SELECT COUNT(*)
+		INTO @v_tmp
+ 		FROM PERFORMANCE_SCHEMA.THREADS 
+   WHERE PROCESSLIST_USER=CURRENT_USER();
+
+	IF (@v_tmp = 0) THEN
+    SET @errmsg := CONCAT('The performance_schema.setup_actors table is not recording threads for the ', CURRENT_USER(), ' user');
+    SIGNAL SQLSTATE '99999'   
+    SET MESSAGE_TEXT = @errmsg;
+  END IF;
+END;;
+
+CALL check_reqs();
+
 select 'Creating setup procedure' as message;
 
 DROP PROCEDURE IF EXISTS setup;;
@@ -36,6 +64,7 @@ CREATE DEFINER=root@localhost PROCEDURE async.setup()
 MODIFIES SQL DATA
 SQL SECURITY DEFINER
 BEGIN
+	CALL check_reqs();
 
   -- LIFO queue of queries
   CREATE TABLE async.q (
@@ -80,19 +109,12 @@ BEGIN
   DECLARE v_version TEXT DEFAULT '5.6';
   DECLARE v_has_ps BOOLEAN DEFAULT FALSE;
   DECLARE v_uptime BIGINT DEFAULT 0;
+  DECLARE v_tmp BIGINT DEFAULT 0;
 
-  IF(@@performance_schema != 'ON') THEN
-    SIGNAL SQLSTATE '99999'   
-    SET MESSAGE_TEXT = 'The performance schema must be enabled to use this tool';
-  END IF;
-
-  IF((SELECT COUNT(*) FROM PERFORMANCE_SCHEMA.THREADS WHERE PROCESSLIST_USER=CURRENT_USER()) = 0) THEN
-    SIGNAL SQLSTATE '99999'   
-    SET MESSAGE_TEXT = CONCAT('The performance_schema.setup_actors table is not recording threads for the ', CURRENT_USER(), ' user');
-  END IF;
+  CALL check_reqs();
 
   -- remove threads from table that are expired
-  BEGIN TRANSACTION;
+  START TRANSACTION;
   SELECT variable_value
     INTO v_uptime
     FROM performance_schema.global_status
@@ -134,7 +156,7 @@ worker:BEGIN
   -- to configuration variables later.
   DECLARE v_min_wait BIGINT DEFAULT 0;
   DECLARE v_inc_wait DECIMAL DEFAULT 0.001;
-  DECLARE v_max_wait DECIMAL 0.1;
+  DECLARE v_max_wait DECIMAL DEFAULT 0.1;
 
   -- current wait time 
   DECLARE v_wait DECIMAL DEFAULT 0;
@@ -203,7 +225,7 @@ worker:BEGIN
     run_loop:LOOP
       set @errno = NULL;
       set @errmsg = NULL;
-      BEGIN TRANSACTION;
+      START TRANSACTION;
 
       -- get the next SQL to run.  This SQL makes the q
       -- table a LIFO queue because the last unexecuted
@@ -242,7 +264,7 @@ worker:BEGIN
         -- unlock the record (don't block the q)
         COMMIT;
 
-        BEGIN TRANSACTION;
+        START TRANSACTION;
 
         -- the output of the SELECT statement must go into a table
         -- other statements like INSERT or CALL can not return a 
