@@ -37,14 +37,14 @@ BEGIN
 		SET MESSAGE_TEXT = 'MySQL version 5.6+ is needed to use this tool';
   END IF;
 
-  IF(@@performance_schema != 'ON') THEN
+  IF(@@performance_schema != 1) THEN
     SIGNAL SQLSTATE '99999'   
     SET MESSAGE_TEXT = 'The performance schema must be enabled to use this tool';
   END IF;
-
+/*
   SELECT COUNT(*)
 		INTO @v_tmp
- 		FROM PERFORMANCE_SCHEMA.THREADS 
+ 		FROM performance_schema.threads 
    WHERE PROCESSLIST_USER=CURRENT_USER();
 
 	IF (@v_tmp = 0) THEN
@@ -52,6 +52,7 @@ BEGIN
     SIGNAL SQLSTATE '99999'   
     SET MESSAGE_TEXT = @errmsg;
   END IF;
+*/
 END;;
 
 CALL check_reqs();
@@ -75,8 +76,8 @@ BEGIN
     completed_on datetime default null,
     parent bigint default null, 
     completed boolean default FALSE,
-    state enum ('WAITING','RUNNING','ERROR') NOT NULL DEFAULT 'WAITING',
-    errno INTEGER DEFAULT NULL,
+    state enum ('COMPLETED','WAITING','RUNNING','ERROR') NOT NULL DEFAULT 'WAITING',
+    errno VARCHAR(10) DEFAULT NULL,
     errmsg TEXT DEFAULT NULL
   ) ;
   
@@ -130,7 +131,7 @@ BEGIN
   SELECT count(*)
     INTO v_count
     FROM threads
-    JOIN processlist.threads 
+    JOIN performance_schema.threads 
    USING (thread_id);
 
 END;;
@@ -145,8 +146,8 @@ worker:BEGIN
   DECLARE v_running_threads BIGINT DEFAULT 0;
   DECLARE v_next_thread BIGINT DEFAULT 1;
   DECLARE v_got_lock BOOLEAN DEFAULT FALSE;
-  DECLARE v_qid BIGINT DEFAULT 0;
-  DECLARE v_sql_text LONGTEXT DEFAULT 'SELECT 1';
+  DECLARE v_q_id BIGINT DEFAULT 0;
+  DECLARE v_sql_text LONGTEXT DEFAULT NULL;
 
   -- FIXME: 
   -- These control the backoff in the loop waiting
@@ -154,19 +155,17 @@ worker:BEGIN
   -- can change the values here but they should be
   -- sufficient for most setups. I'll convert them
   -- to configuration variables later.
-  DECLARE v_min_wait BIGINT DEFAULT 0;
-  DECLARE v_inc_wait DECIMAL DEFAULT 0.001;
-  DECLARE v_max_wait DECIMAL DEFAULT 0.1;
+  DECLARE v_wait FLOAT DEFAULT 0;
+  DECLARE v_min_wait FLOAT DEFAULT 0;
+  DECLARE v_inc_wait FLOAT DEFAULT 0.01;
+  DECLARE v_max_wait FLOAT DEFAULT 0.25;
 
-  -- current wait time 
-  DECLARE v_wait DECIMAL DEFAULT 0;
-
-  SELECT value
+  SELECT `value`
     INTO v_thread_count
     FROM async.settings
    WHERE variable = 'thread_count';
 
-  IF(value IS NULL) THEN
+  IF(v_thread_count IS NULL) THEN
     SIGNAL SQLSTATE '99999'
        SET MESSAGE_TEXT = 'assertion: missing thread_count variable';
   END IF;
@@ -179,16 +178,18 @@ worker:BEGIN
     LEAVE  worker;
   END IF;
 
+	SET v_next_thread := v_running_threads;
+	
   start_thread:LOOP
-    SET v_next_thread := v_thread_count;
+    SET v_next_thread := v_next_thread + 1;
     IF(v_next_thread >= v_thread_count) THEN
-      LEAVE  start_thread;
+			DO sleep(v_max_wait);  
+      LEAVE worker;
     END IF;
   
     SELECT GET_LOCK(CONCAT('thread#', v_next_thread),0) INTO v_got_lock;  
-    IF(v_got_lock IS NULL) THEN
-      SIGNAL SQLSTATE '99999'
-         SET MESSAGE_TEXT = 'assertion: get_lock acquire error';
+    IF(v_got_lock IS NULL OR v_got_lock = 0) THEN
+			ITERATE start_thread;
     END IF;
 
     IF (v_got_lock = 1) THEN
@@ -239,12 +240,14 @@ worker:BEGIN
        WHERE completed = FALSE
          AND state = 'WAITING'
        ORDER BY q_id DESC
-      FOR UPDATE 
-      LIMIT 1;
+      LIMIT 1 
+ 			FOR UPDATE;
 
       -- Increase the wait if there was no SQL found to
       -- execute.  
-      IF(q_id IS NULL) THEN
+      SET @errno := NULL;
+
+      IF(v_q_id = 0 OR v_q_id IS NULL) THEN
 
         SET v_wait := v_wait + v_inc_wait;
         IF(v_wait > v_max_wait) THEN
@@ -255,6 +258,7 @@ worker:BEGIN
         ROLLBACK; 
 
       ELSE 
+
         -- mark it as running
         UPDATE q 
            SET started_on = NOW(), 
@@ -274,11 +278,13 @@ worker:BEGIN
         END IF;
 
         PREPARE stmt FROM @v_sql;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
+        IF(@errno IS NULL) THEN
+        	EXECUTE stmt;
+					DEALLOCATE PREPARE stmt;
+				END IF;
 
         UPDATE q
-           SET state = IF(@errno IS NOT NULL, 'COMPLETED', 'ERROR'),
+           SET state = IF(@errno IS NULL, 'COMPLETED', 'ERROR'),
                errno = @errno,
                errmsg = @errmsg,
                completed = TRUE,
@@ -292,14 +298,16 @@ worker:BEGIN
         SET v_wait := v_min_wait;
       END IF;
 
+			SET v_q_id := 0;
+
       -- wait a bit for the next SQL so that we aren't
       -- spamming MySQL with queries to execute an
       -- empty queue
-      SLEEP(v_wait);
+      DO SLEEP(v_wait);
 
     END LOOP;  
 
-  END run_block;
+  END;
   
 END;;
 /*
@@ -727,7 +735,7 @@ END;;
 
 SELECT 'Installation complete' as message;;
 
-SELECT IF(@@event_scheduler='ON','The event scheduler is enabled.  The default of 8 running background threads of execution is currently being used.  Execute CALL async.set_concurrency(X) to set the number of threads manually.',
+SELECT IF(@@event_scheduler=1,'The event scheduler is enabled.  The default of 8 running background threads of execution is currently being used.  Execute CALL async.set_concurrency(X) to set the number of threads manually.',
                               'You must enable the event scheduler ( SET GLOBAL event_scheduler=1 ) to enable background parallel execution threads.') 
 as message;;
 
