@@ -367,7 +367,8 @@ MODIFIES SQL DATA
 SQL SECURITY DEFINER
 BEGIN
   INSERT INTO q(sql_text) values(v_sql_text);
-	SELECT LAST_INSERT_ID() as QUERY_NUMBER;
+	SET @query_number := LAST_INSERT_ID();
+	SELECT @query_number as QUERY_NUMBER;
 END;;
 
 SELECT 'Creating event' as message;
