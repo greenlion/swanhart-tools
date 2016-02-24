@@ -1,4 +1,4 @@
-# vim: set ts=2: set expandtab:
+#a vim: set ts=2: set expandtab:
 DELIMITER ;;
 /*  Pro Parallel (async) (part of the Swanhart Toolkit)
     Copyright 2015 Justin Swanhart
@@ -76,7 +76,7 @@ BEGIN
     completed_on datetime default null,
     parent bigint default null, 
     completed boolean default FALSE,
-    state enum ('COMPLETED','WAITING','RUNNING','ERROR') NOT NULL DEFAULT 'WAITING',
+    state enum ('CHECKING','COMPLETED','WAITING','RUNNING','ERROR') NOT NULL DEFAULT 'WAITING',
     errno VARCHAR(10) DEFAULT NULL,
     errmsg TEXT DEFAULT NULL
   ) ;
@@ -274,14 +274,16 @@ worker:BEGIN
         -- other statements like INSERT or CALL can not return a 
         -- resultset
         IF(SUBSTR(TRIM(LOWER(v_sql_text)),1,6) = 'select') THEN
-          SET @v_sql := CONCAT('CREATE TABLE async.rs_', v_q_id, ' AS ', v_sql_text);
+          SET @v_sql := CONCAT('CREATE TABLE async.rs_', v_q_id, ' ENGINE=MYISAM AS ', v_sql_text);
         END IF;
 
         PREPARE stmt FROM @v_sql;
         IF(@errno IS NULL) THEN
+					DO GET_LOCK(CONCAT('AS#run_', v_q_id),0);
         	EXECUTE stmt;
 					DEALLOCATE PREPARE stmt;
 				END IF;
+				DO RELEASE_LOCK(CONCAT('AS#run_', v_q_id));
 
         UPDATE q
            SET state = IF(@errno IS NULL, 'COMPLETED', 'ERROR'),
@@ -310,6 +312,57 @@ worker:BEGIN
   END;
   
 END;;
+
+CREATE DEFINER=root@localhost PROCEDURE async.check(IN v_q_id BIGINT)
+MODIFIES SQL DATA
+SQL SECURITY DEFINER
+BEGIN
+	SELECT * from q where q_id = v_q_id;	
+END;;
+
+CREATE DEFINER=root@localhost PROCEDURE async.wait(IN v_q_id BIGINT)
+MODIFIES SQL DATA
+SQL SECURITY DEFINER
+BEGIN
+	DECLARE v_errmsg TEXT;
+  DECLARE v_errno TEXT;
+  DECLARE v_status TEXT;
+	-- this will block when the query is running
+	SELECT state, errmsg, errno INTO v_status,v_errmsg, v_errno from q where q_id = v_q_id ;
+	IF (v_status IS NULL) THEN
+    SIGNAL SQLSTATE '99998'
+       SET MESSAGE_TEXT='Invalid QUERY_NUMBER';
+  END IF;
+	IF(v_status = 'WAITING') THEN
+		wait_loop:LOOP
+			DO SLEEP(.05);
+			SELECT state, errmsg, errno INTO v_status, v_errmsg, v_errno from q where q_id = v_q_id ;
+			IF (v_status !='WAITING') THEN
+				LEAVE wait_loop;
+			END IF;
+		END LOOP;
+	END IF;
+
+	IF(v_errno IS NOT NULL) THEN
+    SIGNAL SQLSTATE '99990'
+       SET MESSAGE_TEXT = 'CALL asynch.check(QUERY_NUMBER) to get the detailed error information';
+  END IF;
+	
+  DO GET_LOCK(CONCAT('AS#run_', v_q_id),86400*7);
+	DO RELEASE_LOCK(CONCAT('AS#run_', v_q_id));
+
+  SET @v_sql := CONCAT('SELECT * from rs_', v_q_id);
+  PREPARE stmt from @v_sql;
+  EXECUTE stmt;
+	DEALLOCATE PREPARE stmt;
+
+	SET @v_sql := CONCAT('DROP TABLE rs_', v_q_id);
+  PREPARE stmt from @v_sql;
+  EXECUTE stmt;
+	DEALLOCATE PREPARE stmt;
+
+END;;
+
 /*
 
 CREATE DEFINER=root@localhost PROCEDURE async.setup()
