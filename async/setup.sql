@@ -210,7 +210,7 @@ worker:BEGIN
   END LOOP;
 
   -- already enough threads running so exit the stored routine
-  IF(v_next_thread > v_thread_count) THEN
+  IF(v_next_thread > v_thread_count+1) THEN
     LEAVE worker;
   END IF;
 
@@ -362,6 +362,10 @@ BEGIN
 	DEALLOCATE PREPARE stmt;
 
 END;;
+
+CREATE EVENT IF NOT EXISTS start_async_worker
+ON SCHEDULE EVERY 1 SECOND
+DO CALL worker;
 
 /*
 
