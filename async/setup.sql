@@ -169,7 +169,7 @@ worker:BEGIN
         FROM q
        WHERE completed = FALSE
          AND state = 'WAITING'
-       ORDER BY q_id DESC
+       ORDER BY q_id
       LIMIT 1 
  			FOR UPDATE;
 
