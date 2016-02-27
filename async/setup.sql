@@ -302,8 +302,47 @@ SQL SECURITY DEFINER
 BEGIN
   INSERT INTO q(sql_text) values(v_sql_text);
 	SET @query_number := LAST_INSERT_ID();
+  IF(@query_list != '' AND @query_list IS NOT NULL) THEN
+    SET @query_list := CONCAT(@query_list,',');
+  ELSE
+    SET @query_list :=  '';
+  END IF;
+  SET @query_list := CONCAT(@query_list, @query_number);
 	SELECT @query_number as QUERY_NUMBER;
 END;;
+
+CREATE DEFINER=root@localhost PROCEDURE async.wait_list(INOUT v_list TEXT)
+MODIFIES SQL DATA
+wait_list:BEGIN
+  IF(v_list = '' OR v_list IS NULL) THEN
+    LEAVE wait_list;
+  END IF;
+
+  SET @i := 1;
+  SET @qnum := '';
+  csv_loop:LOOP  -- why is there no FOR loop in MySQL stored procs?
+    IF(@i > LENGTH(v_list)) THEN
+      LEAVE csv_loop;
+    END IF;
+    IF(SUBSTR(v_list,@i,1) = ',') THEN
+      CALL wait(@qnum);
+      SET @qnum := '';
+    ELSE
+      SET @qnum := CONCAT(@qnum, SUBSTR(v_list, @i, 1));
+    END IF;
+    SET @i := @i + 1;
+  END LOOP;
+  IF(@qnum != '') THEN
+    CALL wait(@qnum);
+  END IF;
+  SET v_list := '';
+END;;
+
+CREATE DEFINER=root@localhost PROCEDURE async.wait_all()
+MODIFIES SQL DATA
+CALL wait_list(@query_list);;
+
+
 
 SELECT 'Creating event' as message;
 CREATE EVENT IF NOT EXISTS start_async_worker
