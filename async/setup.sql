@@ -36,23 +36,6 @@ BEGIN
 		SIGNAL SQLSTATE '99999'
 		SET MESSAGE_TEXT = 'MySQL version 5.6+ is needed to use this tool';
   END IF;
-
-  IF(@@performance_schema != 1) THEN
-    SIGNAL SQLSTATE '99999'   
-    SET MESSAGE_TEXT = 'The performance schema must be enabled to use this tool';
-  END IF;
-/*
-  SELECT COUNT(*)
-		INTO @v_tmp
- 		FROM performance_schema.threads 
-   WHERE PROCESSLIST_USER=CURRENT_USER();
-
-	IF (@v_tmp = 0) THEN
-    SET @errmsg := CONCAT('The performance_schema.setup_actors table is not recording threads for the ', CURRENT_USER(), ' user');
-    SIGNAL SQLSTATE '99999'   
-    SET MESSAGE_TEXT = @errmsg;
-  END IF;
-*/
 END;;
 
 CALL check_reqs();
@@ -80,7 +63,7 @@ BEGIN
     errno VARCHAR(10) DEFAULT NULL,
     errmsg TEXT DEFAULT NULL
   ) ;
-  
+/*  
   -- list of running worker threads
   -- note this is a slightly unusual innodb table:
   -- the auto_inc is not the PK
@@ -93,6 +76,7 @@ BEGIN
     KEY(worker_id),
     PRIMARY KEY(start_time, thread_id)
   );
+*/
 
   CREATE TABLE settings(
     variable varchar(64) primary key, 
@@ -103,39 +87,6 @@ BEGIN
       
 END;;
 
-CREATE DEFINER=root@localhost PROCEDURE async.count_running_threads(OUT v_count BIGINT)
-READS SQL DATA
-SQL SECURITY DEFINER
-BEGIN
-  DECLARE v_version TEXT DEFAULT '5.6';
-  DECLARE v_has_ps BOOLEAN DEFAULT FALSE;
-  DECLARE v_uptime BIGINT DEFAULT 0;
-  DECLARE v_tmp BIGINT DEFAULT 0;
-
-  CALL check_reqs();
-
-  -- remove threads from table that are expired
-  START TRANSACTION;
-  SELECT variable_value
-    INTO v_uptime
-    FROM performance_schema.global_status
-   WHERE variable_name='uptime';
-  
-  DELETE 
-    FROM threads
-   WHERE start_time <= SYSDATE()-v_uptime;
-
-  COMMIT;
-  -- end cleanup
-  
-  SELECT count(*)
-    INTO v_count
-    FROM threads
-    JOIN performance_schema.threads 
-   USING (thread_id);
-
-END;;
-
 DROP PROCEDURE IF EXISTS async.run_worker;;
 
 CREATE DEFINER=root@localhost PROCEDURE async.worker()
@@ -144,7 +95,7 @@ SQL SECURITY DEFINER
 worker:BEGIN
   DECLARE v_thread_count BIGINT DEFAULT 8;
   DECLARE v_running_threads BIGINT DEFAULT 0;
-  DECLARE v_next_thread BIGINT DEFAULT 1;
+  DECLARE v_next_thread BIGINT DEFAULT 0;
   DECLARE v_got_lock BOOLEAN DEFAULT FALSE;
   DECLARE v_q_id BIGINT DEFAULT 0;
   DECLARE v_sql_text LONGTEXT DEFAULT NULL;
@@ -170,47 +121,26 @@ worker:BEGIN
        SET MESSAGE_TEXT = 'assertion: missing thread_count variable';
   END IF;
 
-  -- v_running_threads is an OUT param
-  CALL async.count_running_threads(v_running_threads);
-
-  -- leave procedure if enough threads are already running
-  IF(v_running_threads >= v_thread_count) THEN
-    LEAVE  worker;
-  END IF;
-
-	SET v_next_thread := v_running_threads;
+	SET v_next_thread := 0;
 	
   start_thread:LOOP
-    SET v_next_thread := v_next_thread + 1;
-    IF(v_next_thread >= v_thread_count) THEN
+    IF(v_next_thread > v_thread_count) THEN
 			DO sleep(v_max_wait);  
       LEAVE worker;
     END IF;
+    SET v_next_thread := v_next_thread + 1;
   
     SELECT GET_LOCK(CONCAT('thread#', v_next_thread),0) INTO v_got_lock;  
     IF(v_got_lock IS NULL OR v_got_lock = 0) THEN
 			ITERATE start_thread;
     END IF;
 
-    IF (v_got_lock = 1) THEN
-      -- if the old thread exited on error for some reason, clean it up
-      DELETE 
-        FROM threads 
-       WHERE thread_num = v_next_thread;
-
-      -- record details of the new thread
-      INSERT into threads(thread_id, start_time, exec_count, thread_num)
-      VALUES (connection_id(), sysdate(), 0, v_next_thread);
-
-      COMMIT;
-       
-      LEAVE start_thread;
-    END IF;
+    LEAVE start_thread;
 
   END LOOP;
 
   -- already enough threads running so exit the stored routine
-  IF(v_next_thread > v_thread_count+1) THEN
+  IF(v_next_thread > v_thread_count) THEN
     LEAVE worker;
   END IF;
 
@@ -275,15 +205,17 @@ worker:BEGIN
         -- resultset
         IF(SUBSTR(TRIM(LOWER(v_sql_text)),1,6) = 'select') THEN
           SET @v_sql := CONCAT('CREATE TABLE async.rs_', v_q_id, ' ENGINE=MYISAM AS ', v_sql_text);
+				ELSE
+					SET @v_sql := v_sql_text;
         END IF;
 
         PREPARE stmt FROM @v_sql;
         IF(@errno IS NULL) THEN
-					DO GET_LOCK(CONCAT('AS#run_', v_q_id),0);
+					-- lock the query for exec
+					SELECT * from q where q_id = v_q_id FOR UPDATE;
         	EXECUTE stmt;
 					DEALLOCATE PREPARE stmt;
 				END IF;
-				DO RELEASE_LOCK(CONCAT('AS#run_', v_q_id));
 
         UPDATE q
            SET state = IF(@errno IS NULL, 'COMPLETED', 'ERROR'),
@@ -335,7 +267,7 @@ BEGIN
   END IF;
 	IF(v_status = 'WAITING') THEN
 		wait_loop:LOOP
-			DO SLEEP(.05);
+			DO SLEEP(.025);
 			SELECT state, errmsg, errno INTO v_status, v_errmsg, v_errno from q where q_id = v_q_id ;
 			IF (v_status !='WAITING') THEN
 				LEAVE wait_loop;
@@ -347,9 +279,11 @@ BEGIN
     SIGNAL SQLSTATE '99990'
        SET MESSAGE_TEXT = 'CALL asynch.check(QUERY_NUMBER) to get the detailed error information';
   END IF;
-	
-  DO GET_LOCK(CONCAT('AS#run_', v_q_id),86400*7);
-	DO RELEASE_LOCK(CONCAT('AS#run_', v_q_id));
+
+  -- wait for record lock to be released for running query
+	set innodb_lock_wait_timeout=86400*7;
+	SELECT q_id INTO v_q_id from q where q_id = v_q_id FOR UPDATE;
+	ROLLBACK;
 
   SET @v_sql := CONCAT('SELECT * from rs_', v_q_id);
   PREPARE stmt from @v_sql;
