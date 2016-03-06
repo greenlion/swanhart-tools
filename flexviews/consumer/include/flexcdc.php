@@ -228,7 +228,7 @@ EOREGEX
 		if(!$this->cmdLine) {
 			die1("could not find mysqlbinlog!",2);
 		}
-		$this->hasStopNever = (bool)system($this->cmdLine . ' --help | grep stop-never|wc -l');
+		$this->hasStopNever = (bool)trim(system($this->cmdLine . ' --help | grep stop-never|wc -l'));
 		$this->settings = $settings;
 		
 		
