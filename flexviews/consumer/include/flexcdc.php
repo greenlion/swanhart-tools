@@ -75,6 +75,7 @@ class FlexCDC {
 	}
 
 	protected function cleanup_row($db, $table, &$the_row, $get_column_names = false) {
+		$row = array();
 		foreach($the_row as $pos => $col) {
 			$datatype = $this->table_ordinal_datatype($db,$table,$pos+1);
 			if(strtoupper($col) === "NULL") $datatype="NULL";
@@ -173,6 +174,12 @@ EOREGEX
 	protected $gsn_hwm;
 	protected $dml_type;
 
+	protected $row;
+	protected $DML;
+	protected $db;
+	protected $base_table;
+	protected $mvlog_table;
+
 	protected $skip_before_update = false;
 	protected $mark_updates = false;
 	
@@ -228,7 +235,7 @@ EOREGEX
 		if(!$this->cmdLine) {
 			die1("could not find mysqlbinlog!",2);
 		}
-		$this->hasStopNever = (bool)system($this->cmdLine . ' --help | grep stop-never|wc -l');
+		$this->hasStopNever = (bool)trim(system($this->cmdLine . ' --help | grep stop-never|wc -l'));
 		$this->settings = $settings;
 		
 		
@@ -336,14 +343,13 @@ EOREGEX
 
 		if ($invalidate_cache) {
 			unset($cache[$key]);
-			return;
+			return '';
 		}
 
 		if(!empty($cache[$key])) {
 			return $cache[$key];
 		}
 		$log_name = 'mvlog_' . md5(md5($schema) . md5($table));
-		$table  = mysqli_real_escape_string($this->dest,$table);
 
 		$sql = 'select column_name from information_schema.columns where table_schema="%s" and table_name="%s" and ordinal_position > 4 order by ordinal_position';
 		$sql = sprintf($sql, $this->mvlogDB, $log_name);
@@ -362,14 +368,13 @@ EOREGEX
 	public function table_ordinal_datatype($schema,$table,$pos) {
 		static $cache;
 
+		$pos	= (int)$pos;
 		$key = $schema . $table . $pos;
-		if(!empty($cache[$key])) {
+		if(isset($cache[$key])) {
 			return $cache[$key];
 		} 
 
 		$log_name = 'mvlog_' . md5(md5($schema) . md5($table));
-		$table  = mysqli_real_escape_string($this->dest,$table);
-		$pos	= mysqli_real_escape_string($this->dest,$pos);
 
 		$sql = 'select data_type from information_schema.columns where table_schema="%s" and table_name="%s" and ordinal_position="%s"';
 
@@ -389,15 +394,13 @@ EOREGEX
 		/* NOTE: we look at the LOG table to see the structure, because it might be different from the source if the consumer is behind and an alter has happened on the source*/
 		static $cache;
 		$val = NULL;
+		$pos	= (int)$pos;
 		$key = trim($schema . $table . $pos);
-		$val = $cache[$key];
-		if($val != NULL) {
+		if(isset($cache[$key])) {
 			return $val;
 		} 
 
-		$log_name = 'mvlog_' . md5(md5($schema) .md5($table));
-		$table  = mysqli_real_escape_string($this->dest,$table);
-		$pos	= mysqli_real_escape_string($this->dest,$pos);
+		$log_name = 'mvlog_' . md5(md5($schema) . md5($table));
 		$sql = 'select (column_type like "%%unsigned%%") as is_unsigned from information_schema.columns where table_schema="%s" and table_name="%s" and ordinal_position=%d';
 
 		$sql = sprintf($sql, $this->mvlogDB, $log_name, $pos+4);
@@ -422,7 +425,7 @@ EOREGEX
 		}
 
 		if($only_table === false || $only_table == 'mvlogs') {
-			if($this->table_exists($this->mvlogDB, $this->mvlogs, $this->dest)) {
+			if($this->table_exists($this->mvlogDB, $this->mvlogs)) {
 				if(!$force) {
 					trigger_error('Table already exists:' . $this->mvlogs . '. Setup aborted! (use --force to ignore this error)' , E_USER_ERROR);
 					return false;
@@ -441,7 +444,7 @@ EOREGEX
 		}
 
 		if($only_table === false || $only_table == 'mview_uow') {
-			if(FlexCDC::table_exists($this->mvlogDB, $this->mview_uow, $this->dest)) {
+			if($this->table_exists($this->mvlogDB, $this->mview_uow)) {
 				if(!$force) {
 					trigger_error('Table already exists:' . $this->mview_uow . '. Setup aborted!' , E_USER_ERROR);
 					return false;
@@ -461,7 +464,7 @@ EOREGEX
 			my_mysql_query("INSERT INTO `" . $this->mview_uow . "` VALUES (1, NULL, 1);", $this->dest) or die1('COULD NOT INSERT INTO:' . $this->mview_uow . "\n");
 		}	
 		if($only_table === false || $only_table == 'binlog_consumer_status') {
-			if(FlexCDC::table_exists($this->mvlogDB, $this->binlog_consumer_status, $this->dest)) {
+			if($this->table_exists($this->mvlogDB, $this->binlog_consumer_status)) {
 				if(!$force) {
 					trigger_error('Table already exists:' . $this->binlog_consumer_status .'  Setup aborted!' , E_USER_ERROR);
 					return false;
@@ -514,6 +517,7 @@ EOREGEX
 		
 		$count=0;
 		$sleep_time=0;
+		$processedLogs=0;
 		while($iterations <= 0 || ($iterations >0 && $count < $iterations)) {
 			$this->initialize();
 			#retrieve the list of logs which have not been fully processed
@@ -553,7 +557,7 @@ EOREGEX
 
 				$this->binlogPosition = $row['exec_master_log_pos'];
 				$this->logName = $row['master_log_file'];
-				$this->process_binlog($proc, $row['master_log_file'], $row['exec_master_log_pos'],$line);
+				$this->process_binlog($proc, $line);
 				$this->set_capture_pos();	
 				my_mysql_query('commit', $this->dest);
 				pclose($proc);
@@ -1207,7 +1211,7 @@ EOREGEX
 	
 	static function ignore_clause($clause) {
 		$clause = trim($clause);
-		if(preg_match('/^(?:ADD|DROP)\s+(?:PRIMARY KEY|KEY|INDEX)')) {
+		if(preg_match('/^(?:ADD|DROP)\s+(?:PRIMARY KEY|KEY|INDEX)/', $clause)) {
 			return true;
 		}
 		return false;
@@ -1285,7 +1289,7 @@ EOREGEX
 							}
 							if(!empty($this->mvlogList[$this->db . $this->base_table])) {
 								$this->mvlog_table = $this->mvlogList[$this->db . $this->base_table];
-								$lastLine = $this->process_rowlog($proc, $line);
+								$lastLine = $this->process_rowlog($proc);
 							}
 
 							
