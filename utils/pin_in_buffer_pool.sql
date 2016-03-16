@@ -1,6 +1,6 @@
-CREATE DATABASE IF NOT EXISTS `percona`;
+CREATE DATABASE IF NOT EXISTS `swanhart`;
 
-use percona;
+use swanhart;
 
 CREATE TABLE IF NOT EXISTS `pin_buffer_pool_config` (
   `schema_name` varchar(50) DEFAULT NULL,
