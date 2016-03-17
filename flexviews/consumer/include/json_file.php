@@ -14,7 +14,6 @@ class json_file implements FlexCDC_Plugin_Interface {
 			echo "JSON_FILE_OPEN: error opening file " . json_file::$fp . "\n";
 			exit(1);
 		}
-		echo "JSON_FILE_OPEN - OPEN OK\n";
 		return json_file::$fp;
 	}
 
@@ -25,7 +24,6 @@ class json_file implements FlexCDC_Plugin_Interface {
 		}
 		json_file::$fp = false;
 		json_file::$buffer = "";
-		echo "JSON_FILE_CLOSE - CLOSE OK\n";
 		return true;
 	}
 
