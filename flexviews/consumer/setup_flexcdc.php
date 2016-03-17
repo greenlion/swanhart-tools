@@ -11,7 +11,7 @@ function &get_commandline() {
         $shortOpts = 'h::v::';
         $longOpts  = array('ini=','force==');
 
-        $params = $cg->getopt2($args, $shortOpts, $longOpts);
+        $params = @$cg->getopt2($args, $shortOpts, $longOpts);
         $new_params = array();
         foreach ($params[0] as $param) {
                 $param[0] = str_replace('--','', $param[0]);

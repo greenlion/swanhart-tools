@@ -109,3 +109,9 @@ host=127.0.0.1
 port=3306
 password=
 
+; To write changes to JSON file
+;plugin=json_file.php
+;plugin_order=json_file
+;[json_file]
+;add_metadata=1
+;path=/path/to/file.txt
