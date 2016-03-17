@@ -35,7 +35,7 @@ function &get_commandline() {
         $shortOpts = 'h::v::';
         $longOpts  = array('ini=', 'help==', 'pid=', 'daemon==' );
 
-        $params = $cg->getopt2($args, $shortOpts, $longOpts);
+        $params = $cg->@getopt2($args, $shortOpts, $longOpts);
         if (PEAR::isError($params)) {
             echo 'Error: ' . $params->getMessage() . "\n";
             exit(1);

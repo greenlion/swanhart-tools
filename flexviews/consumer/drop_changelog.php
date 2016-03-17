@@ -10,7 +10,7 @@ function &get_commandline() {
         $shortOpts = 'h::v::';
         $longOpts  = array('ini=', 'schema==', 'table==');
 
-        $params = $cg->getopt2($args, $shortOpts, $longOpts);
+        $params = @$cg->getopt2($args, $shortOpts, $longOpts);
         if (PEAR::isError($params)) {
             echo 'Error: ' . $params->getMessage() . "\n";
             exit(1);
