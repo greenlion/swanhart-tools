@@ -210,9 +210,11 @@ EOREGEX
 			case 'source': 
 				/*TODO: support unix domain sockets */
 				$handle = mysqli_connect($S['host'] , $S['user'], $S['password'], null, $S['port'] ) or die1('Could not connect to MySQL server:' . mysqli_connect_error());
+				mysqli_set_charset($handle, 'utf8');
 				return $handle;
 			case 'dest':
 				$handle = mysqli_connect($D['host'] , $D['user'], $D['password'], null, $D['port'] ) or die1('Could not connect to MySQL server:' . mysqli_error($handle));
+				mysqli_set_charset($handle, 'utf8');
 				return $handle;
 		}
 		return false;
@@ -483,7 +485,7 @@ EOREGEX
 			
 		
 			#find the current master position
-			$stmt = my_mysql_query('FLUSH TABLES WITH READ LOCK', $this->source) or die1(mysqli_error($this->source));
+			#$stmt = my_mysql_query('FLUSH TABLES WITH READ LOCK', $this->source) or die1(mysqli_error($this->source));
 			$stmt = my_mysql_query('SHOW MASTER STATUS', $this->source) or die1(mysqli_error($this->source));
 			$row = mysqli_fetch_assoc($stmt);
 			$stmt = my_mysql_query('UNLOCK TABLES', $this->source) or die1(mysqli_error($this->source));
@@ -650,7 +652,7 @@ EOREGEX
 		$stmt = my_mysql_query($sql, $this->source);
 		$row = mysqli_fetch_array($stmt) or die1($sql . "\n" . mysqli_error($this->dest) . "\n");
 
-		if($row[0] != 'ROW') {
+		if($row[0] != 'ROW' && $row[0] != 'MIXED') {
 			die1("Exiting due to error: FlexCDC REQUIRES that the source database be using ROW binlog_format!\n");
 		}
 		
@@ -1453,6 +1455,7 @@ EOREGEX
 		}
 	
 		if( trim( $v_sql ) == "" ) {
+			echo("After SQL:\n" . $cursor_sql . "\n");
 			trigger_error('Could not access table:' . $v_table_name, E_USER_ERROR);
 		}
 
