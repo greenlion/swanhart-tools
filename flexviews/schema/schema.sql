@@ -95,7 +95,7 @@ CREATE TABLE `mview_table` (
 
 DROP TABLE IF EXISTS `mview_signal`;
 CREATE TABLE `mview_signal` (
-  `signal_id` SERIAL default NULL,
+  `signal_id` SERIAL NOT NULL,
   `signal_time` TIMESTAMP,
   primary key(signal_id)
 ) DEFAULT CHARSET=utf8;
