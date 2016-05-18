@@ -63,20 +63,6 @@ BEGIN
     errno VARCHAR(10) DEFAULT NULL,
     errmsg TEXT DEFAULT NULL
   ) ;
-/*  
-  -- list of running worker threads
-  -- note this is a slightly unusual innodb table:
-  -- the auto_inc is not the PK
-  CREATE TABLE threads (
-    worker_id bigint auto_increment,
-    thread_id bigint not null,
-    start_time timestamp,
-    exec_count bigint not null default 0,
-    thread_num integer,
-    KEY(worker_id),
-    PRIMARY KEY(start_time, thread_id)
-  );
-*/
 
   CREATE TABLE settings(
     variable varchar(64) primary key, 
@@ -158,10 +144,8 @@ worker:BEGIN
       set @errmsg = NULL;
       START TRANSACTION;
 
-      -- get the next SQL to run.  This SQL makes the q
-      -- table a LIFO queue because the last unexecuted
-      -- statement is the next to be run.  This ensures
-      -- that the time taken to lock the queue is small
+      -- get the next SQL to run.  
+
       SELECT q_id,
              sql_text
         INTO v_q_id,
