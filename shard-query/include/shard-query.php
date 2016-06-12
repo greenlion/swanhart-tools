@@ -262,7 +262,7 @@ class ShardQuery {
     if(empty($state->shard_sql[0]) || strtolower(substr($state->shard_sql[0], 0, 6)) !== "select")
       return;
     $sql = $state->shard_sql[0];
-    $sql = preg_replace('/\s+limit\s+\d+,*\s*\d*/i', '', $sql) . ' LIMIT 0';
+$sql = str_replace("1=1","1=0",$sql);
 
     if(!$state->DAL->my_select_db($state->tmp_shard['db'])) {
       $this->errors[] = 'While aggregating result: ' . $state->DAL->my_error();
