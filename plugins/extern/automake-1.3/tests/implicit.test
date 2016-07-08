@@ -1,0 +1,18 @@
+#! /bin/sh
+
+# Test to make sure implicit .o's are listed as appropriate.  Report
+# from Henrik Frystyk Nielsen.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+END
+
+cat > Makefile.am << 'END'
+noinst_PROGRAMS = libapp_1
+END
+
+$AUTOMAKE || exit 1
+
+grep '^libapp_1_OBJECTS' Makefile.in | grep '\.o'

@@ -1,0 +1,25 @@
+#! /bin/sh
+
+# Another AC_OUTPUT test.  From report by Ulrich Drepper.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile intl/intlh.inst po/Makefile.in misc/gettextize)
+END
+
+: > Makefile.am
+
+mkdir intl po misc
+: > intl/intlh.inst.in
+: > po/Makefile.in.am
+: > misc/gettextize.in
+
+$AUTOMAKE || exit 1
+
+grep '^gettextize' Makefile.in && exit 1
+exit 0

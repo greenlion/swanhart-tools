@@ -1,0 +1,22 @@
+#! /bin/sh
+
+# Test to make sure pure C++ sources don't include C-specific code.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CXX
+END
+
+cat > Makefile.am << 'END'
+sbin_PROGRAMS = anonymous
+anonymous_SOURCES = doe.C jane.C
+END
+
+: > doe.C
+: > jane.C
+
+$AUTOMAKE || exit 1
+
+grep CC Makefile.in | grep -v MKDEP && exit 1
+exit 0

@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# Test for bug reported by Jim Meyering:
+# automake-0.29 didn't handle this line properly.
+#   LIBOBJS="$LIBOBJS fsusage.o mountlist.o"
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_PROG_CC
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+LIBOBJS="$LIBOBJS fsusage.o mountlist.o"
+AC_OUTPUT(Makefile)
+END
+
+cat > Makefile.am << 'END'
+noinst_LIBRARIES = libtu.a
+libtu_a_SOURCES =
+libtu_a_LIBADD = @LIBOBJS@
+END
+
+: > fsusage.c
+: > mountlist.c
+
+$AUTOMAKE

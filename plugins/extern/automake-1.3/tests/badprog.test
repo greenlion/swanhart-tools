@@ -1,0 +1,17 @@
+#! /bin/sh
+
+# Test to make sure that programs with bad names are properly
+# transformed.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = a,b
+a_b_SOURCES = ab.c
+END
+
+$AUTOMAKE

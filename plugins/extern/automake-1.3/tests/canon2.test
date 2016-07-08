@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test to make sure name canonicalization happens for texinfo.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = zar-doz.texi
+zar_doz_TEXINFOS = frob.texi
+END
+
+: > texinfo.tex
+echo '@setfilename zar-doz.info' > zar-doz.texi
+echo '@setfilename frob' > frob.texi
+
+$AUTOMAKE || exit 1
+
+grep zar-doz_TEXINFOS Makefile.in && exit 1
+exit 0

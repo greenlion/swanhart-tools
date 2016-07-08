@@ -1,0 +1,16 @@
+# vim:ft=automake
+# Gearman
+# Copyright (C) 2011 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# All paths should be given relative to the root
+#
+
+noinst_HEADERS+= libgearman-server/plugins/queue/redis/queue.h
+
+libgearman_server_libgearman_server_la_SOURCES+= libgearman-server/plugins/queue/redis/queue.cc
+libgearman_server_libgearman_server_la_LIBADD+= @HIREDIS_LIB@
+

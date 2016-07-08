@@ -1,0 +1,15 @@
+#! /bin/sh
+
+# Test to make sure `.txi' extension works.
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = foo.txi
+END
+
+echo '@setfilename foo.info' > foo.txi
+: > texinfo.tex
+
+$AUTOMAKE || exit 1
+
+fgrep '.txi.info' Makefile.in

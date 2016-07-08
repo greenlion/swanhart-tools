@@ -1,0 +1,269 @@
+# vim:ft=automake
+#
+# included from Top Level Makefile.am
+# All paths should be given relative to the root
+#
+
+LIBTOOL_COMMAND= ${abs_top_builddir}/libtool --mode=execute
+VALGRIND_EXEC_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=memcheck --error-exitcode=1 --leak-check=yes --track-fds=yes --malloc-fill=A5 --free-fill=DE --fullpath-after=.
+SGCHECK_EXEC_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=exp-sgcheck --error-exitcode=1
+VALGRIND_COMMAND= LOG_COMPILER="valgrind" $(VALGRIND_EXEC_COMMAND)
+HELGRIND_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=helgrind --read-var-info=yes --error-exitcode=1 --read-var-info=yes
+DRD_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=drd --free-is-write=yes --error-exitcode=1
+SGCHECK_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=exp-sgcheck --error-exitcode=1
+MASSIF_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=massif
+GDB_COMMAND= $(LIBTOOL_COMMAND) gdb -f -x libtest/run.gdb
+PTRCHECK_COMMAND= $(LIBTOOL_COMMAND) valgrind --tool=exp-ptrcheck --error-exitcode=1
+PAHOLE_COMMAND= $(LIBTOOL_COMMAND) --mode=execute pahole
+VALGRIND_SUPRESSION= $(LIBTOOL_COMMAND) valgrind --leak-check=full --show-reachable=yes --error-limit=no --gen-suppressions=all --log-file=minimalraw.log
+
+export LIBTOOL_COMMAND
+export VALGRIND_COMMAND
+export HELGRIND_COMMAND
+export DRD_COMMAND
+export SGCHECK_COMMAND
+export GDB_COMMAND
+
+valgrind:
+	@echo make check LOG_COMPILER="\"$(VALGRIND_EXEC_COMMAND)\""
+
+sgcheck:
+	@echo make check LOG_COMPILER="\"$(SGCHECK_EXEC_COMMAND)\""
+
+valgrind-supressions:
+	@echo make check LOG_COMPILER="\"$(VALGRIND_SUPRESSION)\""
+
+gdb:
+	@echo make check LOG_COMPILER="\"$(GDB_COMMAND)\""
+
+helgrind:
+	@echo make check LOG_COMPILER="\"$(HELGRIND_COMMAND)\""
+
+drd:
+	@echo make check LOG_COMPILER="\"$(DRD_COMMAND)\""
+
+EXTRA_DIST+= libtest/run.gdb
+EXTRA_DIST+= libtest/version.h
+
+BUILT_SOURCES+= libtest/version.h
+
+.PHONY: clean-libtest-check
+clean-libtest-check:
+	-rm -rf tmp_chroot
+
+noinst_HEADERS+= libtest/client.hpp
+noinst_HEADERS+= libtest/formatter.hpp
+noinst_HEADERS+= libtest/timer.hpp
+noinst_HEADERS+= libtest/alarm.h
+noinst_HEADERS+= libtest/binaries.h
+noinst_HEADERS+= libtest/cpu.hpp
+noinst_HEADERS+= libtest/blobslap_worker.h
+noinst_HEADERS+= libtest/callbacks.h
+noinst_HEADERS+= libtest/dns.hpp
+noinst_HEADERS+= libtest/cmdline.h
+noinst_HEADERS+= libtest/collection.h
+noinst_HEADERS+= libtest/common.h
+noinst_HEADERS+= libtest/comparison.hpp
+noinst_HEADERS+= libtest/core.h
+noinst_HEADERS+= libtest/dream.h
+noinst_HEADERS+= libtest/error.h
+noinst_HEADERS+= libtest/exception.hpp
+noinst_HEADERS+= libtest/exception/disconnected.hpp
+noinst_HEADERS+= libtest/exception/fatal.hpp
+noinst_HEADERS+= libtest/framework.h
+noinst_HEADERS+= libtest/gearmand.h
+noinst_HEADERS+= libtest/drizzled.h
+noinst_HEADERS+= libtest/get.h
+noinst_HEADERS+= libtest/has.hpp
+noinst_HEADERS+= libtest/http.hpp
+noinst_HEADERS+= libtest/is_pid.hpp
+noinst_HEADERS+= libtest/is_local.hpp
+noinst_HEADERS+= libtest/killpid.h
+noinst_HEADERS+= libtest/libtool.hpp
+noinst_HEADERS+= libtest/memcached.h
+noinst_HEADERS+= libtest/memcached.hpp
+noinst_HEADERS+= libtest/poll_error.hpp
+noinst_HEADERS+= libtest/port.h
+noinst_HEADERS+= libtest/result.hpp
+noinst_HEADERS+= libtest/result/base.hpp
+noinst_HEADERS+= libtest/result/fail.hpp
+noinst_HEADERS+= libtest/result/skip.hpp
+noinst_HEADERS+= libtest/result/success.hpp
+noinst_HEADERS+= libtest/runner.h
+noinst_HEADERS+= libtest/server.h
+noinst_HEADERS+= libtest/server_container.h
+noinst_HEADERS+= libtest/signal.h
+noinst_HEADERS+= libtest/socket.hpp
+noinst_HEADERS+= libtest/ssl.h
+noinst_HEADERS+= libtest/stream.h
+noinst_HEADERS+= libtest/strerror.h
+noinst_HEADERS+= libtest/string.hpp
+noinst_HEADERS+= libtest/test.h
+noinst_HEADERS+= libtest/test.hpp
+noinst_HEADERS+= libtest/thread.hpp
+noinst_HEADERS+= libtest/tmpfile.hpp
+noinst_HEADERS+= libtest/lite.h
+noinst_HEADERS+= libtest/valgrind.h
+noinst_HEADERS+= libtest/vchar.hpp
+noinst_HEADERS+= libtest/version.h
+noinst_HEADERS+= libtest/visibility.h
+noinst_HEADERS+= libtest/wait.h
+noinst_HEADERS+= libtest/yatl.h
+
+check_LTLIBRARIES+= libtest/libtest.la
+
+libtest_libtest_la_CXXFLAGS=
+EXTRA_libtest_libtest_la_DEPENDENCIES=
+libtest_libtest_la_LDFLAGS=
+libtest_libtest_la_LIBADD=
+libtest_libtest_la_SOURCES=
+libtest_libtest_la_CXXFLAGS+= @LIBMEMCACHED_CFLAGS@
+libtest_libtest_la_LIBADD+= @LIBMEMCACHED_LIB@
+if ENABLE_SSL
+if ENABLE_CYASSL
+libtest_libtest_la_LIBADD+= @CYASSL_LIB@
+libtest_libtest_la_LDFLAGS+= @CYASSL_LDFLAGS@
+else
+if ENABLE_OPENSSL
+libtest_libtest_la_LIBADD+= @OPENSSL_LIBS@
+libtest_libtest_la_LDFLAGS+= @OPENSSL_LDFLAGS@
+endif
+endif
+endif
+
+libtest_libtest_la_SOURCES+= libtest/alarm.cc
+libtest_libtest_la_SOURCES+= libtest/binaries.cc
+libtest_libtest_la_SOURCES+= libtest/cmdline.cc
+libtest_libtest_la_SOURCES+= libtest/collection.cc
+libtest_libtest_la_SOURCES+= libtest/comparison.cc
+libtest_libtest_la_SOURCES+= libtest/core.cc
+libtest_libtest_la_SOURCES+= libtest/cpu.cc
+libtest_libtest_la_SOURCES+= libtest/dns.cc
+libtest_libtest_la_SOURCES+= libtest/dream.cc
+libtest_libtest_la_SOURCES+= libtest/drizzled.cc
+libtest_libtest_la_SOURCES+= libtest/exception.cc
+libtest_libtest_la_SOURCES+= libtest/exception/fatal.cc
+libtest_libtest_la_SOURCES+= libtest/formatter.cc
+libtest_libtest_la_SOURCES+= libtest/client.cc
+libtest_libtest_la_SOURCES+= libtest/framework.cc
+libtest_libtest_la_SOURCES+= libtest/has.cc
+libtest_libtest_la_SOURCES+= libtest/http.cc
+libtest_libtest_la_SOURCES+= libtest/is_local.cc
+libtest_libtest_la_SOURCES+= libtest/killpid.cc
+libtest_libtest_la_SOURCES+= libtest/libtool.cc
+libtest_libtest_la_SOURCES+= libtest/main.cc
+libtest_libtest_la_SOURCES+= libtest/port.cc
+libtest_libtest_la_SOURCES+= libtest/result.cc
+libtest_libtest_la_SOURCES+= libtest/runner.cc
+libtest_libtest_la_SOURCES+= libtest/server.cc
+libtest_libtest_la_SOURCES+= libtest/server_container.cc
+libtest_libtest_la_SOURCES+= libtest/signal.cc
+libtest_libtest_la_SOURCES+= libtest/socket.cc
+libtest_libtest_la_SOURCES+= libtest/strerror.cc
+libtest_libtest_la_SOURCES+= libtest/timer.cc
+libtest_libtest_la_SOURCES+= libtest/tmpfile.cc
+libtest_libtest_la_SOURCES+= libtest/vchar.cc
+
+libtest_libtest_la_CXXFLAGS+= -DBUILDING_LIBTEST
+libtest_libtest_la_CXXFLAGS+= @PTHREAD_CFLAGS@
+libtest_libtest_la_CXXFLAGS+= -DLIBTEST_TEMP="\"tmp_chroot\""
+libtest_libtest_la_CXXFLAGS+= $(CURL_CFLAGS)
+
+libtest_libtest_la_LIBADD+= @PTHREAD_LIBS@
+libtest_libtest_la_LIBADD+= $(CURL_LIBS)
+libtest_libtest_la_LIBADD+= @RT_LIB@
+
+EXTRA_libtest_libtest_la_DEPENDENCIES+= libtest_tmp_dir
+EXTRA_libtest_libtest_la_DEPENDENCIES+= libtest/abort
+EXTRA_libtest_libtest_la_DEPENDENCIES+= libtest/wait
+
+# We are either building in tree, or with
+libtest_libtest_la_SOURCES+= libtest/memcached.cc
+
+libtest_libtest_la_LDFLAGS+= @LIBDRIZZLE_LDFLAGS@
+libtest_libtest_la_LIBADD+= @LIBDRIZZLE_LIB@
+
+libtest_libtest_la_SOURCES+= libtest/gearmand.cc
+
+if BUILDING_GEARMAN
+libtest_libtest_la_SOURCES+= libtest/blobslap_worker.cc
+endif
+
+TMP_DIR := tmp_chroot/etc tmp_chroot/var/log tmp_chroot/var/tmp tmp_chroot/var/run tmp_chroot/var/drizzle
+
+.PHONY: libtest_tmp_dir
+libtest_tmp_dir: | $(TMP_DIR)
+
+$(TMP_DIR):
+	@$(mkdir_p) $(TMP_DIR)
+
+# Declare unittest so that we can append to it
+t_unittest_CXXFLAGS=
+t_unittest_LDADD=
+t_unittest_SOURCES=
+
+t_unittest_LDADD+= libtest/libtest.la
+t_unittest_SOURCES+= libtest/unittest.cc
+check_PROGRAMS+= t/unittest
+noinst_PROGRAMS+= t/unittest
+test-unittest: t/unittest
+	@t/unittest
+
+valgrind-unittest: t/unittest
+	@$(VALGRIND_COMMAND) t/unittest
+
+gdb-unittest: t/unittest
+	@$(GDB_COMMAND) t/unittest
+
+helgrind-unittest: t/unittest
+	@$(HELGRIND_COMMAND) t/unittest
+
+drd-unittest: t/unittest
+	@$(DRD_COMMAND) t/unittest
+
+sgcheck-unittest: t/unittest
+	echo $(SGCHECK_COMMAND)
+	@$(SGCHECK_COMMAND) t/unittest
+
+t_skip_LDADD= libtest/libtest.la
+t_skip_SOURCES= libtest/skiptest.cc
+check_PROGRAMS+= t/skip
+noinst_PROGRAMS+= t/skip
+
+test-skip: t/skip
+	@t/skip
+
+valgrind-skip: t/skip
+	@$(VALGRIND_COMMAND) t/skip
+
+helgrind-skip: libtest/skip
+	@$(HELGRIND_COMMAND) t/skip
+
+drd-skip: t/skip
+	@$(DRD_COMMAND) t/skip
+
+libtest_wait_SOURCES=
+libtest_wait_SOURCES+= libtest/wait.cc
+libtest_wait_SOURCES+= libtest/dream.cc
+noinst_PROGRAMS+= libtest/wait
+
+libtest_core_count_SOURCES=
+libtest_core_count_SOURCES+= libtest/cpu.cc
+libtest_core_count_SOURCES+= libtest/core_count.cc
+noinst_PROGRAMS+= libtest/core-count
+
+libtest_abort_SOURCES= libtest/abort.cc
+noinst_PROGRAMS+= libtest/abort
+
+libtest_backtrace_SOURCES=
+libtest_backtrace_LDADD=
+libtest_backtrace_SOURCES+= libtest/backtrace_test.cc
+libtest_backtrace_SOURCES+= libgearman/backtrace.cc
+libtest_backtrace_LDADD+= @lt_cv_dlopen_libs@
+noinst_PROGRAMS+= libtest/backtrace
+test-backtrace: libtest/backtrace
+	@libtest/backtrace
+
+gdb-backtrace: libtest/backtrace
+	@$(GDB_COMMAND) libtest/backtrace
+

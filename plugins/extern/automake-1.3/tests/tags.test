@@ -1,0 +1,16 @@
+#! /bin/sh
+
+# Test for bug reported by Harlan Stenn: the tags target doesn't work
+# when there are only headers in a directory.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+noinst_HEADERS = iguana.h
+END
+
+: > iguana.h
+
+$AUTOMAKE || exit 1
+
+grep '^ID:' Makefile.in

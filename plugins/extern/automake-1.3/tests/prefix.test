@@ -1,0 +1,16 @@
+#! /bin/sh
+
+# Test to make sure range of prefixes can be extended
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+END
+
+cat > Makefile.am << 'EOF'
+bnidir = $(prefix)/bni
+bni_PROGRAMS = zardoz
+EOF
+
+$AUTOMAKE

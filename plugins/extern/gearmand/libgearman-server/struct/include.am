@@ -1,0 +1,18 @@
+# vim:ft=automake 
+# Gearman server and library 
+# Copyright (C) 2011 Data Differential
+
+noinst_HEADERS+= \
+                 libgearman-server/struct/client.h \
+                 libgearman-server/struct/connection_list.h \
+                 libgearman-server/struct/function.h \
+                 libgearman-server/struct/gearmand.h \
+                 libgearman-server/struct/gearmand_con.h \
+                 libgearman-server/struct/gearmand_thread.h \
+                 libgearman-server/struct/io.h \
+                 libgearman-server/struct/job.h \
+                 libgearman-server/struct/packet.h \
+                 libgearman-server/struct/port.h \
+                 libgearman-server/struct/server.h \
+                 libgearman-server/struct/thread.h \
+                 libgearman-server/struct/worker.h

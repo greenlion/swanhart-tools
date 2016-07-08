@@ -1,0 +1,43 @@
+#! /bin/sh
+
+# Test sources listed in conditional.
+# Report from Rob Savoye <rob@cygnus.com>.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AM_INIT_AUTOMAKE(nonesuch, nonesuch)
+AC_PROG_CC
+AM_CONDITIONAL(ONE, true)
+AM_CONDITIONAL(TWO, false)
+AM_CONDITIONAL(THREE, maybe)
+AC_OUTPUT(Makefile)
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = targ
+
+if ONE
+SONE = one.c
+else
+SONE =
+endif
+
+if TWO
+STWO = two.c
+else
+STWO =
+endif
+
+if THREE
+STHREE = three.c
+else
+STHREE =
+endif
+
+targ_SOURCES = $(SONE) $(STWO) $(STHREE)
+END
+
+$AUTOMAKE || exit 1
+
+test "`grep '^targ_OBJECTS' Makefile.in | wc -l`" -eq 1

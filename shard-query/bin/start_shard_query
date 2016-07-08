@@ -1,0 +1,3 @@
+#!/bin/bash
+./start_gearmand $*
+./start_workers $*

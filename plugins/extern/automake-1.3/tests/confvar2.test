@@ -1,0 +1,15 @@
+#! /bin/sh
+
+# Test for bug reported by Jim Meyering.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_SUBST(OTHER_SCRIPTS)
+END
+
+cat > Makefile.am << 'END'
+bin_SCRIPTS = foo
+END
+
+$AUTOMAKE

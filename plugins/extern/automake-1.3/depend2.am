@@ -1,0 +1,37 @@
+## automake - create Makefile.in from Makefile.am
+## Copyright (C) 1994, 1995, 1996, 1997, 1998 Free Software Foundation, Inc.
+
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2, or (at your option)
+## any later version.
+
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+## 02111-1307, USA.
+%.o: %@EXT@
+	@echo '$(@PFX@COMPILE) -c $<'; \
+## There are various ways to get dependency output from gcc.  Here's
+## why we pick this rather obscure method:
+## - Don't want to use -MD because we'd like the dependencies to end
+##   up in a subdir.  Having to rename by hand is ugly.
+##   (We might end up doing this anyway to support other compilers.)
+## - The DEPENDENCIES_OUTPUT environment variable makes gcc act like
+##   -MM, not -M (despite what the docs say).
+## - Using -M directly means running the compiler twice (even worse
+##   than renaming).
+	$(@PFX@COMPILE) -Wp,-MD,.deps/$(*F).P -c $<
+
+%.lo: %@EXT@
+	@echo '$(LT@PFX@COMPILE) -c $<'; \
+## See above to understand implementation weirdness.
+	$(LT@PFX@COMPILE) -Wp,-MD,.deps/$(*F).p -c $<
+	@-sed -e 's/^\([^:]*\)\.o:/\1.lo \1.o:/' \
+	  < .deps/$(*F).p > .deps/$(*F).P
+	@-rm -f .deps/$(*F).p

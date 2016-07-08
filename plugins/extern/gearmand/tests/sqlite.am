@@ -1,0 +1,41 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2011 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+#
+
+CLEANFILES+= tests/gearman.sql tests/gearman.sql-journal tests/gearmand.log*
+
+if HAVE_LIBSQLITE3
+t_sqlite_CFLAGS=
+t_sqlite_CXXFLAGS=
+t_sqlite_LDADD=
+t_sqlite_SOURCES=
+
+t_sqlite_CFLAGS+= @SQLITE3_CFLAGS@
+t_sqlite_CXXFLAGS+= @SQLITE3_CFLAGS@
+t_sqlite_LDADD+= @SQLITE3_LDFLAGS@
+t_sqlite_SOURCES+= tests/basic.cc
+t_sqlite_SOURCES+= tests/sqlite_test.cc
+t_sqlite_LDADD+= $(CLIENT_LDADD)
+check_PROGRAMS+= t/sqlite
+noinst_PROGRAMS+= t/sqlite
+
+test-sqlite: t/sqlite gearmand/gearmand
+	@t/sqlite
+
+gdb-sqlite: t/sqlite gearmand/gearmand
+	@$(GDB_COMMAND) t/sqlite
+
+helgrind-sqlite: t/sqlite gearmand/gearmand
+	@$(HELGRIND_COMMAND) t/sqlite
+
+valgrind-sqlite: t/sqlite gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/sqlite
+endif

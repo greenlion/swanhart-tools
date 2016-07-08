@@ -1,0 +1,52 @@
+## automake - create Makefile.in from Makefile.am
+## Copyright (C) 1994, 1995, 1996, 1998 Free Software Foundation, Inc.
+
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2, or (at your option)
+## any later version.
+
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+## 02111-1307, USA.
+install-@DIR@SCRIPTS: $(@DIR@_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(@DIR@dir)
+## Funny invocation because Makefile variable can be empty, leading to
+## a syntax error in sh.
+	@list='$(@DIR@_SCRIPTS)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    echo " $(INSTALL_SCRIPT) $$p $(DESTDIR)$(@DIR@dir)/`echo $$p|sed '$(transform)'`"; \
+	    $(INSTALL_SCRIPT) $$p $(DESTDIR)$(@DIR@dir)/`echo $$p|sed '$(transform)'`; \
+	  else if test -f $(srcdir)/$$p; then \
+	    echo " $(INSTALL_SCRIPT) $(srcdir)/$$p $(DESTDIR)$(@DIR@dir)/`echo $$p|sed '$(transform)'`"; \
+	    $(INSTALL_SCRIPT) $(srcdir)/$$p $(DESTDIR)$(@DIR@dir)/`echo $$p|sed '$(transform)'`; \
+	  else :; fi; fi; \
+	done
+
+uninstall-@DIR@SCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	list='$(@DIR@_SCRIPTS)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(@DIR@dir)/`echo $$p|sed '$(transform)'`; \
+	done
+
+## Uncomment line in handle_scripts when this is uncommented.
+## check-@DIR@SCRIPTS:
+## 	pid=$$$$; list="$(@DIR@_SCRIPTS)"; for p in $$list; do \
+## 	  for opt in --help --version; do \
+## 	    if test -f $$p; then :; \
+## 	    else if test -f $(srcdir)/$$p; then \
+## 	      p=$(srcdir)/$$p; \
+## 	    else exit 1; fi; fi; \
+## 	    if $$p $$opt > .chkout$$pid 2> .chkerr$$pid \
+## 	         && test -n "`cat .chkout$$pid`" \
+## 	         && test -z "`cat .chkerr$$pid`"; then :; \
+## 	    else echo "$$p failed $$opt test" 1>&2; exit 1; fi; \
+## 	  done; \
+## 	done; rm -f .chk???$$pid

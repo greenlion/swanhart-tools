@@ -1,0 +1,60 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2010-2012 DataDifferential LLC
+# Copyright (C) 2009 Brian Aker, Eric Day, Monty Taylor
+# Copyright (C) 2008 Brian Aker, Eric Day
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+noinst_HEADERS+= gearmand/error.hpp
+noinst_HEADERS+= gearmand/log.hpp
+
+sbin_PROGRAMS+= gearmand/gearmand
+
+BUILT_SOURCES+= configmake.h
+
+gearmand_gearmand_LDADD=
+gearmand_gearmand_CXXFLAGS=
+EXTRA_gearmand_gearmand_DEPENDENCIES=
+gearmand_gearmand_LDFLAGS=
+gearmand_gearmand_SOURCES=
+
+EXTRA_gearmand_gearmand_DEPENDENCIES+= configmake.h
+gearmand_gearmand_LDADD+= libgearman-server/libgearman-server.la
+gearmand_gearmand_SOURCES+= configmake.h
+gearmand_gearmand_SOURCES+= gearmand/gearmand.cc
+gearmand_gearmand_SOURCES+= util/daemon.cc
+gearmand_gearmand_SOURCES+= util/pidfile.cc
+gearmand_gearmand_SOURCES+= libtest/cpu.cc
+
+gearmand_hostile_gearmand_CXXFLAGS=
+EXTRA_gearmand_hostile_gearmand_DEPENDENCIES=
+gearmand_hostile_gearmand_LDADD=
+gearmand_hostile_gearmand_LDFLAGS=
+gearmand_hostile_gearmand_SOURCES=
+
+gearmand_hostile_gearmand_CXXFLAGS+= $(gearmand_gearmand_CXXFLAGS)
+EXTRA_gearmand_hostile_gearmand_DEPENDENCIES+= $(EXTRA_gearmand_gearmand_DEPENDENCIES)
+gearmand_hostile_gearmand_LDADD+= @lt_cv_dlopen_libs@
+gearmand_hostile_gearmand_LDADD+= libgearman-server/libgearman-server.la
+if TARGET_HOSTILE
+gearmand_hostile_gearmand_LDADD+= libhostile/libhostile.la
+endif
+gearmand_hostile_gearmand_LDFLAGS+= $(gearmand_gearmand_LDFLAGS)
+gearmand_hostile_gearmand_SOURCES+= $(gearmand_gearmand_SOURCES)
+
+noinst_PROGRAMS+=gearmand/hostile_gearmand
+
+gearmand-valgrind: gearmand/gearmand
+	$(LIBTOOL) --mode=execute valgrind --leak-check=yes gearmand/gearmand
+
+gearmand-debug: gearmand/gearmand
+	$(LIBTOOL) --mode=execute gdb gearmand/gearmand
+
+internals: tests/libgearman-1.0/internals_test gearmand/gearmand
+	@$(GDB_COMMAND) tests/libgearman-1.0/internals_test

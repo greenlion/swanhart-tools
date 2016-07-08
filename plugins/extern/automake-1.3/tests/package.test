@@ -1,0 +1,18 @@
+#! /bin/sh
+
+# Test to ensure PACKAGE required.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AC_ARG_PROGRAM
+AM_PROG_INSTALL
+AC_OUTPUT(Makefile)
+END
+
+cat > Makefile.am << 'END'
+pkgdata_DATA =
+END
+
+$AUTOMAKE && exit 1
+exit 0

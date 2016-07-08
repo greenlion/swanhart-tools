@@ -1,0 +1,16 @@
+#! /bin/sh
+
+# Make sure aclocal only warns about definitions overridden by acinclude.m4.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AM_FUNC_STRTOD
+END
+
+cat > acinclude.m4 << 'END'
+AC_DEFUN([AM_FUNC_STRTOD])
+END
+
+$ACLOCAL || exit 1
+exit 0

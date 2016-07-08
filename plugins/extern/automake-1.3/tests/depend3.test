@@ -1,0 +1,36 @@
+#! /bin/sh
+
+# Test _DEPENDENCIES variable.  From Lee Iverson.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AM_PROG_INSTALL
+AC_PROG_CC
+AC_SUBST(DEPS)
+AC_OUTPUT(Makefile)
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = TerraVision
+
+TerraVision_SOURCES = \
+	AboutDialog.c Clock.c Dialogs.c DrawModel.c \
+	TsmWidget.c Gats.c GATSDialogs.c Model.c ModelAnim.c \
+	ScannedMap.c \
+        TerraVision.c TerraVisionAvs.c TerraVisionCAVE.c \
+	Texture.c ThreeDControl.c ThreeDPanel.c \
+	ThreeDWidget.c ThreeDWidget1.c TileManager.c \
+	TileRequester.c TwoDWidget.c \
+        Visible.c RequestGenerator.c X11FrameGrab.c \
+	matrix.c pixmaps.c xpmhash.c xpmread.c xcolor.c xv24to8.c
+
+DEPS = @DEPS@
+
+TerraVision_DEPENDENCIES = $(DEPS)
+END
+
+$AUTOMAKE

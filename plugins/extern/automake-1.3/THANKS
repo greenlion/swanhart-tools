@@ -1,0 +1,69 @@
+Automake was originally written by David J. MacKenzie <djm@uunet.uu.net>.
+It would not be what it is today without the invaluable help of these
+people:
+
+Akim Demaille		demaille@inf.enst.fr
+Alexander V. Lukyanov	lav@yars.free.net
+Alexandre Oliva		oliva@dcc.unicamp.br
+Andreas Schwab		schwab@lamothe.informatik.uni-dortmund.de
+Anthony Green		green@cygnus.com
+Assar Westerlund	assar@sics.se
+Bernard Urban		Bernard.Urban@meteo.fr
+Bill Fenner		fenner@parc.xerox.com
+Chris Provenzano	proven@io.proven.org
+David A. Swierczek	swiercze@mr.med.ge.com
+David Zaroski		cz253@cleveland.Freenet.Edu
+Dieter Baron		dillo@stieltjes.smc.univie.ac.at
+Doug Evans		devans@cygnus.com
+Erick Branderhorst	branderh@iaehv.nl
+François Pinard		pinard@iro.umontreal.ca
+Fred Fish		fnf@ninemoons.com
+Garrett D'Amore		garrett@qualcomm.com
+Garth Corral		garthc@inktomi.com
+Gary V Vaughan		gvaughan@oranda.demon.co.uk
+Glenn Amerine		glenn@pie.mhsc.org
+Gord Matzigkeit		gord@gnu.ai.mit.edu
+Greg A. Woods		woods@most.weird.com
+H.J. Lu			hjl@lucon.org
+Harlan Stenn		Harlan.Stenn@pfcs.com
+Henrik Frystyk Nielsen	frystyk@w3.org
+Ian Lance Taylor	ian@cygnus.com
+Janos Farkas		chexum@shadow.banki.hu
+Jason Molenda		crash@cygnus.co.jp
+Jeff Bailey		Jbailey@phn.ca
+Jerome Santini		santini@chambord.univ-orleans.fr
+Jim Meyering		meyering@na-net.ornl.gov
+Joel N. Weber II	nemo@koa.iolani.honolulu.hi.us
+Joerg-Martin Schwarz	jms@jms.prima.ruhr.de
+Johan Danielsson	joda@pdc.kth.se
+John W. Coomes		jcoomes@eng.Sun.COM
+Josh MacDonald		jmacd@cs.berkeley.edu
+Joshua Cowan		jcowan@jcowan.reslife.okstate.edu
+Juergen A. Erhard	jae@laden.ilk.de
+Karl Berry		kb@cs.umb.edu
+Kevin Dalley		kevin@aimnet.com
+L. Peter Deutsch	ghost@aladdin.com
+Maciej W. Rozycki	macro@ds2.pg.gda.pl
+Marius Vollmer		mvo@zagadka.ping.de
+Mark Eichin		eichin@cygnus.com
+Mark Galassi		rosalia@nis.lanl.gov
+Markku Rossi		mtr@ngs.fi
+Markus F.X.J. Oberhumer	k3040e4@wildsau.idv-edu.uni-linz.ac.at
+Michael Brantley	Michael-Brantley@deshaw.com
+Nelson H. F. Beebe	beebe@math.utah.edu
+Noah Friedman		friedman@gnu.ai.mit.edu
+Nyul Laszlo		nyul@sol.cc.u-szeged.hu
+Paul D. Smith		psmith@BayNetworks.COM
+Paul Eggert 		eggert@twinsun.com
+Per Bothner		bothner@cygnus.com
+Peter Mattis		petm@scam.XCF.Berkeley.EDU
+Phil Nelson		phil@cs.wwu.edu
+Ralph Schleicher	rs@purple.UL.BaWue.DE
+Ramón García Fernández	ramon@jl1.quim.ucm.es
+Rob Savoye		rob@cygnus.com
+Seth Alves		alves@hungry.com
+Steve M. Robbins	steve@nyongwa.montreal.qc.ca
+Tatu Ylonen		ylo@ssh.fi
+The Crimson Binome	steve@nyongwa.montreal.qc.ca
+Thomas Morgan		tmorgan@pobox.com
+Ulrich Drepper		drepper@gnu.ai.mit.edu

@@ -1,0 +1,175 @@
+New in 1.3:
+* Bug fixes
+* Better Cygwin32 support
+* Support for suffix rules with _SOURCES variables
+* New options `readme-alpha' and `check-news'; Gnits mode sets these
+* @LEXLIB@ no longer required when lex source seen
+  Lex support in `missing', and new lex macro.  Update your missing script.
+* Built-in support for assembly
+* aclocal gives error if `AM_' macro not found
+* Passed YFLAGS, not YACCFLAGS, to yacc 
+* AM_PROG_CC_STDC does not have to come before AC_PROG_CPP
+* Dependencies computed as a side effect of compilation
+* Preliminary support for Java
+* DESTDIR support at "make install" time
+* Improved ansi2knr support; you must use the latest ansi2knr.c (included)
+
+New in 1.2:
+* Bug fixes
+* Better DejaGNU support
+* Added no-installinfo option
+* Added Emacs Lisp support
+* Added --no-force option
+* Included `aclocal' program
+* Automake will now generate rules to regenerate aclocal.m4, if appropriate
+* Now uses `AM_' macro names everywhere
+* ansi2knr option can have directory prefix (eg `../lib/ansi2knr')
+  ansi2knr now works correctly on K&R sources
+* Better C++, yacc, lex support
+* Will compute _DEPENDENCIES variables automatically if not supplied
+* Will interpolate $(...) and ${...} when examining contents of a variable
+* .deps files now in build directory, not source directory; dependency
+  handling generally rewritten
+* DATA, MANS and BUILT_SOURCES no longer included in distribution
+* can now put config.h into a subdir
+* Added dist-all target
+* Support for install-info program (see texinfo 3.9)
+* Support for "yacc -d"
+* configure substitutions are automatically discovered and included
+  in generated Makefile.in
+* Special --cygnus mode
+* OMIT_DEPENDENCIES can now hold list of dependencies to be omitted
+  when making distribution.  Some dependencies are auto-ignored.
+* Changed how libraries are specified in _LIBRARIES variable
+* Full libtool support, from Gord Matzigkeit
+* No longer have to explicitly touch stamp-h when using AC_CONFIG_HEADER;
+  AM_CONFIG_HEADER handles it automatically
+* Texinfo output files no longer need .info extension
+* Added `missing' support
+* Cygwin32 support
+* Conditionals in Makefile.am, from Ian Taylor
+
+New in 1.0:
+* Bug fixes
+* distcheck target runs install and installcheck targets
+* Added preliminary support for DejaGNU.
+
+New in 0.33:
+* More bug fixes
+* More checking
+* More libtool fixes from Gord Matzigkeit; libtool support is still
+  preliminary however
+* Added support for jm_MAINTAINER_MODE
+* dist-zip support
+* New "distcheck" target
+
+New in 0.32:
+* Many bug fixes
+* mkinstalldirs and mdate-sh now appear in directory specified by
+  AC_CONFIG_AUX_DIR.
+* Removed DIST_SUBDIRS, DIST_OTHER
+* AC_ARG_PROGRAM only required when an actual program exists
+* dist-hook target now run before distribution packaged up; idea from
+  Dieter Baron.  Other hooks exist, too.
+* Preliminary (unfinished) support for libtool
+* Added short option names.
+* Better "dist" support when gluing together multiple packages
+
+New in 0.31:
+* Bug fixes
+* Documentation updates (many from François Pinard)
+* strictness `normal' now renamed to `foreign'
+* Renamed --install-missing to --add-missing
+* Now handles AC_CONFIG_AUX_DIR
+* Now handles TESTS macro
+* DIST_OTHER renamed to EXTRA_DIST
+* DIST_SUBDIRS is deprecated
+* @ALLOCA@ and @LIBOBJS@ now work in _LDADD variables
+* Better error messages in many cases
+* Program names are canonicalized
+* Added "check" prefix; from Gord Matzigkeit
+
+New in 0.30:
+* Bug fixes
+* configure.in scanner knows about AC_PATH_XTRA, AC_OUTPUT ":" syntax
+* Beginnings of a test suite
+* Automatically adds -I options for $(srcdir), ".", and path to config.h
+* Doesn't print anything when running
+* Beginnings of MAINT_CHARSET support
+* Can specify version in AUTOMAKE_OPTIONS
+* Most errors recognizable by Emacs' M-x next-error
+* Added --verbose option
+* All "primary" variables now obsolete; use EXTRA_PRIMARY to supply
+  configure-generated names
+* Required macros now distributed in aclocal.m4
+* New documentation
+* --strictness=gnu is default
+
+New in 0.29:
+* Many bug fixes
+* More sophisticated configure.in scanning; now understands ALLOCA and
+  LIBOBJS directly, handles AC_CONFIG_HEADER more precisely, etc.
+* TEXINFOS and MANS now obsolete; use info_TEXINFOS and man_MANS instead.
+* CONFIG_HEADER variable now obsolete
+* Can handle multiple Texinfo sources
+* Allow hierarchies deeper than 2.  From Gord Matzigkeit.
+* HEADERS variable no longer needed; now can put .h files directly into
+  foo_SOURCES variable.
+* Automake automatically rebuilds files listed in AC_OUTPUT.  The
+  corresponding ".in" files are included in the distribution.
+
+New in 0.28:
+* Added --gnu and --gnits options
+* More standards checking
+* Bug fixes
+* Cleaned up 'dist' targets
+* Added AUTOMAKE_OPTIONS variable and several options
+* Now scans configure.in to get some information (preliminary)
+
+New in 0.27:
+* Works with Perl 4 again
+
+New in 0.26:
+* Added --install-missing option.
+* Pretty-prints generated macros and rules
+* Comments in Makefile.am are placed more intelligently in Makefile.in
+* Generates .PHONY target
+* Rule or macro in Makefile.am now overrides contents of Automake file
+* Substantial cleanups from François Pinard
+
+New in 0.25:
+* Bug fixes.
+* Works with Perl 4 again.
+
+New in 0.24:
+* New uniform naming scheme.
+* --strictness option
+* Works with Perl 5
+* '.c' files corresponding to '.y' or '.l' files are automatically
+  distributed.
+* Many bug fixes and cleanups
+
+New in 0.23:
+* Allow objects to be conditionally included in libraries via lib_LIBADD.
+
+New in 0.22:
+* Bug fixes in 'clean' code.
+* Now generates 'installdirs' target.
+* man page installation reworked.
+* 'make dist' no longer re-creates all Makefile.in's.
+
+New in 0.21:
+* Reimplemented in Perl
+* Added --amdir option (for debugging)
+* Texinfo support cleaned up.
+* Automatic de-ANSI-fication cleaned up.
+* Cleaned up 'clean' targets.
+
+New in 0.20:
+* Automatic dependency tracking
+* More documentation
+* New variables DATA and PACKAGEDATA
+* SCRIPTS installed using $(INSTALL_SCRIPT)
+* No longer uses double-colon rules
+* Bug fixes
+* Changes in advance of internationalization

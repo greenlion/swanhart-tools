@@ -1,0 +1,17 @@
+#! /bin/sh
+
+# Test to ensure that --output-dir works.  Bug report from Joshua
+# Cowan.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am <<'END'
+pkgdata_DATA =
+END
+
+mkdir zardir
+
+$AUTOMAKE --output-dir=zardir || exit 1
+
+test -f Makefile.in && exit 1
+test -f zardir/Makefile.in

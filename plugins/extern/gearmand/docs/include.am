@@ -1,0 +1,82 @@
+# vim:ft=automake
+# included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+# Makefile for Sphinx documentation
+#
+
+SPHINXOPTS    = ${SPHINX_WARNINGS} -q
+PAPER         =
+SPHINX_BUILDDIR      = ${abs_top_srcdir}/docs
+
+# Internal variables.
+PAPEROPT_a4     = -D latex_paper_size=a4
+PAPEROPT_letter = -D latex_paper_size=letter
+ALLSPHINXOPTS   = -c $(abs_top_builddir)/docs $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(SPHINX_BUILDDIR)
+
+.PHONY: clean-docs-check
+clean-docs-check:
+	-rm -rf $(abs_top_builddir)/docs/_build $(abs_top_builddir)/docs/doctrees $(abs_top_builddir)/man/.doctrees
+
+.PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest
+
+man: $(top_builddir)/docs/conf.py
+	@PYTHONPATH=$(SPHINX_BUILDDIR)  $(SPHINXBUILD) -b man $(ALLSPHINXOPTS) ${abs_top_builddir}/man
+
+install-html-local: html-local
+	@$(MKDIR_P)  $(htmldir)/html
+	@cp -r ${top_builddir}/html $(htmldir)/
+
+html-local: $(top_builddir)/docs/conf.py
+	@PYTHONPATH=${top_srcdir}/docs $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) ${top_builddir}/html
+
+singlehtml: html-local
+	@PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b singlehtml $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/singlehtml
+
+pickle: $(top_builddir)/docs/conf.py
+	PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/pickle
+	@echo
+	@echo "Build finished; now you can process the pickle files."
+
+json: $(top_builddir)/docs/conf.py
+	PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b json $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/json
+	@echo
+	@echo "Build finished; now you can process the JSON files."
+
+htmlhelp: $(top_builddir)/docs/conf.py
+	PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/htmlhelp
+	@echo
+	@echo "Build finished; now you can run HTML Help Workshop with the" \
+	      ".hhp project file in $(SPHINX_BUILDDIR)/htmlhelp."
+
+epub: $(top_builddir)/docs/conf.py
+	PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b epub $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/epub
+	@echo
+	@echo "Build finished. The epub file is in $(SPHINX_BUILDDIR)/epub."
+
+latex: $(top_builddir)/docs/conf.py
+	PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/latex
+	@echo
+	@echo "Build finished; the LaTeX files are in $(SPHINX_BUILDDIR)/latex."
+	@echo "Run \`make' in that directory to run these through (pdf)latex" \
+	      "(use \`make latexpdf' here to do that automatically)."
+
+latexpdf: latex
+	PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/latex
+	@echo "Running LaTeX files through pdflatex..."
+	make -C $(SPHINX_BUILDDIR)/latex all-pdf
+	@echo "pdflatex finished; the PDF files are in $(SPHINX_BUILDDIR)/latex."
+
+text: $(top_builddir)/docs/conf.py
+	@PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b text $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/text
+
+changes: $(top_builddir)/docs/conf.py
+	@PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/changes
+
+linkcheck: $(top_builddir)/docs/conf.py
+	PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/linkcheck
+
+doctest: $(top_builddir)/docs/conf.py
+	PYTHONPATH=${top_srcdir}/docs  $(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(SPHINX_BUILDDIR)/doctest
+	@echo "Testing of doctests in the sources finished, look at the " \
+	      "results in $(SPHINX_BUILDDIR)/doctest/output.txt."

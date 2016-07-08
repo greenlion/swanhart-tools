@@ -1,0 +1,24 @@
+#! /bin/sh
+
+# Test to make sure [...] is ok in version number.  Report from Jim
+# Meyering.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AM_INIT_AUTOMAKE([sh-utils], [1.12o])
+AC_OUTPUT(Makefile)
+END
+
+: > Makefile.am
+
+# Files required by Gnits.
+: > INSTALL
+: > NEWS
+: > README
+: > COPYING
+: > AUTHORS
+: > ChangeLog
+: > THANKS
+
+$AUTOMAKE --gnits

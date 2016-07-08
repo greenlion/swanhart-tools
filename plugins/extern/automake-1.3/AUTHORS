@@ -1,0 +1,7 @@
+Authors of GNU Automake.
+
+David Mackenzie.  First version of most ".am" files.
+Wrote sh version of automake.in.
+
+Tom Tromey.  Touched all ".am" files.
+Rewrote automake.in

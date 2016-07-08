@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Make sure C++ files are rewritten to ".o" and not just "o".
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CXX
+END
+
+cat > Makefile.am << 'END'
+sbin_PROGRAMS = anonymous
+anonymous_SOURCES = doe.C
+END
+
+: > doe.C
+
+$AUTOMAKE || exit 1
+
+fgrep doe.o Makefile.in

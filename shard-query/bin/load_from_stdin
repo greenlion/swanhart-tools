@@ -1,7 +1,6 @@
 #!/usr/bin/php
 <?php
-set_include_path(get_include_path() . PATH_SEPARATOR . '../include');
-set_include_path(get_include_path() . PATH_SEPARATOR . '/usr/share/shard-query/include');
+require_once 'bin_common.php';
 require_once 'Console/Getopt.php';
 require_once 'shard-query.php';
 require_once 'common.php';

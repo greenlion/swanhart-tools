@@ -1,0 +1,12 @@
+#! /bin/sh
+
+# Test to make sure version in AUTOMAKE_OPTIONS works.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+AUTOMAKE_OPTIONS = 9.9x
+END
+
+$AUTOMAKE && exit 1
+exit 0

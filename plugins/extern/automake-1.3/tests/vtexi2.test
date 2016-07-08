@@ -1,0 +1,25 @@
+#! /bin/sh
+
+# Test for bug reported by Glenn Amerine:
+#   When automake sees version.texi is being included by a texi file,
+#   version.texi gets listed as a dependency for the .info file but
+#   not the .dvi file.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = zardoz.texi
+END
+
+cat > zardoz.texi << 'END'
+@setfilename  zardoz  
+@include version.texi
+END
+
+# Required when using Texinfo.
+: > mdate-sh
+: > texinfo.tex
+
+$AUTOMAKE || exit 1
+
+grep '^zardoz\.dvi:' Makefile.in

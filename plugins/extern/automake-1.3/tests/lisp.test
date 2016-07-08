@@ -1,0 +1,21 @@
+#! /bin/sh
+
+# Test to make sure lisp handling works.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AM_PATH_LISPDIR
+END
+
+cat > Makefile.am << 'END'
+lisp_LISP = foo.el
+END
+
+: > foo.el
+: > elisp-comp
+
+$AUTOMAKE || exit 1
+
+grep '^ELCFILES.*ELCFILES' Makefile.in && exit 1
+exit 0

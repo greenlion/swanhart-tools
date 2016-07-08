@@ -1,0 +1,21 @@
+#! /bin/sh
+
+# Test for bug reported by Thomas Morgan.  If both AM_PROG_INSTALL and
+# AC_PROG_INSTALL appear in configure.in, bad error results.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AM_PROG_INSTALL
+AC_OUTPUT(Makefile)
+END
+
+cat > Makefile.am <<'END'
+bin_SCRIPTS = zot
+END
+
+$AUTOMAKE || exit 1

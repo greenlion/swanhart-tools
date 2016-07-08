@@ -1,0 +1,14 @@
+#! /bin/sh
+
+# Test for bug where missing mkinstalldirs give bogus error about
+# missing install-sh.
+
+. $srcdir/defs || exit 1
+
+rm mkinstalldirs
+
+: > Makefile.am
+
+$AUTOMAKE > out 2>&1 && exit 1
+
+grep mkinstalldirs out

@@ -1,0 +1,15 @@
+#! /bin/sh
+
+# Test for bug where install-sh not included in distribution.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+pkgdata_DATA =
+magic:
+	@echo $(DISTFILES)
+END
+
+$AUTOMAKE || exit 1
+
+$MAKE -s -f Makefile.in magic | grep install-sh

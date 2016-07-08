@@ -1,0 +1,26 @@
+#!/sbin/sh
+#
+# Script used to start Gearman from Solaris SMF
+#
+. /lib/svc/share/smf_include.sh
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
+case "$1" in
+   'start')
+      /bin/coreadm -p "`svcprop -p gearman/corepattern $SMF_FMRI`" $$
+      @sbindir@/gearmand -d
+   ;;
+
+   'stop')
+      smf_kill_contract $2 TERM 1
+   ;;
+
+   *)
+      echo "Usage: $0 {start|stop}"
+      exit 1
+;;
+esac
+
+exit $SMF_EXIT_OK

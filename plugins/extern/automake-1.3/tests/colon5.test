@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Another multi-":" test, this time from Doug Evans.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile:Makefile.in:Makefile.dep)
+END
+
+: > Makefile.am
+: > Makefile.dep
+
+$AUTOMAKE || exit 1
+
+grep 'Makefile:Makefile.in' Makefile.in

@@ -1,0 +1,12 @@
+#! /bin/sh
+
+# Make sure that `#' as start of word in AUTOMAKE_OPTIONS means
+# comment.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+AUTOMAKE_OPTIONS = #no such option
+END
+
+$AUTOMAKE

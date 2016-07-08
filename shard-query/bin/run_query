@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*This script requires PEAR Net_Gearman */
 /*It also requires Console_Getopt, but this should be installed by default with pear */
-set_include_path(get_include_path() . PATH_SEPARATOR . '../include');
+require_once 'bin_common.php';
 require_once 'Console/Getopt.php';
 require_once 'shard-query.php';
 require_once 'common.php';

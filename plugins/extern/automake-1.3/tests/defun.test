@@ -1,0 +1,13 @@
+#! /bin/sh
+
+# Make sure aclocal picks up on all macro definitions.
+
+. $srcdir/defs || exit 1
+
+cat > acinclude.m4 << 'END'
+AC_DEFUN([AM_FUNC_TWO],)
+AC_DEFUN([AM_FUNC_ONE],
+AC_REQUIRE([AM_FUNC_TWO]))
+END
+
+$ACLOCAL

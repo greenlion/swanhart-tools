@@ -1,0 +1,16 @@
+#! /bin/sh
+
+# Test to make sure redefining JAVAC works.
+
+. $srcdir/defs || exit 1
+
+echo 'AC_SUBST(JAVAC)' >> configure.in
+
+cat > Makefile.am << 'END'
+javadir = $(datadir)/java
+java_JAVA = a.java b.java c.java
+END
+
+$AUTOMAKE || exit 1
+
+grep 'JAVAC.*@JAVAC@' Makefile.in

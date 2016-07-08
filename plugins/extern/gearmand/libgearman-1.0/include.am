@@ -1,0 +1,46 @@
+# vim:ft=automake
+# Gearman server and library 
+# Copyright (C) 2011 Data Differential, http://datadifferential.com/
+
+include libgearman-1.0/t/include.am
+
+nobase_include_HEADERS+= libgearman-1.0/cancel.h
+nobase_include_HEADERS+= libgearman-1.0/interface/client.h
+nobase_include_HEADERS+= libgearman-1.0/interface/status.h
+nobase_include_HEADERS+= libgearman-1.0/interface/task.h
+nobase_include_HEADERS+= libgearman-1.0/interface/worker.h
+nobase_include_HEADERS+= libgearman-1.0/interface/job.h
+nobase_include_HEADERS+= libgearman-1.0/status.h
+nobase_include_HEADERS+= \
+			 libgearman-1.0/actions.h \
+			 libgearman-1.0/aggregator.h \
+			 libgearman-1.0/allocator.h \
+			 libgearman-1.0/argument.h \
+			 libgearman-1.0/client.h \
+			 libgearman-1.0/client_callbacks.h \
+			 libgearman-1.0/configure.h \
+			 libgearman-1.0/connection.h \
+			 libgearman-1.0/constants.h \
+			 libgearman-1.0/core.h \
+			 libgearman-1.0/execute.h \
+			 libgearman-1.0/function.h \
+			 libgearman-1.0/gearman.h \
+			 libgearman-1.0/job.h \
+			 libgearman-1.0/job_handle.h \
+			 libgearman-1.0/kill.h \
+			 libgearman-1.0/limits.h \
+			 libgearman-1.0/ostream.hpp \
+			 libgearman-1.0/parse.h \
+			 libgearman-1.0/priority.h \
+			 libgearman-1.0/protocol.h \
+			 libgearman-1.0/result.h \
+			 libgearman-1.0/return.h \
+			 libgearman-1.0/signal.h \
+			 libgearman-1.0/strerror.h \
+			 libgearman-1.0/string.h \
+			 libgearman-1.0/task.h \
+			 libgearman-1.0/task_attr.h \
+			 libgearman-1.0/util.h \
+			 libgearman-1.0/version.h \
+			 libgearman-1.0/visibility.h \
+			 libgearman-1.0/worker.h

@@ -1,0 +1,49 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2008 Brian Aker, Eric Day
+# Copyright (C) 2009 Brian Aker, Eric Day, Monty Taylor
+# Copyright (C) 2011 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+EXAMPLES_LDADD=
+EXAMPLES_LDADD+= libgearman/libgearman.la
+
+noinst_PROGRAMS+= \
+		  examples/echo_client \
+		  examples/echo_worker \
+		  examples/reverse_client \
+		  examples/reverse_client_bg \
+		  examples/reverse_client_epoch \
+		  examples/reverse_client_cb \
+		  examples/reverse_worker \
+		  examples/wc_worker
+
+examples_echo_client_SOURCES= examples/echo_client.cc
+examples_echo_client_LDADD= $(EXAMPLES_LDADD)
+
+examples_echo_worker_SOURCES= examples/echo_worker.cc
+examples_echo_worker_LDADD= $(EXAMPLES_LDADD)
+
+examples_reverse_client_SOURCES= examples/reverse_client.cc
+examples_reverse_client_LDADD= $(EXAMPLES_LDADD)
+
+examples_reverse_client_bg_SOURCES= examples/reverse_client_bg.cc
+examples_reverse_client_bg_LDADD= $(EXAMPLES_LDADD)
+
+examples_reverse_client_epoch_SOURCES= examples/reverse_client_epoch.cc
+examples_reverse_client_epoch_LDADD= $(EXAMPLES_LDADD)
+
+examples_reverse_client_cb_SOURCES= examples/reverse_client_cb.cc
+examples_reverse_client_cb_LDADD= $(EXAMPLES_LDADD)
+
+examples_reverse_worker_SOURCES= examples/reverse_worker.cc
+examples_reverse_worker_LDADD= $(EXAMPLES_LDADD)
+
+examples_wc_worker_SOURCES= examples/wc_worker.cc
+examples_wc_worker_LDADD= $(EXAMPLES_LDADD)

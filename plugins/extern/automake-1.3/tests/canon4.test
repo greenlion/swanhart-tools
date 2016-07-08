@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Test to make sure name canonicalization happens for libraries.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+AC_PROG_RANLIB
+END
+
+cat > Makefile.am << 'END'
+noinst_LIBRARIES = libx-y.a
+libx_y_a_SOURCES = xy.c
+END
+
+$AUTOMAKE || exit 1
+
+grep '^libx-y.*=' Makefile.in && exit 1
+exit 0

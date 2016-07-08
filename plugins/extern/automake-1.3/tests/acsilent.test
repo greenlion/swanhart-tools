@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test to make sure there are no spurious acinclude warnings.
+
+. $srcdir/defs || exit 1
+
+echo AM_INIT_GUILE_MODULE > configure.in
+
+cat > acinclude.m4 << 'END'
+AC_DEFUN([AM_INIT_GUILE_MODULE],[
+. $srcdir/../GUILE-VERSION
+AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
+AC_CONFIG_AUX_DIR(..)
+module=[$1]
+AC_SUBST(module)])
+END
+
+$ACLOCAL > output 2>&1 || exit 1
+test -z "`cat output`"

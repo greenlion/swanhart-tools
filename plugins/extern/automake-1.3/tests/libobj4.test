@@ -1,0 +1,17 @@
+#! /bin/sh
+
+# Test to make sure LIBOBJS error only occurs if LIBOBJS seen.  Report
+# from Jim Meyering.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = foo
+END
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+AC_REPLACE_FUNCS(foo)
+END
+
+$AUTOMAKE

@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Test to make sure LINK defined for Objective C.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = foo
+foo_SOURCES = foo.m
+
+SUFFIXES = .m
+.m.o:
+	whatever
+END
+
+: > foo.m
+
+$AUTOMAKE || exit 1
+
+grep '^LINK' Makefile.in

@@ -1,0 +1,15 @@
+#! /bin/sh
+
+# Make sure appropriate man install targets generated in all cases.
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+man_MANS = foo.1 foo.2
+man5_MANS = foo.5
+END
+
+$AUTOMAKE || exit 1
+
+grep '^install-man1:' Makefile.in || exit 1
+grep '^install-man2:' Makefile.in || exit 1
+grep '^install-man5:' Makefile.in || exit 1

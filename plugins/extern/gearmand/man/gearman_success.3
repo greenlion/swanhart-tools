@@ -1,0 +1,365 @@
+.\" Man page generated from reStructuredText.
+.
+.TH "GEARMAN_SUCCESS" "3" "February 11, 2014" "1.1.12" "Gearmand"
+.SH NAME
+gearman_success \- Gearmand Documentation, http://gearman.info/
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.SH SYNOPSIS
+.sp
+#include <libgearman/gearman.h>
+.INDENT 0.0
+.TP
+.B gearman_return_t
+.UNINDENT
+.INDENT 0.0
+.TP
+.B const char *gearman_strerror(\fI\%gearman_return_t\fP\fI\ rc\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B bool gearman_success(\fI\%gearman_return_t\fP\fI\ rc\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B bool gearman_failed(\fI\%gearman_return_t\fP\fI\ rc\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B bool gearman_continue(\fI\%gearman_return_t\fP\fI\ rc\fP)
+.UNINDENT
+.sp
+Compile and link with \-lgearman
+.SH DESCRIPTION
+.sp
+\fI\%gearman_return_t\fP is used as a return/error type for all calls using \fBgearman_client_st\fP and \fBgearman_worker_st\fP\&.
+\fI\%GEARMAN_SUCCESS\fP is returned upon success, otherwise an error is returned. \fI\%gearman_failed()\fP can be used to see if the return value is a failing value.
+You can print a text version of the error message with \fI\%gearman_strerror()\fP\&.
+.sp
+\fI\%gearman_success()\fP return true if \fI\%GEARMAN_SUCCESS\fP or if
+\fI\%GEARMAN_NO_PENDING_TASKS\fP tests true.
+.sp
+\fI\%gearman_failed()\fP return true if any value other then \fI\%GEARMAN_SUCCESS\fP was provided.
+.sp
+\fI\%gearman_continue()\fP returns true if any error related to non\-blocking IO
+occurred. This should be used for testing loops.
+.SS Possible values of \fI\%gearman_return_t\fP:
+.INDENT 0.0
+.TP
+.B GEARMAN_SUCCESS
+Success
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_NO_PENDING_TASKS
+\fBgearman_client_run_tasks()\fP was called and it has completed all tasks assigned to the client.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_IO_WAIT
+Blocking IO was found. gearman_continue() can be used to test for this.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_ERRNO
+System error occurred. Use either \fBgearman_client_errno()\fP or \fBgearman_worker_errno()\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_NO_ACTIVE_FDS
+No active connections were available.  gearman_continue() can be used to test for this.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_GETADDRINFO
+Name resolution failed for a host.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_NO_SERVERS
+No servers have been provided for the client/worker.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_LOST_CONNECTION
+Connection was lost to the given server.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_MEMORY_ALLOCATION_FAILURE
+Memory allocation failed.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_SERVER_ERROR
+An error occurred on the server.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_NOT_CONNECTED
+Client/Worker is not currently connected to the server.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_COULD_NOT_CONNECT
+Server name was valid, but a connection could not be made.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_ECHO_DATA_CORRUPTION
+Either \fBgearman_client_echo()\fP or \fBgearman_worker_echo()\fP echo
+was unsuccessful because the data was returned from \fBgearmand\fP
+corrupted.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_UNKNOWN_STATE
+The gearman_return_t was never set.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_FLUSH_DATA
+Internal state, should never be seen by either client or worker.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_SEND_BUFFER_TOO_SMALL
+Send buffer was too small.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_TIMEOUT
+A timeout occurred when making a request to the server.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_ARGUMENT_TOO_LARGE
+Argument was too large for the current buffer.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_INVALID_ARGUMENT
+One of the arguments to the given API call was invalid. EINVAL will be set if \fBgearman_client_error()\fP or \fBgearman_worker_error()\fP were not settable. This can also be returned if \fBGEARMAN_CLIENT_UNBUFFERED_RESULT\fP was set, but the client is not handling the data correctly.
+.UNINDENT
+.SS CLIENT ONLY
+.INDENT 0.0
+.TP
+.B GEARMAN_NEED_WORKLOAD_FN
+A client was asked for work, but no \fBgearman_workload_fn\fP callback was specified. See \fBgearman_client_set_workload_fn()\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_WORK_FAIL
+A task has failed, and the worker has exited with an error or it called \fBgearman_job_send_fail()\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_IN_PROGRESS
+\fBgearman_client_job_status()\fP has been called for a \fBgearman_job_handle_t\fP and the Job is currently being run by a worker.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_JOB_EXISTS
+\fBgearman_client_job_status()\fP has been called for a \fBgearman_job_handle_t\fP and the Job is currently known by a server, but is not being run by a worker.
+.UNINDENT
+.SS WORKER ONLY
+.INDENT 0.0
+.TP
+.B GEARMAN_INVALID_FUNCTION_NAME
+A worker was sent a request for a job that it did not have a valid function for.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_INVALID_WORKER_FUNCTION
+No callback was provided by the worker for a given function.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_NO_REGISTERED_FUNCTION
+A request for removing a given function from a worker was invalid since that function did not exist.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_NO_REGISTERED_FUNCTIONS
+The worker has not registered any functions.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_NO_JOBS
+No jobs were found for the worker. This error code is only returned if the worker has just made a request for jobs.
+.UNINDENT
+.SS WORKER TO CLIENT
+.sp
+Client which have registed a custom \fBgearman_actions_t\fP may use these
+value as return values to the calling client.
+.INDENT 0.0
+.TP
+.B GEARMAN_WORK_DATA
+Worker has sent a chunked piece of data to the client via \fBgearman_job_send_data()\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_WORK_WARNING
+Worker has issued a warning to the client via \fBgearman_job_send_warning()\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_WORK_STATUS
+Status has been updated by the worker via \fBgearman_job_send_status()\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_WORK_EXCEPTION
+Worker has sent an exception the client via \fBgearman_job_send_exception()\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_WORK_FAIL
+A task has failed, and the worker has exited with an error or it called \fBgearman_job_send_fail()\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_WORK_ERROR
+A task has had an error and will be retried.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_PAUSE
+Used only in custom application for client return based on \fI\%GEARMAN_WORK_DATA\fP, \fI\%GEARMAN_WORK_WARNING\fP, \fI\%GEARMAN_WORK_EXCEPTION\fP, \fI\%GEARMAN_WORK_FAIL\fP, or \fI\%GEARMAN_WORK_STATUS\fP\&. \fI\%gearman_continue()\fP can be used to check for this value.
+.UNINDENT
+.SS WORKER TO CLIENT
+.sp
+Any function defined by \fBgearman_worker_define_function()\fP may, and can only, return the following \fI\%gearman_return_t\fP values.
+.INDENT 0.0
+.TP
+.B GEARMAN_SUCCESS
+The function successfully completed the job.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_FATAL
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_FAIL
+The function failed to complete the job. \fI\%GEARMAN_FATAL\fP is the deprecated name for \fI\%GEARMAN_FAIL\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_ERROR
+A task has had an error and will be retried.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_SHUTDOWN
+\fI\%GEARMAN_SHUTDOWN\fP is a special case. If it is returned the client will be sent \fI\%GEARMAN_SUCCESS\fP, but \fBgearman_worker_work()\fP will exit with \fI\%GEARMAN_SHUTDOWN\fP\&.
+.UNINDENT
+.SS TASK ONLY
+.INDENT 0.0
+.TP
+.B GEARMAN_NOT_FLUSHING
+\fBgearman_task_send_workload()\fP failed, it was not in the correct state.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_DATA_TOO_LARGE
+\fBgearman_task_send_workload()\fP failed, the data was too large to be sent.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_UNKNOWN_OPTION
+Default state of task return value.
+.UNINDENT
+.SS PROTOCOL
+.sp
+If any of these errors occurred the connection will be dropped/reset.
+.INDENT 0.0
+.TP
+.B GEARMAN_INVALID_MAGIC
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_INVALID_COMMAND
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_INVALID_PACKET
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_UNEXPECTED_PACKET
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_TOO_MANY_ARGS
+.UNINDENT
+.SS DEPRECATED
+.INDENT 0.0
+.TP
+.B GEARMAN_IGNORE_PACKET
+.UNINDENT
+.INDENT 0.0
+.TP
+.B GEARMAN_MAX_RETURN
+.UNINDENT
+.SH SEE ALSO
+.sp
+\fIgearmand(8)\fP \fIlibgearman(3)\fP \fIgearman_client_error()\fP or \fIgearman_worker_error()\fP
+.SH AUTHOR
+Data Differential http://www.datadifferential.com/
+.SH COPYRIGHT
+2011-2013, Data Differential, http://www.datadifferential.com/
+.\" Generated by docutils manpage writer.
+.

@@ -1,0 +1,21 @@
+#! /bin/sh
+
+# Test to make sure line numbers work in C-but-no-CC errors.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+LIBOBJS="$LIBOBJS fsusage.o mountlist.o"
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = foo
+foo_SOURCES = x.C
+foo_LDADD = @LIBOBJS@
+END
+
+: > fsusage.c
+: > mountlist.c
+
+$AUTOMAKE > out 2>&1 && exit 1
+grep :3: out

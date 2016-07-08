@@ -1,0 +1,23 @@
+#! /bin/sh
+
+# Yet another AC_OUTPUT test.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT([Makefile
+tests/Makefile tests/defs],
+[blah])
+END
+
+: > Makefile.am
+
+mkdir tests
+: > tests/Makefile.am
+: > tests/defs.in
+
+$AUTOMAKE

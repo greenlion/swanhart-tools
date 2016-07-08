@@ -1,0 +1,36 @@
+<?php
+
+sql_ok("select 1 from dual", "only constants in select clause");
+sql_ok("select 1+1 two_ones from dual", "constant expression in select clause");
+sql_ok("select (1+1) + (2+2) more_complex from dual", "very complex expression in select clause (issue #34)");
+
+$fact = "ts\$fact";
+$sql = "drop table if exists $fact;";
+ok($SQ->query($sql), 'drop fact table');
+$sql = "create table $fact ( i1 int, c1 varchar(10), d1 decimal(10,3), f1 double, shard_key int ) ";
+ok($SQ->query($sql), 'create fact table');
+
+$sql = "insert into $fact 
+values 
+(1, 'a', 1.0, 1.0, 1),
+(2, 'b', 2.0, 2.0, 2),
+(3, 'c', 3.0, 3.0, 3),
+(4, 'a', 1.0, 1.0, 1),
+(5, 'b', 2.0, 2.0, 2),
+(6, 'c', 3.0, 3.0, 3);";
+ok($SQ->query($sql), 'insert test rows');
+
+$sql = "select count(*) from $fact;";
+sql_ok($sql, 'row count');
+
+$sql = "select * from $fact order by 1;";
+sql_ok($sql, 'select star order by pos');
+
+$sql = "select * from $fact order by i1;";
+sql_ok($sql, 'select star order by colref');
+
+$sql = "delete from $fact where i1 in (1, 3);";
+ok($SQ->query($sql), 'delete rows');
+
+$sql = "select count(*) from $fact;";
+sql_ok($sql, 'row count');

@@ -1,0 +1,18 @@
+# vim:ft=automake
+# Gearman
+# Copyright (C) 2011-2012 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# All paths should be given relative to the root
+#
+
+noinst_HEADERS+= libgearman-server/plugins/protocol/http/protocol.h
+noinst_HEADERS+= libgearman-server/plugins/protocol/http/method.h
+noinst_HEADERS+= libgearman-server/plugins/protocol/http/response_codes.h
+
+libgearman_server_libgearman_server_la_SOURCES+= libgearman-server/plugins/protocol/http/protocol.cc
+libgearman_server_libgearman_server_la_SOURCES+= libgearman-server/plugins/protocol/http/response_codes.cc
+libgearman_server_libgearman_server_la_SOURCES+= libgearman-server/plugins/protocol/http/method.cc

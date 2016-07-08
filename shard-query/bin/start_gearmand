@@ -1,0 +1,4 @@
+#!/bin/bash
+cnt=$(cat /proc/cpuinfo | grep processor|wc -l)
+gearmand -d -R -t $cnt -w 1 -l ../log/gearmand.log
+echo "gearman started"

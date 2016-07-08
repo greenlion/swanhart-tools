@@ -1,0 +1,38 @@
+#! /bin/sh
+
+# Test for this bug:
+# automake: Makefile.am: required file "../../install-sh" not found; installing
+# This also makes sure that install-sh is created in the correct directory.
+
+. $srcdir/defs || exit 1
+
+: > Makefile.am
+rm install-sh
+
+# Since the default path includes '../..', we must run this test in
+# yet another subdir.
+mkdir frob
+mv Makefile.am configure.in mkinstalldirs frob/
+cd frob
+
+# If srcdir is relative, we need to modify it.
+case "$srcdir" in
+ /*)
+    ;;
+
+ *)
+    srcdir="../$srcdir"
+    ;;
+esac
+
+AUTOMAKE="../../../automake --amdir=$srcdir/.. --foreign"
+
+# Now we proceed with the test
+$AUTOMAKE --add-missing > output 2>&1 \
+   || exit 1
+
+# Only one `/' should appear in the output.
+grep '/.*/' output \
+   && exit 1
+
+test -f install-sh

@@ -1,5 +1,0 @@
-#!/bin/bash
-while [ 1 ] 
-do
-./loader_worker >>../log/worker.log 2>&1 < /dev/null
-done;

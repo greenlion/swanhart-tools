@@ -1,0 +1,13 @@
+#! /bin/sh
+
+# Test to make sure dependency tracking works.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AM_C_PROTOTYPES
+END
+
+$ACLOCAL || exit 1
+
+grep '^AC_DEFUN.AM_PROG_CC_STDC,$' aclocal.m4

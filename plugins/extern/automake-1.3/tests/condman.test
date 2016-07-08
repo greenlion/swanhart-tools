@@ -1,0 +1,21 @@
+#! /bin/sh
+
+# Make sure conditionals work with man pages.
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AM_CONDITIONAL(FRED, true)
+END
+
+cat > Makefile.am << 'END'
+if FRED
+man_MANS = foo.1
+else
+man_MANS = joe.1
+endif
+END
+
+: > foo.1
+: > joe.1
+
+$AUTOMAKE

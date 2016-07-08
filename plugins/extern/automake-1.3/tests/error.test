@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Test to make sure error handling in add_file works.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AM_C_PROTOTYPES
+END
+
+# Set up a strange environment, where AM_C_PROTOTYPES exists but its
+# dependency does not.
+cat > AM_C_PROTOTYPES.m4 << 'END'
+AC_DEFUN(AM_C_PROTOTYPES,
+AC_REQUIRE([AM_PROG_CC_STDC]))
+END
+
+# Our --acdir overrides the one in $ACLOCAL.
+$ACLOCAL --acdir=. && exit 1
+exit 0

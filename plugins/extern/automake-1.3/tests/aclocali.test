@@ -1,0 +1,25 @@
+#! /bin/sh
+
+# Make sure that ACLOCAL_AMFLAGS actually gets the right dependencies.
+. $srcdir/defs || exit 1
+
+echo AM_QUUX >> configure.in
+
+mkdir macros
+
+cat > macros/quux.m4 << 'END'
+AC_DEFUN([AM_QUUX], [
+])
+END
+
+cat > Makefile.am << 'END'
+ACLOCAL_AMFLAGS = -I macros
+END
+
+# We have to run aclocal first to make sure that aclocal.m4 exists.
+# Otherwise automake won't guess that we want to auto-generate it.
+$ACLOCAL -I macros || exit 1
+
+$AUTOMAKE || exit 1
+
+fgrep quux.m4 Makefile.in

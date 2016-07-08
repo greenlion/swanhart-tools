@@ -1,0 +1,23 @@
+#! /bin/sh
+
+# Make sure we don't mistake a macro definition for an invocation.
+# From Jim Meyering.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+dnl if buggy this will require getloadavg.c
+AC_PROG_CC
+AC_DEFUN([AC_FUNC_GETLOADAVG],
+dnl need this to avoid LIBOBJS used but not defined.
+AC_FUNC_MEMCMP
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = foo
+foo_LDADD = @LIBOBJS@
+END
+
+: > memcmp.c
+
+$AUTOMAKE

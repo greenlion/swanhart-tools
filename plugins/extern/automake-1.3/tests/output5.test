@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test for AC_OUTPUT().  From Mark Galassi.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT()
+END
+
+: > Makefile.am
+
+$AUTOMAKE > output 2>&1 && exit 1
+grep 'found or specified' output && exit 1
+exit 0

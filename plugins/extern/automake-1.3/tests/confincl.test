@@ -1,0 +1,22 @@
+#! /bin/sh
+
+# This tests for a bug reported by Gord Matzigkeit.
+# If config.h is not used, @CONFIG_INCLUDE_SPEC@ should not appear
+# in Makefile.in.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+END
+
+cat > Makefile.am << 'EOF'
+bin_PROGRAMS = fred
+EOF
+
+$AUTOMAKE || exit 1
+
+if grep '@CONFIG_INCLUDE_SPEC@' Makefile.in; then
+   exit 1
+fi
+exit 0

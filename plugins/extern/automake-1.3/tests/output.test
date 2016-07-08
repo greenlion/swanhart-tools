@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Test to make sure files listed in AC_OUTPUT are found.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile frob/zardoz)
+END
+
+: > Makefile.am
+
+mkdir frob
+: > frob/zardoz.in
+
+$AUTOMAKE

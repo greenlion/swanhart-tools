@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test to make sure _OBJECTS only generated once.  Bug reported by
+# Joerg-Martin Schwarz.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = zardoz
+END
+
+$AUTOMAKE || exit 1
+
+count=`grep -c '^zardoz_OBJECTS' Makefile.in`
+test $count -eq 1

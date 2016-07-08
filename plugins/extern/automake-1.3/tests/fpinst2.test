@@ -1,0 +1,21 @@
+#! /bin/sh
+
+# Test to make sure "reversed" order of AM_PROG_INSTALL and
+# AC_PROG_INSTALL is not buggy.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AM_PROG_INSTALL
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile)
+END
+
+cat > Makefile.am <<'END'
+bin_SCRIPTS = zot
+END
+
+$AUTOMAKE || exit 1

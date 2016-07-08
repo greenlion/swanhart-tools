@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test for failing check for unused macros.  From Johan Danielsson.
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+MACRO_1
+MACRO_1_2
+MACRO_1_2_3
+END
+
+cat > acinclude.m4 << 'END'
+AC_DEFUN(MACRO_1, echo 1)
+AC_DEFUN(MACRO_1_2, echo 12)
+AC_DEFUN(MACRO_1_2_3, echo 123)
+END
+
+$ACLOCAL 2> output || exit 1
+test -z "`cat output`"

@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# Test for bug reported by François Pinard.
+# If \ is in AC_OUTPUT, automake barfs.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile \
+zot)
+END
+
+: > Makefile.am
+: > zot.in
+
+$AUTOMAKE

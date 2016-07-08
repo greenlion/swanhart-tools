@@ -1,0 +1,8 @@
+smf_install.sh is a script that will install gearman as a service monitored
+by the Solaris SMF.
+
+It will define a user and group named gearmand, and create authorization and
+profile definitions so that you can grant users the rights to start / stop 
+or change the service.
+
+You need administrative rights to run the profile shell script.

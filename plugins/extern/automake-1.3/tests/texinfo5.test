@@ -1,0 +1,18 @@
+#! /bin/sh
+
+# Test to make sure that texinfo.tex is not required by --cygnus.
+# Report from Ian Taylor.
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AM_MAINTAINER_MODE
+AM_EXEEXT
+END
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = ian.texi
+END
+
+echo '@setfilename ian.info' > ian.texi
+
+$AUTOMAKE --cygnus

@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test for `; installing' message when not wanted.
+# From François Pinard.
+
+. $srcdir/defs || exit 1
+
+: > Makefile.am
+: > INSTALL
+: > NEWS
+: > COPYING
+
+# It isn't possible to write this test.  That's because all files that
+# might be required are actually included in the automake
+# distribution.
+# $AUTOMAKE --gnu --add-missing > output 2>&1 && exit 1
+# grep installing output
+
+exit 0

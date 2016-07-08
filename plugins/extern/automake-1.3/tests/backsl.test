@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test for "\" problems.  Bug report from Joerg-Martin Schwarz.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = \
+   frob
+END
+
+$AUTOMAKE || exit 1
+
+grep '^_SOURCE' Makefile.in && exit 1
+exit 0

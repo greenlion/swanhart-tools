@@ -1,0 +1,41 @@
+#! /bin/sh
+
+# Make sure ":" works with files automake generates.
+# This test is for multiple ":"s.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile:zardoz.in:two.in:three.in)
+END
+
+: > zardoz.am
+: > two.in
+: > three.in
+
+$AUTOMAKE || exit 1
+
+# We actually check several things here.
+# Automake should have created zardoz.in.
+test -f zardoz.in || exit 1
+
+# The generated file should refer to zardoz.in and zardoz.am, but
+# never just "zardoz" -- except the actual automake invocation can
+# refer to it (don't ask).
+echo Grep1
+grep zardoz zardoz.in | fgrep -v 'zardoz.in' | fgrep -v 'zardoz.am' \
+   | fgrep -v AUTOMAKE > O
+# We cat the output file so we see in when verbose.
+cat O
+test -z "`cat O`" || exit 1
+
+# Makefile should depend on two.in.
+echo Grep2
+grep '^Makefile:.* two.in' zardoz.in || exit 1
+# Likewise three.in.
+echo Grep3
+grep '^Makefile:.* three.in' zardoz.in

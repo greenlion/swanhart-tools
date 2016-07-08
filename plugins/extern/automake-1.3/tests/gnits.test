@@ -1,0 +1,29 @@
+#! /bin/sh
+
+# Test to ensure --gnits version checking is correct.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=3.5.3.2
+AC_ARG_PROGRAM
+AM_PROG_INSTALL
+AC_OUTPUT(Makefile)
+END
+
+cat > Makefile.am << 'END'
+pkgdata_DATA =
+END
+
+# Files required by Gnits.
+: > INSTALL
+: > NEWS
+: > README
+: > COPYING
+: > AUTHORS
+: > ChangeLog
+: > THANKS
+
+$AUTOMAKE --gnits && exit 1
+exit 0

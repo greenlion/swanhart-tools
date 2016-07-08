@@ -1,0 +1,12 @@
+#! /bin/sh
+
+# Test that := definitions work.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+ICONS := $(wildcard *.xbm)
+data_DATA = $(ICONS)
+END
+
+$AUTOMAKE

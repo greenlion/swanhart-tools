@@ -1,0 +1,30 @@
+#! /bin/sh
+
+# Test for bug where if the list of installables is empty, invalid sh
+# code is generated.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+data_DATA =
+END
+
+$AUTOMAKE || exit 1
+
+# Create configure so Makefile doesn't look out-of-date.
+echo frob > configure
+echo frob > config.status
+
+# Need a mkinstalldirs we can actually execute.  make on my Linux box
+# won't execute this file if is empty, or has just a colon in it (but
+# it will run from the shell).
+cat > mkinstalldirs << 'END'
+#!/bin/sh
+END
+chmod +x mkinstalldirs
+
+# Substitute variables we need.
+sed -e 's/@srcdir@/./g' -e 's/@top_srcdir@/./g' -e 's/@datadir@/./g' \
+   < Makefile.in > Makefile
+
+$MAKE install

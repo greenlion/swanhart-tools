@@ -1,0 +1,27 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2011 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+#
+t_redis_CXXFLAGS=
+t_redis_SOURCES=
+t_redis_LDADD=
+
+t_redis_LDADD+= ${CLIENT_LDADD}
+t_redis_SOURCES+= tests/basic.cc
+t_redis_SOURCES+= tests/redis.cc
+
+check_PROGRAMS += t/redis
+noinst_PROGRAMS += t/redis
+
+test-redis: t/redis gearmand/gearmand
+	@t/redis
+
+gdb-redis: t/redis gearmand/gearmand
+	@$(GDB_COMMAND) t/redis

@@ -1,0 +1,242 @@
+#!/usr/bin/php
+<?php
+/*
+Copyright (c) 2010, Justin Swanhart
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the <organization> nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*This script requires PEAR Net_Gearman */
+/*It also requires Console_Getopt, but this should be installed by default with pear */
+require_once 'bin_common.php';
+require_once 'Console/Getopt.php';
+require_once 'shard-query.php';
+require_once 'common.php';
+$verbose=false;
+
+main();
+exit;
+
+function help() {
+	shard_query_common_help();
+	run_query_help();
+	echo "\n";
+	exit;
+}
+
+function main() {
+	$params = get_commandline(array('file='));
+
+	if(has_short_opt('help',$params)) help();
+
+	$verbose = false;
+	if(has_short_opt('verbose',$params)) {
+		$verbose = true;
+	}
+
+	if(!empty($params['schema'])) {
+		$schema = $params['schema'];
+	} else {
+		$schema=null;
+	}
+
+	$sql = "";
+	$stmt = false;
+
+	#read lines until semicolon then execute the statement
+	#super simple (line MUST end with ;)
+  readline_read_history('.console.hist'); 
+  $pager = "";
+	while (1) {
+    $line = readline($sql != "" ? "->" : " warpsql>");
+    if($line == "") continue;
+    if($line == "\\c") {
+      if($sql) readline_add_history($sql);
+      $sql = "";
+      continue;
+    }
+    if($sql == "" && ($line == "quit" || $line == "quit;" || $line == "exit" || $line == "exit;")) exit;
+		if(substr(trim($line),0,2) == '--') { echo $line; continue; }
+		if(substr(trim($line),0,1) == '#') { echo $line; continue; }
+    if($line[0] == "\\") {
+      if(strtolower($line[1]) == "p") {
+        if(strlen($line) <3) {
+          $pager = "";
+          echo "pager cleared\n";
+          continue;
+        } else {
+          $pager = substr($line, 3);
+          echo "pager set to $pager\n";
+          continue;
+        }
+      }
+    }
+		if ($sql) $sql .= " ";
+		$sql .= trim($line);
+		if(substr($sql,-1) == ";" || substr($sql,-2) == "\\G" || substr($sql, -2) == "\\g") {
+      readline_add_history($sql);
+      readline_write_history('.console.hist');
+      $long = 0;
+      if(substr($sql,-1) == "G") { 
+        $long = 1; 
+        $sql = substr($sql, 0, -2);
+      } elseif(substr($sql,-1) == "g") {
+        $sql = substr($sql, 0, -2);
+      } 
+
+			if(!isset($shard_query)) $shard_query = new ShardQuery($schema);
+
+			unset($shard_query->errors);
+			if(!empty($shard_query->errors)) {
+        foreach($shard_query->errors as $error) {
+          echo " ERROR: " . $error . "\n";
+        }
+				continue;
+			}
+			$stime = microtime(true);
+			$stmt = $shard_query->query($sql,$show_explain = preg_match('/^explain\s+select\s+/i',$sql));
+			$endtime = microtime(true);
+
+			if(($show_explain || $verbose) && isset($shard_query->state->explain)) echo $shard_query->state->explain . "\n";
+      $skip = false;
+			if($stmt === false || !empty($shard_query->errors)) {
+				if(!empty($shard_query->errors)) {
+          foreach($shard_query->errors as $error) {
+            echo " ERROR: " . $error . "\n";
+          }
+        }
+        $skip = true;
+			}
+      $buffer = "";
+			if(!$skip && (is_resource($stmt) || is_object($stmt))) {
+				$count=0;
+        $rows = array();
+        $maxlen = array();
+        $colcount = 0;
+        $keys = array();
+        $cur_row = 0;
+        system("tput lines 2>&1 > .lines");
+        $screen =(int)(trim(file_get_contents(".lines")))-2;
+        unlink(".lines");
+        $discard = system("stty -icanon 2>&1 > /dev/null");
+				while($row = $shard_query->DAL->my_fetch_assoc($stmt)) {
+          if($long) {
+            $out = print_r($row,true);
+            $out = explode("\n", $out);
+            array_shift($out);
+            array_shift($out);
+            array_pop($out);
+            array_pop($out);
+            $maxlen=0;
+            foreach($out as $k => $v) {
+              $l = strlen($v);
+              if($l > $maxlen) {
+                $maxlen = $l;
+                $maxat = strpos($v, "=>");
+              }
+            }
+            echo str_repeat("*", $maxlen/2) . (count($rows)+1) . ". " . str_repeat("*", $maxlen/2) . "\n";
+            foreach($out as $k => $v) {
+              $s = explode("=>", $v);
+              $col = trim($s[0]," []");
+              if(isset($s[1])) {
+                $val = $s[1];
+                $out = str_pad($col, $maxat," ", STR_PAD_LEFT) . ":$val\n";
+              } else {
+                $out .= $s[0] . "\n";
+              }
+              echo $out;
+            }
+            
+            $rows[]=1;
+            continue;
+          }
+          $colcount = count($row);
+          $i = 0;
+          $new_row = array();
+          foreach($row as $k => $v) {
+            $new_row[] = $v;
+            if(empty($maxlen[$i])) {
+              $maxlen[$i] = strlen($v);
+              if($maxlen[$i] < strlen($k)) $maxlen[$i] = strlen($k);
+            } else {
+              if($maxlen[$i] < strlen($v)) $maxlen[$i] = strlen($v);
+              if($maxlen[$i] < strlen($k)) $maxlen[$i] = strlen($k);
+            }
+            $keys[$i] = $k;
+            ++$i;
+          }
+          $rows[] = $new_row;
+				}
+
+        if(!$long ) {
+          $fh = fopen("php://stdin","rb");
+
+          $out = "";
+          $out0 = "";
+          foreach($keys as $i => $k) {
+            if($out) $out .= " | ";
+            if($out0) $out0 .= " + ";
+            $out0 .= str_pad("-",$maxlen[$i],"-");
+            $out .=  str_pad($k, $maxlen[$i]);
+          }
+          if(count($rows)) {
+            echo " + $out0 +" . "\n";
+            echo " | $out |" . "\n";
+            echo " + $out0 +" . "\n";
+          }
+          $cur_row_num=0;
+          foreach($rows as $r) {
+            $out = "";
+            foreach($r as $i => $v) {
+              if($out) $out .= " | ";
+              $out .=  str_pad($v, $maxlen[$i]);
+            }
+            echo " | $out |" . "\n";
+            ++$cur_row;
+            if($cur_row >= $screen) {
+              echo "[press any key to continue, q to stop scrolling]\n";
+              $c = fread($fh,1);
+              if($c == "q") break; 
+              $cur_row = 0; 
+            }
+          }
+
+          if(count($rows)) echo " + $out0 +\n";
+        }
+        
+				echo " " . count($rows). " rows returned\n";
+        
+				$shard_query->DAL->my_free_result($stmt);
+			} elseif(!$skip) {
+				if(!empty($shard_query->info)) print_r($shard_query->info);
+				echo " no query results\n";
+			}
+      if($skip) echo "\n";
+			if(!$skip) echo " Exec time: " . ($endtime - $stime) . "\n";
+			$sql = "";
+
+		}
+	}
+}

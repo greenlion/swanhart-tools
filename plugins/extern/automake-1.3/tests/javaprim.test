@@ -1,0 +1,14 @@
+#! /bin/sh
+
+# Test to make sure JAVA variable can be defined.
+
+. $srcdir/defs || exit 1
+
+echo 'AC_SUBST(JAVA)' >> configure.in
+
+cat > Makefile.am << 'END'
+javadir = $(datadir)/java
+java_JAVA = a.java b.java c.java
+END
+
+$AUTOMAKE

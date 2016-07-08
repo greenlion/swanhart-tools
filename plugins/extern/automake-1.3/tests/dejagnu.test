@@ -1,0 +1,16 @@
+#! /bin/sh
+
+# Test to make sure dejagnu tests and automake-style tests can coexist.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+AUTOMAKE_OPTIONS = dejagnu
+TESTS = frob.test
+END
+
+: > frob.test
+
+$AUTOMAKE || exit 1
+
+grep '^check-TESTS' Makefile.in && grep '^check-DEJAGNU' Makefile.in

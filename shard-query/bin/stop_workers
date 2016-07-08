@@ -1,2 +1,3 @@
-killall run_store_resultset_worker run_loader_worker run_shard_query_worker loader_worker store_resultset_worker shard_query_worker
-
+#!/bin/bash 
+killall run_worker worker
+echo "workers stopped"

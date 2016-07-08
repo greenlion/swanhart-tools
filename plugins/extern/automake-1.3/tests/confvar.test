@@ -1,0 +1,15 @@
+#! /bin/sh
+
+# Test to make sure configure_vars stuff works.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_SUBST(QBERT)
+END
+
+: > Makefile.am
+
+$AUTOMAKE || exit 1
+
+grep '^QBERT' Makefile.in

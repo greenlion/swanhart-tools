@@ -1,0 +1,24 @@
+#! /bin/sh
+
+# Check basic use of conditionals.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AM_INIT_AUTOMAKE(nonesuch, nonesuch)
+AM_CONDITIONAL(TEST, true)
+AC_OUTPUT(Makefile)
+END
+
+cat > Makefile.am << 'END'
+if TEST
+VAR = true
+else
+VAR = false
+endif
+END
+
+$AUTOMAKE || exit 1
+
+grep '^@TEST_TRUE@' Makefile.in || exit 1
+exit 0

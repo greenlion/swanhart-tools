@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test to make sure obsolete macros really are.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_MAKE_SET
+fp_PROG_INSTALL
+AC_OUTPUT(Makefile one/Makefile one/two/Makefile)
+END
+
+: > Makefile.am
+
+$AUTOMAKE && exit 1
+exit 0

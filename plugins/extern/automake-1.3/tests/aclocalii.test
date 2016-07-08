@@ -1,0 +1,17 @@
+#! /bin/sh
+
+# Test to make sure include of include detects missing macros
+. $srcdir/defs || exit 1
+
+echo GNOME_X_CHECKS >> configure.in
+
+mkdir macros
+
+cat > macros/gnome.m4 << 'END'
+AC_DEFUN([GNOME_X_CHECKS], [
+	AM_PATH_GTK(0.99.5,,AC_MSG_ERROR(GTK not installed, or gtk-config not in path))
+])
+END
+
+$ACLOCAL -I macros && exit 1
+exit 0

@@ -1,0 +1,36 @@
+## automake - create Makefile.in from Makefile.am
+## Copyright (C) 1994, 1995, 1996, 1997, 1998 Free Software Foundation, Inc.
+
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2, or (at your option)
+## any later version.
+
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+## 02111-1307, USA.
+install-@DIR@LTLIBRARIES: $(@DIR@_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(@DIR@dir)
+## Funny invocation because Makefile variable can be empty, leading to
+## a syntax error in sh.
+	@list='$(@DIR@_LTLIBRARIES)'; for p in $$list; do \
+	  if test -f $$p; then \
+## Note that we explicitly set the libtool mode.  This avoids any lossage
+## if the program doesn't have a name that libtool expects.
+	    echo "@LIBTOOL --mode=install@ $(INSTALL_DATA) $$p $(DESTDIR)$(@DIR@dir)/$$p"; \
+	    @LIBTOOL --mode=install@ $(INSTALL_DATA) $$p $(DESTDIR)$(@DIR@dir)/$$p; \
+	  else :; fi; \
+	done
+
+uninstall-@DIR@LTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	list='$(@DIR@_LTLIBRARIES)'; for p in $$list; do \
+	  @LIBTOOL --mode=uninstall@ rm -f $(DESTDIR)$(@DIR@dir)/$$p; \
+	done

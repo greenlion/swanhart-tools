@@ -1,0 +1,22 @@
+#! /bin/sh
+
+# Test to make sure several config headers are allowed.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AM_CONFIG_HEADER(config.h two.h)
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_PROG_CC
+AC_ARG_PROGRAM
+AM_PROG_INSTALL
+AC_OUTPUT(Makefile)
+END
+
+: > Makefile.am
+
+: > config.h.in
+: > two.h.in
+
+$AUTOMAKE

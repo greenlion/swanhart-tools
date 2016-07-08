@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Test "not a standard library" error.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+AC_PROG_RANLIB
+END
+
+cat > Makefile.am << 'END'
+noinst_LIBRARIES = foo
+END
+
+$AUTOMAKE 2> output.log && exit 1
+# We're specifically testing for line-number information.
+# Well, when it is implemented.
+# grep 1 output.log
+exit 0

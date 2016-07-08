@@ -1,0 +1,163 @@
+.\" Man page generated from reStructuredText.
+.
+.TH "GEARMAN_WORKER_UNREGISTER_ALL" "3" "February 11, 2014" "1.1.12" "Gearmand"
+.SH NAME
+gearman_worker_unregister_all \- Gearmand Documentation, http://gearman.info/
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.SH SYNOPSIS
+.sp
+#include <libgearman/gearman.h>
+.INDENT 0.0
+.TP
+.B gearman_worker_st
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_worker_set_task_context_free_fn
+.UNINDENT
+.INDENT 0.0
+.TP
+.B int gearman_worker_timeout(\fI\%gearman_worker_st\fP\fI\ *worker\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_worker_set_timeout(\fI\%gearman_worker_st\fP\fI\ *worker\fP, int\fI\ timeout\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void *gearman_worker_context(const \fI\%gearman_worker_st\fP\fI\ *worker\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_worker_set_context(\fI\%gearman_worker_st\fP\fI\ *worker\fP, void\fI\ *context\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_worker_set_workload_malloc_fn(\fI\%gearman_worker_st\fP\fI\ *worker\fP, gearman_malloc_fn\fI\ *function\fP, void\fI\ *context\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_worker_set_workload_free_fn(\fI\%gearman_worker_st\fP\fI\ *worker\fP, gearman_free_fn\fI\ *function\fP, void\fI\ *context\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_return_t gearman_worker_wait(\fI\%gearman_worker_st\fP\fI\ *worker\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_return_t gearman_worker_register(\fI\%gearman_worker_st\fP\fI\ *worker\fP, const char\fI\ *function_name\fP, uint32_t\fI\ timeout\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_return_t gearman_worker_unregister(\fI\%gearman_worker_st\fP\fI\ *worker\fP, const char\fI\ *function_name\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_return_t gearman_worker_unregister_all(\fI\%gearman_worker_st\fP\fI\ *worker\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_job_free_all(\fI\%gearman_worker_st\fP\fI\ *worker\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B bool gearman_worker_function_exist(\fI\%gearman_worker_st\fP\fI\ *worker\fP, const char\fI\ *function_name\fP, size_t\fI\ function_length\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_return_t gearman_worker_work(\fI\%gearman_worker_st\fP\fI\ *worker\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_job_st *gearman_worker_grab_job(\fI\%gearman_worker_st\fP\fI\ *worker\fP, gearman_job_st\fI\ *job\fP, gearman_return_t\fI\ *ret_ptr\fP)
+.UNINDENT
+.sp
+Link with \-lgearman
+.SH DESCRIPTION
+.sp
+\fI\%gearman_worker_st\fP is used for worker communication with the server.
+.sp
+\fI\%gearman_worker_context()\fP and \fI\%gearman_worker_set_context()\fP can be used to store an arbitrary object for the user.
+.sp
+\fI\%gearman_worker_set_task_context_free_fn()\fP sets a trigger that will be called when a \fBgearman_task_st\fP is released.
+.sp
+\fI\%gearman_worker_timeout()\fP and \fI\%gearman_worker_set_timeout()\fP get and set the current timeout value, in milliseconds, for the worker.
+.sp
+\fI\%gearman_worker_function_exist()\fP is used to determine if a given worker has a specific function.
+.sp
+\fI\%gearman_worker_work()\fP have the worker execute against jobs until an error occurs.
+.sp
+\fI\%gearman_worker_grab_job()\fP Takes a job from one of the job servers. It is the responsibility of the caller to free the job once they are done. This interface is used in testing, and is very rarely the correct interface to program against.
+.sp
+Normally \fImalloc(3)\fP and \fIfree(3)\fP are used for allocation and releasing workloads. \fI\%gearman_worker_set_workload_malloc_fn()\fP and \fI\%gearman_worker_set_workload_free_fn()\fP can be used to replace these with custom functions.
+.sp
+If you need to remove a function from the server you can call either \fI\%gearman_worker_unregister_all()\fP to remove all functions that the worker has told the \fBgearmand\fP server about, or you can use \fI\%gearman_worker_unregister()\fP to remove just a single function.
+.SH RETURN
+.sp
+Various
+.SH HOME
+.sp
+To find out more information please check:
+\fI\%http://gearman.info/\fP
+.SH SEE ALSO
+.sp
+\fIgearmand(8)\fP \fIlibgearman(3)\fP
+.SH AUTHOR
+Data Differential http://www.datadifferential.com/
+.SH COPYRIGHT
+2011-2013, Data Differential, http://www.datadifferential.com/
+.\" Generated by docutils manpage writer.
+.

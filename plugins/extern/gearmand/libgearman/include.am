@@ -1,0 +1,207 @@
+# vim:ft=automake
+# Gearman server and library 
+# Copyright (C) 2011 - 2013 Data Differential, http://datadifferential.com/
+# Copyright (C) 2009-2010 Brian Aker, Eric Day, Monty Taylor All rights
+# Copyright (C) 2008 Brian Aker, Eric Day 
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+nobase_include_HEADERS+= libgearman/gearman.h
+
+noinst_HEADERS+= libgearman/client.hpp
+noinst_HEADERS+= libgearman/worker.hpp
+
+noinst_HEADERS+= libgearman/ssl.h
+noinst_HEADERS+= libgearman/magic.h
+noinst_HEADERS+= libgearman/client.h
+noinst_HEADERS+= libgearman/check.h
+noinst_HEADERS+= libgearman/interface/client.hpp
+noinst_HEADERS+= libgearman/interface/error.hpp
+noinst_HEADERS+= libgearman/interface/packet.hpp
+noinst_HEADERS+= libgearman/interface/push.hpp
+noinst_HEADERS+= libgearman/interface/task.hpp
+noinst_HEADERS+= libgearman/interface/universal.hpp
+noinst_HEADERS+= libgearman/interface/worker.hpp
+noinst_HEADERS+= libgearman/pipe.h
+noinst_HEADERS+= libgearman/job.h
+noinst_HEADERS+= libgearman/job.hpp
+noinst_HEADERS+= libgearman/ostream.hpp
+noinst_HEADERS+= libgearman/error_code.h
+noinst_HEADERS+= libgearman/command.hpp
+noinst_HEADERS+= libgearman/uuid.hpp
+noinst_HEADERS+= libgearman/vector.h
+noinst_HEADERS+= \
+		 libgearman/actions.hpp \
+		 libgearman/add.hpp \
+		 libgearman/aggregator.hpp \
+		 libgearman/allocator.hpp \
+		 libgearman/assert.hpp \
+		 libgearman/backtrace.hpp \
+		 libgearman/byteorder.h \
+		 libgearman/command.h \
+		 libgearman/common.h \
+		 libgearman/connection.hpp \
+		 libgearman/do.hpp \
+		 libgearman/error.hpp \
+		 libgearman/function/base.hpp \
+		 libgearman/function/function_v1.hpp \
+		 libgearman/function/function_v2.hpp \
+		 libgearman/function/make.hpp \
+		 libgearman/function/null.hpp \
+		 libgearman/function/partition.hpp \
+		 libgearman/is.hpp \
+		 libgearman/log.hpp \
+		 libgearman/packet.hpp \
+		 libgearman/protocol/echo.h \
+		 libgearman/protocol/option.h \
+		 libgearman/protocol/submit.h \
+		 libgearman/protocol/work_exception.h \
+		 libgearman/result.hpp \
+		 libgearman/run.hpp \
+		 libgearman/status.hpp \
+		 libgearman/strcommand.h \
+		 libgearman/string.hpp \
+		 libgearman/task.hpp \
+		 libgearman/task_attr.h \
+		 libgearman/unique.hpp \
+		 libgearman/server_options.hpp \
+		 libgearman/universal.hpp \
+		 libgearman/vector.hpp
+
+noinst_LTLIBRARIES+= libgearman/libgearman-vector.la
+libgearman_libgearman_vector_la_CXXFLAGS= -DBUILDING_LIBGEARMAN
+libgearman_libgearman_vector_la_LIBADD= @lt_cv_dlopen_libs@
+libgearman_libgearman_vector_la_SOURCES= libgearman/vector.cc
+libgearman_libgearman_vector_la_SOURCES+= libgearman/backtrace.cc
+
+noinst_LTLIBRARIES+= libgearman/libgearman-result.la
+libgearman_libgearman_result_la_CXXFLAGS= -DBUILDING_LIBGEARMAN
+libgearman_libgearman_result_la_LIBADD= @lt_cv_dlopen_libs@
+libgearman_libgearman_result_la_SOURCES= libgearman/vector.cc
+libgearman_libgearman_result_la_SOURCES+= libgearman/result.cc
+libgearman_libgearman_result_la_SOURCES+= libgearman/backtrace.cc
+
+libgearman_libgearman_la_LIBADD=
+libgearman_libgearman_la_SOURCES=
+libgearman_libgearman_la_CXXFLAGS=
+libgearman_libgearman_la_LDFLAGS=
+
+lib_LTLIBRARIES+= libgearman/libgearman.la
+libgearman_libgearman_la_SOURCES+= libgearman/check.cc
+libgearman_libgearman_la_SOURCES+= \
+				  libgearman/actions.cc \
+				  libgearman/aggregator.cc \
+				  libgearman/allocator.cc \
+				  libgearman/argument.cc \
+				  libgearman/add.cc \
+				  libgearman/backtrace.cc \
+				  libgearman/byteorder.cc \
+				  libgearman/client.cc \
+				  libgearman/command.cc \
+				  libgearman/connection.cc \
+				  libgearman/do.cc \
+				  libgearman/error.cc \
+				  libgearman/error_code.cc \
+				  libgearman/execute.cc \
+				  libgearman/function.cc \
+				  libgearman/function/function_v2.cc \
+				  libgearman/function/make.cc \
+				  libgearman/function/partition.cc \
+				  libgearman/gearman.cc \
+				  libgearman/job.cc \
+				  libgearman/kill.cc \
+				  libgearman/log.cc \
+				  libgearman/packet.cc \
+				  libgearman/parse.cc \
+				  libgearman/protocol/echo.cc \
+				  libgearman/protocol/option.cc \
+				  libgearman/protocol/submit.cc \
+				  libgearman/protocol/work_exception.cc \
+				  libgearman/result.cc \
+				  libgearman/run.cc \
+				  libgearman/status.cc \
+				  libgearman/strerror.cc \
+				  libgearman/string.cc \
+				  libgearman/task.cc \
+				  libgearman/task_attr.cc \
+				  libgearman/unique.cc \
+				  libgearman/server_options.cc \
+				  libgearman/universal.cc \
+				  libgearman/vector.cc \
+				  libgearman/worker.cc
+
+libgearman_libgearman_la_SOURCES+= libgearman/pipe.cc
+libgearman_libgearman_la_SOURCES+= libgearman/uuid.cc
+
+libgearman_libgearman_la_CXXFLAGS+= -DBUILDING_LIBGEARMAN
+
+libgearman_libgearman_la_LDFLAGS+= -version-info $(GEARMAN_LIBRARY_VERSION)
+
+if ENABLE_SSL
+if ENABLE_CYASSL
+libgearman_libgearman_la_LIBADD+= @CYASSL_LIB@
+libgearman_libgearman_la_LDFLAGS+= @CYASSL_LDFLAGS@
+else
+if ENABLE_OPENSSL
+libgearman_libgearman_la_LIBADD+= @OPENSSL_LIBS@
+libgearman_libgearman_la_LDFLAGS+= @OPENSSL_LDFLAGS@
+endif
+endif
+endif
+libgearman_libgearman_la_LIBADD+= @lt_cv_dlopen_libs@
+libgearman_libgearman_la_LIBADD+= @LIBUUID_LIB@
+libgearman_libgearman_la_LIBADD+= libhashkit/libhashkit.la
+
+if HOST_LINUX
+libgearman_libgearman_la_LIBADD+= @LIBM@
+endif
+
+
+DISTCLEANFILES+= config/top.h
+
+# Hostile version 
+
+noinst_LTLIBRARIES+= libgearman/libgearman-hostile.la
+
+libgearman_libgearman_hostile_la_LIBADD= $(libgearman_libgearman_la_LIBADD)
+libgearman_libgearman_hostile_la_SOURCES= $(libgearman_libgearman_la_SOURCES)
+libgearman_libgearman_hostile_la_CXXFLAGS= $(libgearman_libgearman_la_CXXFLAGS)
+
+# Handling the Gperf code
+GPERFFLAGS= --compare-strncmp --switch=1
+
+MAINTAINERCLEANFILES+= libgearman/error_code.hpp
+
+EXTRA_DIST+= libgearman/error_code.gperf
+BUILT_SOURCES+= libgearman/error_code.hpp
+libgearman_libgearman_la_SOURCES+= libgearman/error_code.hpp
+libgearman/error_code.hpp: libgearman/error_code.gperf
+	if $(GPERF) $(GPERFFLAGS) --struct-type \
+	  libgearman/error_code.gperf >$@t; then \
+	  mv $@t $@; \
+	  elif $(GPERF) --version >/dev/null 2>&1; then \
+	  rm $@t; \
+	  exit 1; \
+	  else \
+	  rm $@t; \
+	  touch $@; \
+	  fi
+
+EXTRA_DIST+= libgearman/command.gperf
+BUILT_SOURCES+= libgearman/command.hpp
+libgearman_libgearman_la_SOURCES+= libgearman/command.hpp
+libgearman/command.hpp: libgearman/command.gperf
+	if $(GPERF) $(GPERFFLAGS) -D --struct-type \
+	  libgearman/command.gperf >$@t; then \
+	  mv $@t $@; \
+	  elif $(GPERF) --version >/dev/null 2>&1; then \
+	  rm $@t; \
+	  exit 1; \
+	  else \
+	  rm $@t; \
+	  touch $@; \
+	  fi

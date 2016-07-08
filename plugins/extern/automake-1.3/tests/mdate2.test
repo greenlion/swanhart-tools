@@ -1,0 +1,23 @@
+#! /bin/sh
+
+# Test to make sure mdate-sh is included in distribution.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = textutils.texi
+END
+
+cat > textutils.texi << 'END'
+@include version.texi
+END
+
+# Required when using Texinfo.
+: > texinfo.tex
+: > mdate-sh
+echo '@setfilename textutils' > textutils.texi
+
+# Use "././" to confuse Automake into thinking this is a subdir build.
+$AUTOMAKE ././Makefile || exit 1
+
+grep 'mdate-sh' Makefile.in | grep -v SHELL

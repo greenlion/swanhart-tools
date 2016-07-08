@@ -1,0 +1,31 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2011-2012 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+#
+t_mysql_SOURCES=
+t_mysql_CXXFLAGS=
+t_mysql_LDADD=
+
+t_mysql_SOURCES+= tests/basic.cc
+t_mysql_SOURCES+= tests/mysql_test.cc
+
+t_mysql_LDADD+= ${CLIENT_LDADD}
+
+check_PROGRAMS+= t/mysql
+noinst_PROGRAMS+= t/mysql
+
+test-mysql: t/mysql gearmand/gearmand
+	@t/mysql
+
+gdb-mysql: t/mysql gearmand/gearmand
+	@$(GDB_COMMAND) t/mysql
+
+valgrind-mysql: t/mysql gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/mysql

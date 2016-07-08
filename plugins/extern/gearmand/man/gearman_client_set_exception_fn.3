@@ -1,0 +1,194 @@
+.\" Man page generated from reStructuredText.
+.
+.TH "GEARMAN_CLIENT_SET_EXCEPTION_FN" "3" "February 11, 2014" "1.1.12" "Gearmand"
+.SH NAME
+gearman_client_set_exception_fn \- Gearmand Documentation, http://gearman.info/
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.SH SYNOPSIS
+.sp
+#include <libgearman/gearman.h>
+.INDENT 0.0
+.TP
+.B gearman_actions_t
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_workload_fn
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_created_fn
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_data_fn
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_warning_fn
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_universal_status_fn
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_exception_fn
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_fail_fn
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_complete_fn
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_client_set_workload_fn(gearman_client_st\fI\ *client\fP, \fI\%gearman_workload_fn\fP\fI\ *function\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_client_set_created_fn(gearman_client_st\fI\ *client\fP, \fI\%gearman_created_fn\fP\fI\ *function\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_client_set_data_fn(gearman_client_st\fI\ *client\fP, \fI\%gearman_data_fn\fP\fI\ *function\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_client_set_warning_fn(gearman_client_st\fI\ *client\fP, \fI\%gearman_warning_fn\fP\fI\ *function\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_client_set_status_fn(gearman_client_st\fI\ *client\fP, \fI\%gearman_universal_status_fn\fP\fI\ *function\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_client_set_complete_fn(gearman_client_st\fI\ *client\fP, \fI\%gearman_complete_fn\fP\fI\ *function\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_client_set_exception_fn(gearman_client_st\fI\ *client\fP, \fI\%gearman_exception_fn\fP\fI\ *function\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_client_set_fail_fn(gearman_client_st\fI\ *client\fP, \fI\%gearman_fail_fn\fP\fI\ *function\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B void gearman_client_clear_fn(gearman_client_st\fI\ *client\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B const char *gearman_client_do_job_handle(gearman_client_st\fI\ *client\fP)
+.UNINDENT
+.sp
+Link to \-lgearman
+.SH DESCRIPTION
+.sp
+Callbacks for client execution task states.
+.sp
+\fI\%gearman_client_set_data_fn()\fP sets the callback function that will
+be called if server is to make a request to the client to provide more data.
+.sp
+\fI\%gearman_client_do_job_handle()\fP gest the job handle for the running task. This should be used between repeated
+\fBgearman_client_do()\fP (and related) calls to get information.
+.sp
+\fI\%gearman_client_clear_fn()\fP can be called to remove all existing
+\fI\%gearman_actions_t\fP that have been set.
+.sp
+\fI\%gearman_client_set_created_fn()\fP,
+\fI\%gearman_client_set_data_fn()\fP,
+\fI\%gearman_client_set_warning_fn()\fP,
+\fI\%gearman_client_set_status_fn()\fP,
+\fI\%gearman_client_set_complete_fn()\fP,
+\fI\%gearman_client_set_exception_fn()\fP, and
+\fI\%gearman_client_set_fail_fn()\fP, set callback functions for the
+different states of execution for a client request. Each request, ie
+a creation of \fBgearman_task_st\fP, keeps a copy of callbacks when it
+is created.
+.sp
+\fI\%gearman_client_set_exception_fn()\fP will only be called if exceptions are enabled on the server. You can do this by calling \fBgearman_client_set_server_option()\fP\&.
+.sp
+An example of this:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+const char *EXCEPTIONS="exceptions";
+gearman_client_set_server_option(client, EXCEPTIONS, strlen(EXCEPTIONS));
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.SH RETURN VALUE
+.sp
+None
+.INDENT 0.0
+.INDENT 3.5
+.IP "See also"
+.sp
+\fIgearmand(8)\fP \fIlibgearman(3)\fP \fIgearman_client_error(3)\fP or \fIgearman_worker_error(3)\fP
+.UNINDENT
+.UNINDENT
+.SH AUTHOR
+Data Differential http://www.datadifferential.com/
+.SH COPYRIGHT
+2011-2013, Data Differential, http://www.datadifferential.com/
+.\" Generated by docutils manpage writer.
+.

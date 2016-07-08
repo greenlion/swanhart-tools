@@ -1,0 +1,28 @@
+#! /bin/sh
+
+# Test to make sure info files are distributed correctly.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = foo.texi
+
+magic:
+	@echo $(INFOS)
+END
+
+echo '@setfilename foo.info' > foo.texi
+: > texinfo.tex
+
+$AUTOMAKE || exit 1
+
+for i in `grep '^INFOS =' Makefile.in | sed -e 's/^INFOS = //'`; do
+   echo $i
+   case "$i" in
+    foo*)
+       ;;
+    *)
+       exit 1
+       ;;
+   esac
+done

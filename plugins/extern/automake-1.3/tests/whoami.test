@@ -1,0 +1,12 @@
+#! /bin/sh
+
+# Test to make sure aclocal doesn't barf on "WHO_AM_I=...".  Report
+# from Johan Danielsson (and a very nice bug report, too, I might
+# add).
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+WHO_AM_I=17
+END
+
+$ACLOCAL

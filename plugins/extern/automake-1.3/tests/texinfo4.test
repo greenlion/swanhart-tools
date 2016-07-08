@@ -1,0 +1,15 @@
+#! /bin/sh
+
+# Make sure non-empty, non-info suffixes are diagnosed.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = textutils.texi
+END
+
+echo '@setfilename textutils.frob' > textutils.texi
+: > texinfo.tex
+
+$AUTOMAKE && exit 1
+exit 0

@@ -1,0 +1,33 @@
+#! /bin/sh
+
+# Test to make sure config.h can be in subdir.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AC_PROG_MAKE_SET
+AM_CONFIG_HEADER(subdir/config.h)
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_PROG_CC
+AC_ARG_PROGRAM
+AM_PROG_INSTALL
+AC_OUTPUT(Makefile subdir/Makefile)
+END
+
+cat > Makefile.am << 'END'
+SUBDIRS = subdir
+END
+
+mkdir subdir
+cat > subdir/Makefile.am << 'END'
+bin_PROGRAMS = fred
+END
+
+: > subdir/config.h.in
+
+$AUTOMAKE || exit 1
+
+# Make sure subdir Makefile.in doesn't itself look in the subdir.
+(grep 'subdir/config.h' subdir/Makefile.in | grep -v CONFIG_HEADERS) && exit 1
+exit 0

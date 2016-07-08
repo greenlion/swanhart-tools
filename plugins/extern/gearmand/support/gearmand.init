@@ -1,0 +1,82 @@
+#!/bin/bash
+#
+# gearmand        Startup script for the Gearman server
+#
+# chkconfig: - 85 15
+# description: Gearman is a distributed job system.
+# processname: gearmand
+# config: /etc/sysconfig/gearmand
+# pidfile: /var/run/gearmand/gearmand.pid
+#
+### BEGIN INIT INFO
+# Provides: gearmand
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Default-Start:
+# Default-Stop:
+# Short-Description: start and stop the Gearman server
+# Description: Gearman is a distributed job system.
+### END INIT INFO
+
+sysconf=${prefix}/etc/sysconfig/gearmand
+gearmand=${exec_prefix}/sbin/gearmand
+prog=gearmand
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+if [ -f @sysconf@ ]; then
+        . @sysconf@
+fi
+
+[ -z "${PIDFILE}" ] && pidfile="${prefix}/var/run/gearmand/gearmand.pid"
+[ -z "${LOCKFILE}" ] && lockfile="${prefix}/var/lock/subsys/gearmand"
+
+RETVAL=0
+
+start() {
+        echo -n $"Starting $prog: "
+        daemon --pidfile=$pidfile --user=gearmand $gearmand -d $OPTIONS
+        RETVAL=$?
+        echo
+        [ $RETVAL = 0 ] && (touch $lockfile; pgrep -f $gearmand > $pidfile)
+        return $RETVAL
+}
+
+stop() {
+	echo -n $"Stopping $prog: "
+	killproc -p $pidfile $gearmand
+	RETVAL=$?
+	echo
+	[ $RETVAL = 0 ] && rm -f $lockfile $pidfile
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+        status -p $pidfile $gearmand
+	RETVAL=$?
+	;;
+  restart|reload)
+	stop
+	start
+	;;
+  condrestart|try-restart)
+	if status -p $pidfile $gearmand >&/dev/null; then
+		stop
+		start
+	fi
+	;;
+  *)
+	echo $"Usage: $prog {start|stop|restart|reload|condrestart|status|help}"
+	RETVAL=3
+esac
+
+exit $RETVAL
+

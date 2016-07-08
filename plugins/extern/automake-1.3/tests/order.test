@@ -1,0 +1,18 @@
+#! /bin/sh
+
+# Make sure AC_DEFUN is handled correctly.  This test isn't named very
+# well.  Report from Jim Meyering.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+jm_TEST
+END
+
+cat > acinclude.m4 << 'END'
+AC_DEFUN(jm_TEST
+)
+AC_REQUIRE([jm_TEST])
+END
+
+$ACLOCAL

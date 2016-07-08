@@ -1,0 +1,10 @@
+#! /bin/sh
+
+# Test to see if aclocal correctly reports missing AM_ macro.
+
+. $srcdir/defs || exit 1
+
+echo AM_ZARDOZ >> configure.in
+
+$ACLOCAL && exit 1
+exit 0

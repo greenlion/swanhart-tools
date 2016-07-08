@@ -1,0 +1,3 @@
+#!/bin/bash
+sudo killall gearmand
+echo "gearman stopped"

@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Make sure remaking rules in subdir are correct.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(sub/Makefile)
+END
+
+mkdir sub
+: > sub/Makefile.am
+
+$AUTOMAKE || exit 1
+
+grep 'AUTOMAKE.*sub/Makefile' sub/Makefile.in

@@ -1,0 +1,16 @@
+#! /bin/sh
+
+# Test for bug where mkinstalldirs variable can be set incorrectly.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+pkgdata_DATA =
+END
+
+# The "././" prefix confuses Automake into thinking it is doing a
+# subdir build.  Yes, this is hacky.
+$AUTOMAKE ././Makefile || exit 1
+
+grep ' /mkinstalldirs' Makefile.in && exit 1
+exit 0

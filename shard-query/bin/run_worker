@@ -1,5 +1,5 @@
 #!/bin/bash
 while [ 1 ] 
 do
-./worker >>../log/worker.log 2>&1 < /dev/null
+./worker $* < /dev/null
 done;

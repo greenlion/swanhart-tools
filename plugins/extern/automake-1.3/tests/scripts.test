@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Test for bug reported by Jim Meyering.
+# AM_PROG_INSTALL was required when only noinst_SCRIPTS was defined.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile)
+END
+
+cat > Makefile.am << 'END'
+noinst_SCRIPTS = foo
+END
+
+$AUTOMAKE

@@ -1,0 +1,23 @@
+#! /bin/sh
+
+# Test to make sure no-installman suppresses man dir creation.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+AUTOMAKE_OPTIONS = no-installman
+man_MANS = foo.1
+END
+
+: > foo.1
+
+cat > mkinstalldirs << 'END'
+echo "$@"
+END
+
+chmod +x mkinstalldirs
+
+$AUTOMAKE || exit 1
+
+($MAKE -s -f Makefile.in installdirs | grep man) && exit 1
+exit 0

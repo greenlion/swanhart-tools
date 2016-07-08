@@ -1,0 +1,367 @@
+1.1.12 Sun Feb  9 04:27:38 PST 2014
+* GEARMAN_SERVERS environmental variable for libgearman to pick up servers to
+communicate with. This means that any driver now linked with libgearman will
+be able to handle multiple servers.
+* Add INFO level messages for queue creation.
+
+1.1.11 Thu Oct  3 04:38:47 EDT 2013
+* Workers which return a bad gearman_return_t will be counted as an error by the server and not a final (i.e. they will be retried).
+* Fixed possible bug where the server would over count the number of NOOP sent if NOOP messages did not get sent.
+
+1.1.10 Mon Sep 16 04:20:13 CDT 2013
+* Added gearman_job_use_client()
+* Improve compile time.
+* Fix for NOOP failure (bad worker causes early exit of loop).
+* Fix for postgres (use INFORMATION_SCHEMA).
+* Added gearman_client_has_active_tasks() so that you can see if a client has active tasks that it is working on.
+
+1.1.9 Fri Aug  2 02:39:25 EDT 2013
+* Added gearman_task_is_finished()
+* Improved SSL support.
+* Exceptions are now supported.
+* gearmand excepts its root CA via the environmental variable GEARMAND_PORT. 
+* libgearman will now except GEARMAND_CA_CERTIFICATE, GEARMAN_CLIENT_PEM, and GEARMAN_CLIENT_KEY
+
+1.1.8 Thu Jun  6 18:47:01 EDT 2013
+* Postgres test case now passes.
+* SSL support added.
+* OSX fixes.
+
+1.1.7 Mon May  6 06:46:20 EDT 2013
+* Cleanup of error codes returned by gearmand.
+* gearmand will now set its port from the env variable GEARMAND_PORT.
+* Fix issue where identifier might not be set correctly on reconnect.
+
+1.1.6 Tue Apr 16 03:29:57 EDT 2013
+* Merge of 1.0.4 tree
+* Added support for gearadmin to "cancel" a job.
+* Keep-alive support for gearmand has been extended (more options to control behavior).
+* Fixed issues related to clients who didn't really support exceptions being passed exceptions.
+
+1.1.5 Mon Feb  4 00:59:19 EST 2013
+* Rollup of bug fixes for 1.0.3
+* --threads=0 for gearmand will now result in gearmand using all available cores.
+
+1.1.4 Mon Dec 17 21:24:16 EST 2012
+* Add GEARMAN_CLIENT_GENERATE_UNIQUE, with default set to not generate.
+* Experimental addition to queue service which will allow a queue to be stored on shutdown (--libsqlite3-store-on-shutdown).
+* Rollup of all changes in 1.0.2
+
+1.1.3 Wed Nov  7 22:48:21 EST 2012
+* Merge with 1.0.1
+
+1.1.2 Fri Oct 12 05:34:29 EDT 2012
+* Merge with 0.41
+
+1.1.1 Wed Sep 19 22:04:56 EDT 2012
+* Merge with 0.39
+
+1.1.0 Wed Sep  5 08:33:37 PDT 2012
+* Fix for ABI compatibility issues.
+
+1.0.6 Mon May  6 02:48:30 EDT 2013
+* strlen() of zero on name passed for instance did not result in a connection to localhost (which the php driver thought would happen).
+* Fix regression in log not updating time on all platforms.
+* Fix issue where pecl php wasn't passing a null string to get default host.
+
+1.0.5 Mon Apr 15 06:36:05 EDT 2013
+* Fix for log_fn
+
+1.0.4 Never Released
+* Added --coredump flag to gearmand
+* Removed result type enum, since the structure is never exposed to the user this was of limited use.
+* Assorted bug fixes.
+
+1.0.3 Sun Feb  3 21:05:52 EST 2013
+* Allow for a longer set of retries if port is in use when the server starts up.
+* Added checking for valgrind sgcheck
+* Fedora 18 fixes.
+
+1.0.2 Mon Dec 17 07:24:42 EST 2012
+* Add --expceptions to Gearmand to enable exceptions by default
+* Backtraces on some types of crashes.
+* Add GEARMAN_CLIENT_GENERATE_UNIQUE.
+* If the unique value passed to any client function is "#" then the unique value will be derived by hashing the workload that is being supplied to the function.
+* Optimize status requests so that they exit as soon as request is received.
+* Fix test case results for FreeBSD.
+
+1.0.1 Tue Nov  6 01:07:07 EST 2012
+* Stable branch labeled as 1.0
+* Update all build related files.
+* Add a few additional platforms to the supported list.
+
+0.41 Fri Oct 12 05:34:29 EDT 2012
+* Switched from --having-debug to --enable-debug
+* Fix for SQLITE, it wasn't replaying its queue on startup.
+* More testing done now on durable queues.
+
+0.39 Wed Sep 19 03:36:06 EDT 2012
+* Added gearman_job_error() interface.
+* gearman_client_errno() and gearman_worker_errno() now return EINVAL if client or worker is invalid.
+
+0.38 Fri Sep 14 02:16:01 EDT 2012
+* Updates for compiling on different platforms.
+* UUID portability fixes.
+
+0.37 Sun Sep  2 22:51:08 EDT 2012
+* Fix compiler issues around older compilers. Bug 1039629.
+
+0.36 Sat Aug 18 16:57:13 EDT 2012
+* Fix issue where sqlite was not correctly being shutdown.
+* Check for more warnings (and cleanup found from).
+* Fix thread safety issue for uuid_generate().
+
+0.35 Sun Aug  5 16:03:21 EDT 2012
+* Critical bug fix for rare case in which initialization of pipe for a worker fails.
+* Add support for MySQL specific driver to specify port.
+* Fix library issue with OSX Mountain Lion.
+
+0.34 Tue Jul 10 21:19:10 EDT 2012
+* Alpha support for direct MySQL queue.
+* XML option for testing under valgrind.
+* gearmand now allows for a user to specify the format for the server key
+* First pass support for checking status via unique value.
+
+0.33 Thu May  3 22:09:29 PDT 2012
+* Add --config-file option
+* Additional testing for Drizzle
+* Fix for OSX 10.6.8 compile issue.
+
+0.32 Wed Apr 11 02:25:38 PDT 2012
+* Fix for shutdown bug.
+
+0.31 Sat Apr  7 11:56:58 PDT 2012
+* Fixes for bugs 975591, 974712, 970828, 967859, 967463,
+* Valgrind fix around epoch retry.
+* Numerous issues cleaned up around bouncing server during testing.
+
+0.29 Tue Mar 13 22:58:16 PDT 2012
+* Additional Fixes for Postgres
+* Additional debug calls in server via tuneable logging.
+* Documentation update.
+* Fixes for Ubuntu 11.10
+
+0.28 Thu Jan 26 22:43:46 PST 2012
+* -v has been deprecated because of parsing issues. Please use --verbose instead
+* --log-file=stderr will set output to stderr.
+* Fix for gearman.spec file for rpm build.
+
+0.27 Mon Jan  9 20:02:16 PST 2012
+* Fix for TokyoCabinet
+* Build updates for building on Ubuntu
+
+0.26 Wed Nov 30 09:25:49 PST 2011
+* Completed support for syslog for gearmand
+* Fix libdrizzle issues
+* Add API for killing a worker.
+
+0.25 Thu Nov  3 09:18:46 PDT 2011
+  * 1.0 libgearman API extracted.
+  * Fix for long function names.
+  * Fix for Worker consuming CPU by hanging.
+  * TokyoCabinet build fix.
+  * Fix for 32bit fix.
+
+0.24 Sun Jul 24 20:57:02 PDT 2011
+  * Minor bug fixes.
+  * Updated test framework.
+  * make fixes for Fedora.
+
+0.23 Wed Jun 29 13:26:26 PDT 2011
+  * Defined workers can now return GEARMAN_SHUTDOWN.
+  * Benchmark worker can now be told to shutdown.
+  * Allocator code has been cleaned up (gearman_allocator_t).
+  * Added "workers" option to gearadmin
+  * Workers will now default to -1 as timeout (lowers CPU on gearmand server for non-active workers).
+  * SO_KEEPALIVE is now enabled on client/worker connections.
+  * By default, workers now grab the unique value of the job.
+
+0.22 Sun Jun 19 20:32:18 PDT 2011
+  * Added gearman_work_map() for gearman_work_t describer.
+  * gearman_execute_by_partition() added. 
+  * gearamn_task_attr_t added.
+  * Additional documentation update.
+  * Issue with PHP client using automated task free (Thanks Taneli Leppä!!)
+  * Fixed issue where PHP client's custom allocator was free'ing memory that did not belong to it.
+
+0.21 Wed Jun 15 21:01:04 PDT 2011
+  * Support for "drop function" in admin client
+  * Fixed issue where server would not report on a bad unique value due to size
+  * Forces do operations to complete no matter how the worker is designed.
+  * Tasks inherit actions from client, and use them throughout execution.
+  * Support for namespaces.
+  * gearman_worker_define_function() has been added. It allows jobs to map out work to other workers and then aggregate the results.
+  * gearman_client_run_tasks() will now reset the IO state for all connections on exit if all hosts have been marked down. The next call will check all hosts.
+  * Lots of bug fixes.
+
+0.20 Fri Apr  8 09:25:15 PDT 2011
+  * gearman_client_execute() interface added
+  * New types of gearman_unique_t, gearman_function_st, gearman_workload_t
+  * Better error reporting from clients.
+  * Server no longer hangs because of bad job list.
+  * First bit of work on supporting epoch portion of protocol. John Ewart, john@johnewart.net 
+  * Improved error message handling in client. 
+  * Updates for manpages.
+
+0.19 Fri Apr  1 09:50:22 PDT 2011
+  * Fix bug where gearman util would create duplicate output.
+  * Update sqlite queue so that it uses a prepared statement.
+  * Fixes a number cases where server was not initializing default values internally correctly.  
+  * gearman_client_compare()  API added. Returns true if the client connections are connects are equivalent.
+
+0.18 Tue Mar 15 13:32:33 PDT 2011
+  * Bug fix for compile when no plugins are requested.
+  * Bug fix where during startup using Drizzle or MySQL the server could crash.
+  * Bug fix to make sure test programs will run if NULL sized objects are sent.
+
+
+0.17 Tue Mar  8 08:27:04 PST 2011
+  * gearadmin added, easy access to shutdown, version, and verbose commands on the server.
+  * Bug fixes related to CLI.
+  * Bug fixes related to Memcached support.
+  * Bug fixes related to Drizzle support.
+  * Dependency on boost now required for build.
+  * Drizzle queue module expects that a schema named "gearmand" exists.
+  * Fix copyright headers were needed.
+
+0.16 Tue Feb 22 10:55:33 PST 2011
+  * Fixed cases where silent failure of server for queues would not cause tests to fail.
+  * Fix for failure when setsockopt() failed on new connection.
+  * Fixed silen exit in client library based on signals.
+  * Error log now reports failure location in compiled code for ERROR conditions.
+  * Fix for failover.
+  * Fixed issue in client where it would silently die based on signal issues.
+  * "verbose" has been added to the string protocol. It allows you to see what the verbose setting is.
+
+0.15 Mon Feb 14 18:44:32 PST 2011
+  * Numerous issues around overflow on buffers are now fixed.
+  * Updates on gearmand daemon to share a bit more code.
+  * Numerious fixes for gearman command line client.
+  * IPV6 fix for server.
+
+0.14 Wed Jun 30 13:04:39 PDT 2010
+  * Leak in SQLite resolved.
+  * updated build configs
+  * Increased testting.
+
+0.13 Sun Apr  4 14:45:08 PDT 2010
+ * Fix for bug #518512.
+ * Use OR REPLACE syntax for inserting items into the sqlite.
+ * Changed default bitfield optimize setting to only be off for Solaris.
+ * Refactoring on server.
+ * Various bug fixes as reported on mailing list, such as a bad return code and treating EHOSTDOWN as lost connection for FreeBSD.
+ * Fixed bug #543402 so jobs taking more than max job retries will be removed from persistentn queue as well.
+ * Check to make sure worker job results match assigned worker.
+
+0.12 Thu Feb 18 11:28:49 PST 2010
+ * Fixed bug where memory loss occured if data was too large.
+ * Added gearman_strerror().
+ * Fixed bug where setting an option off in mass would not trip any triggers on the option (for both worker and client).
+ * Options that are internal can no longer be set by external callers.
+ * Deprecated gearman_client_set_event_watch_fn() and gearman_worker_set_event_watch_fn.  
+ * gearman_job_handle() and gearman_job_function_name() now return const char* pointers 
+ * gearman_worker_unregister now returns GEARMAN_NO_REGISTERED_FUNCTION if the function does not exist (or is being removed)
+ * Added gearman_worker_function_exist()
+ * Trying to send too large of a piece of data will result in GEARMAN_ARGUMENT_TOO_LARGE.
+ * Added support for gearmand command client to daemonize and create a pid file.
+ * Fixed job handle comparison bug with WORK_FAIL responses.
+ * Fixed disable assert configure option.
+ * Build system updates.
+
+0.11 - 2009-11-30
+ * Added max wakeup-worker option to gearmand. Default is still to wakeup all.
+ * API and documentation cleanup.
+ * Fixed bug where task context free function was getting called for do() functions. This was PECL/Gearman bug #16899 as well.
+ * Fixed bug #458912, not flushing with multiple gearmands in client.
+ * Fixed PECL/Gearman bug #16847, was actually in C library and not in PHP.
+ * Fixed C++ build/test/ issue, updated pandora build system.
+ * Removed packet varargs function.
+
+0.10 - 2009-09-28
+ * Added timeout option.
+ * Separated libgearman client/worker library from the server/gearmand code.
+ * Added server option for max job retry.
+ * Changed queue_libdrizzle to overwrite the password string to hide in ps.
+ * Worker unregister bug fixed. Bug #372074
+ * Added memory ownership functions so applications can pass control with tasks, jobs, and packets.
+ * Changed gearmand to remap stdio to /dev/null for detaching. Bug #407242
+ * Fixed bug that now allows workers to run concurrent jobs.
+ * Changed behavior of sending NOOPs to one per PRESLEEP, rather than only having one in the outgoing queue at any time.
+ * API cleanup to make the code more consistent and object-oriented.
+ * Added more documentation for base classes, client, and worker.
+ * Build system updates.
+
+0.9 - 2009-07-20
+ * Added libsqlite3 persistent queue support (Cory Bennett).
+ * Added libpq (PostgreSQL) persistent queue support.
+ * Updated autoconf build system.
+ * Doxygen documentation cleanup.
+ * Bug fix in HTTP protocol module.
+
+0.8 - 2009-06-30
+ * Added pluggable protocol support.
+ * Added basic HTTP protocol support.
+ * Updated autoconf build system.
+ * Renamed modconf to gearman_conf.
+ * Improved logging messages for gearmand.
+ * Removed all struct memsets and packed structs for better memory usage.
+ * Fixed client connect bug with multiple job servers.
+ * Fixed server spinning bug with long running jobs and large workloads.
+
+0.7 - 2009-05-31
+ * Added libmodconf for config option processing. Eventually this will be split into a separate library. Updated gearmand and tests to use libmodconf.
+ * Fixed persistent queue bug where jobs were not removed after replay.
+ * Fix for bug #379198.
+ * Changed done() function for queue, function_name is now passed to it as well as unique.
+ * Fixed text protocol command response to be dynamic length.
+ * Fixed libevent usage to support libevent 1.1 (still used in CentOS and Suse).
+ * Added gearman_*_add_servers to client/worker interfaces for taking server lists.
+
+0.6 - 2009-05-19
+ * Changed behavior so forground jobs are not run when their connected clients disconnect. This is how the Perl server behaves.
+ * Changed to named logging macros, making it easier for module writers to use.
+ * Added persistent queue support with a libdrizzle module. This allows queue storage for both Drizzle and MySQL.
+ * Added Solaris service scripts (Trond Norbye).
+ * Fixed rpm building (make rpm).
+ * Removed AI_V4MAPPED for client/worker connect lookup, not fully supported in all operating systems (like FreeBSD, bug #373060).
+ * Support for gearmand to bind to multiple addresses.
+ * Protocol document updates and fixes (Eric Day, Eric Herman).
+ * Bind to specific hostname in gearmand (Brian Moon).
+ * Minor cleanup and fixes.
+
+0.5 - 2009-04-22
+ * Threaded Gearman job server (gearmand).
+ * More options to gearmand.
+ * OSX bug fixes related to poll().
+ * Fix for bug #357881.
+ * Man page rework.
+
+0.4 - 2009-03-30
+ * New protocol additions such as UNIQ grab and assign for workers.
+ * Support for high priority background jobs (Brian Moon).
+ * Support for low priority jobs.
+ * New priority queue in server to support new protocol options.
+ * Reworked the unique ID checking in server.
+ * Added hooks to aid in client memory cleanup.
+ * Added gearman command line utility to allow you to use clients and workers from the shell.
+ * Build fixes (Monty Taylor).
+ * Basic init script added.
+ * Fixed getopt bugs with variable type and EOF.
+
+0.3 - 2009-02-05
+ * Fixed I/O wait bug in packet parse.
+ * Switched to different autoconf library detection method.
+ * Added detach option to gearmand, can now run in background.
+ * Reworked much of the client code for better concurrency and efficiency.
+ * Added benchmark utilities.
+ * Added man pages.
+ * Changed port to new IANA assigned port, 4730.
+
+0.2 - 2009-01-16
+ * Improved gearmand efficiency by tracking events and reducing syscalls.
+ * Reworked most of the worker code, it now reconnects to the job server.
+ * Added version/bugreport options to gearmand (Brian Moon).
+ * Fixed bug #315652, libevent usage.
+
+0.1 - 2009-01-08
+ * First release.

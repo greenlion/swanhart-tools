@@ -1,0 +1,17 @@
+#! /bin/sh
+
+# Make sure aclocal catches duplicate definitions in acinclude.m4.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+pkg_INTERNAL_MACRO
+END
+
+cat > acinclude.m4 << 'END'
+AC_DEFUN([pkg_INTERNAL_MACRO])
+AC_DEFUN([pkg_INTERNAL_MACRO])
+END
+
+$ACLOCAL && exit 1
+exit 0

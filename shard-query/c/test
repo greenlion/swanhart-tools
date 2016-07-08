@@ -1,0 +1,3 @@
+# usage: split -f filename -j start -e end -y delimiter -z shard_pos -h mapper_host -u mapper_user -p mapper_password -d mapper_db -s schema_name
+#g++ md5.cpp split.cpp -o split `mysql_config --cxxflags --libs` -std=c++11 -l gearman && \
+./split -t lineorder -f /tmp/lineorder.tbl -j 0 -e 0 -y '|' -z 0 -h 127.0.0.1 -u shard_query -p shard_query -d shard_query -s default |tee > test2 

@@ -1,0 +1,17 @@
+#! /bin/sh
+
+# Test to make sure dependencies work when require'd macro is part of
+# autoconf.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AM_C_PROTOTYPES
+END
+
+cat > AM_C_PROTOTYPES.m4 << 'END'
+AC_REQUIRE([AC_HEADER_STDC])
+END
+
+# Our --acdir overrides the one in $ACLOCAL.
+$ACLOCAL -I .

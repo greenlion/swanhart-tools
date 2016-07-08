@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Test for bug reported by Nyul Laszlo.  When using the ":" syntax in
+# AC_OUTPUT, Automake fails to find the correct file.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile foo.h:foo.hin)
+END
+
+: > Makefile.am
+: > foo.hin
+: > stamp-h.in
+
+$AUTOMAKE

@@ -1,0 +1,77 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2012 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+#
+
+t_hostile_gearmand_CFLAGS=
+t_hostile_gearmand_CXXFLAGS=
+t_hostile_gearmand_LDADD=
+t_hostile_gearmand_SOURCES=
+
+t_hostile_gearmand_CXXFLAGS+= -DHAVE_LIBHOSTILE=1
+t_hostile_gearmand_CFLAGS+= -DHAVE_LIBHOSTILE=1
+t_hostile_gearmand_LDADD+= libhostile/libhostile.la
+if HOST_LINUX
+t_hostile_gearmand_LDADD+= @lt_cv_dlopen_libs@
+t_hostile_gearmand_LDADD+= @RT_LIB@
+endif
+
+t_hostile_gearmand_SOURCES+= tests/hostile.cc
+t_hostile_gearmand_LDADD+= libgearman/libgearman.la
+t_hostile_gearmand_LDADD+= libtest/libtest.la
+t_hostile_gearmand_LDADD+= tests/libstartworker.la
+check_PROGRAMS+=t/hostile_gearmand
+noinst_PROGRAMS+=t/hostile_gearmand
+
+test-hostile-gearmand: t/hostile_gearmand gearmand/gearmand gearmand/hostile_gearmand
+	@t/hostile_gearmand
+
+valgrind-hostile-gearmand: t/hostile_gearmand gearmand/gearmand gearmand/hostile_gearmand
+	@$(VALGRIND_COMMAND) t/hostile_gearmand
+
+gdb-hostile-gearmand: t/hostile_gearmand gearmand/gearmand gearmand/hostile_gearmand
+	@$(GDB_COMMAND) t/hostile_gearmand
+
+t_hostile_libgearman_CFLAGS=
+t_hostile_libgearman_CXXFLAGS=
+t_hostile_libgearman_LDADD=
+t_hostile_libgearman_SOURCES=
+
+t_hostile_libgearman_CXXFLAGS+= -DHAVE_LIBHOSTILE=1
+t_hostile_libgearman_CFLAGS+= -DHAVE_LIBHOSTILE=1
+t_hostile_libgearman_CXXFLAGS+= -DSERVER_TARGET="\"gearmand\""
+t_hostile_libgearman_CFLAGS+= -DSERVER_TARGET="\"gearmand\""
+t_hostile_libgearman_LDADD+= libhostile/libhostile.la
+if HOST_LINUX
+t_hostile_libgearman_LDADD+= @lt_cv_dlopen_libs@
+t_hostile_libgearman_LDADD+= @RT_LIB@
+endif
+
+t_hostile_libgearman_SOURCES+= tests/hostile.cc
+t_hostile_libgearman_LDADD+= libgearman/libgearman-hostile.la
+t_hostile_libgearman_LDADD+= libtest/libtest.la
+t_hostile_libgearman_LDADD+= tests/libstartworker.la
+# check_PROGRAMS+=tests/hostile_libgearman
+noinst_PROGRAMS+=t/hostile_libgearman
+
+test-hostile_libgearman: t/hostile_libgearman gearmand/gearmand
+	@t/hostile_libgearman
+
+valgrind-hostile_libgearman: t/hostile_libgearman gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/hostile_libgearman
+
+gdb-hostile_libgearman: t/hostile_libgearman gearmand/gearmand
+	@$(GDB_COMMAND) t/hostile_libgearman
+
+.PHONY: hostile
+hostile: test-hostile-gearmand test-hostile_libgearman
+
+gdb-hostile: gdb-hostile-gearmand gdb-hostile_libgearman
+

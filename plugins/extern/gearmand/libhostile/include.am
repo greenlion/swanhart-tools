@@ -1,0 +1,75 @@
+# vim:ft=automake
+# libhostile
+# Copyright (C) 2011 - 2013 Data Differential
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+# Unit tests
+include libhostile/t/include.am
+
+check_LTLIBRARIES+= libhostile/libhostile.la
+
+noinst_HEADERS+= libhostile/accept.h
+noinst_HEADERS+= libhostile/action.h
+noinst_HEADERS+= libhostile/called.h
+noinst_HEADERS+= libhostile/close.h
+noinst_HEADERS+= libhostile/connect.h
+noinst_HEADERS+= libhostile/function.h
+noinst_HEADERS+= libhostile/getaddrinfo.h
+noinst_HEADERS+= libhostile/hostile.h
+noinst_HEADERS+= libhostile/initialize.h
+noinst_HEADERS+= libhostile/malloc.h
+noinst_HEADERS+= libhostile/pipe.h
+noinst_HEADERS+= libhostile/poll.h
+noinst_HEADERS+= libhostile/realloc.h
+noinst_HEADERS+= libhostile/recv.h
+noinst_HEADERS+= libhostile/send.h
+noinst_HEADERS+= libhostile/setsockopt.h
+noinst_HEADERS+= libhostile/socket.h
+noinst_HEADERS+= libhostile/socket_server.h
+noinst_HEADERS+= libhostile/sync.h
+noinst_HEADERS+= libhostile/visibility.h
+noinst_HEADERS+= libhostile/write.h
+
+libhostile_libhostile_la_CFLAGS=
+libhostile_libhostile_la_CXXFLAGS=
+libhostile_libhostile_la_LIBADD=
+libhostile_libhostile_la_SOURCES=
+
+libhostile_libhostile_la_CFLAGS+= -DBUILDING_LIBHOSTILE
+libhostile_libhostile_la_CXXFLAGS+= -DBUILDING_LIBHOSTILE
+
+libhostile_libhostile_la_CFLAGS+= @PTHREAD_CFLAGS@
+libhostile_libhostile_la_CXXFLAGS+= @PTHREAD_CFLAGS@
+
+libhostile_libhostile_la_SOURCES+= libhostile/initialize.c
+
+if TARGET_HOSTILE
+libhostile_libhostile_la_LIBADD+= @lt_cv_dlopen_libs@
+libhostile_libhostile_la_LIBADD+= @RT_LIB@
+libhostile_libhostile_la_LIBADD+= @PTHREAD_LIBS@
+
+libhostile_libhostile_la_SOURCES+= libhostile/accept.c
+libhostile_libhostile_la_SOURCES+= libhostile/called.c
+libhostile_libhostile_la_SOURCES+= libhostile/close.c
+libhostile_libhostile_la_SOURCES+= libhostile/connect.c
+libhostile_libhostile_la_SOURCES+= libhostile/function.c
+libhostile_libhostile_la_SOURCES+= libhostile/getaddrinfo.c
+libhostile_libhostile_la_SOURCES+= libhostile/malloc.c
+libhostile_libhostile_la_SOURCES+= libhostile/pipe.c
+libhostile_libhostile_la_SOURCES+= libhostile/poll.c
+libhostile_libhostile_la_SOURCES+= libhostile/realloc.c
+libhostile_libhostile_la_SOURCES+= libhostile/recv.c
+libhostile_libhostile_la_SOURCES+= libhostile/send.c
+libhostile_libhostile_la_SOURCES+= libhostile/socket.c
+libhostile_libhostile_la_SOURCES+= libhostile/socket_server.c
+libhostile_libhostile_la_SOURCES+= libhostile/setsockopt.c
+libhostile_libhostile_la_SOURCES+= libhostile/write.c
+else
+libhostile_libhostile_la_SOURCES+= libhostile/dummy.c
+endif

@@ -1,0 +1,24 @@
+#! /bin/sh
+
+# Test to make sure C++ linker is used when appropriate.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+AC_PROG_CXX
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = lavalamp
+lavalamp_SOURCES = lava.c lamp.cxx
+END
+
+: > lava.c
+: > lamp.cxx
+
+$AUTOMAKE || exit 1
+
+# Look for this macro not at the beginning of any line; that will have
+# to be good enough for now.
+grep '.CXXLINK' Makefile.in

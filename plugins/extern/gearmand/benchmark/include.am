@@ -1,0 +1,51 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2008 Brian Aker, Eric Day
+# Copyright (C) 2009 Brian Aker, Eric Day, Monty Taylor
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+
+noinst_PROGRAMS+= benchmark/blobslap_client
+noinst_PROGRAMS+= benchmark/blobslap_worker
+
+noinst_HEADERS+= benchmark/benchmark.h
+
+noinst_LTLIBRARIES+= benchmark/libbenchmark.la
+benchmark_libbenchmark_la_SOURCES= benchmark/benchmark.cc
+
+benchmark_blobslap_client_SOURCES= benchmark/blobslap_client.cc
+benchmark_blobslap_client_LDADD= benchmark/libbenchmark.la libgearman/libgearman.la
+
+benchmark_blobslap_worker_CXXFLAGS=
+benchmark_blobslap_worker_LDADD=
+benchmark_blobslap_worker_LDFLAGS=
+benchmark_blobslap_worker_SOURCES=
+benchmark_blobslap_worker_CXXFLAGS+= @PTHREAD_CFLAGS@
+benchmark_blobslap_worker_LDADD+= @PTHREAD_LIBS@
+benchmark_blobslap_worker_LDADD+= benchmark/libbenchmark.la
+benchmark_blobslap_worker_LDADD+= libgearman/libgearman.la
+benchmark_blobslap_worker_SOURCES+= benchmark/blobslap_worker.cc
+benchmark_blobslap_worker_SOURCES+= util/daemon.cc
+benchmark_blobslap_worker_SOURCES+= util/logfile.cc
+benchmark_blobslap_worker_SOURCES+= util/pidfile.cc
+benchmark_blobslap_worker_SOURCES+= util/signal.cc
+
+GEARMAND_BE_PIDFILE = ${abs_top_builddir}/tests/var/tmp/Begearmand.pid
+GEARMAND_BENCHMARK_PORT = 6000
+BENCHMARK_COUNT = 100
+BENCHMARK_TASK_COUNT = 10
+BENCHMARK_TASK_COUNT_TOTAL = 1000
+
+benchmark-test: benchmark/blobslap_client benchmark/blobslap_worker gearmand/gearmand
+	@echo Running benchmarking tool, this may take a couple of seconds
+	@gearmand/gearmand --port=$(GEARMAND_BENCHMARK_PORT) --daemon --pid-file=$(GEARMAND_BE_PIDFILE)
+	@libtest/wait $(GEARMAND_BE_PIDFILE)
+	@benchmark/blobslap_worker  -p $(GEARMAND_BENCHMARK_PORT) -d
+	@benchmark/blobslap_client  -c $(BENCHMARK_COUNT) -n $(BENCHMARK_TASK_COUNT) -p $(GEARMAND_BENCHMARK_PORT) -e
+	@cat $(GEARMAND_BE_PIDFILE) | xargs kill

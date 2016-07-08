@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Test for bug where check target doesn't depend on all.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+bin_SCRIPTS = derived
+check-local:
+	true
+END
+
+$AUTOMAKE || exit 1
+
+grep '^check:.* all' Makefile.in

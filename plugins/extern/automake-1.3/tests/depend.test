@@ -1,0 +1,23 @@
+#! /bin/sh
+
+# This tests for a bug reported by Henrik Frystyk Nielsen <frystyk@w3.org>
+# In some cases the auto-dependency can get confused and try
+# to `-include' a directory.
+# This actually tests for two bugs:
+# * A configure substitution in _SOURCES incorrectly ends up in DEP_FILES
+# * A backslash-newline in _SOURCES causes just the directory to
+#   appear in DEP_FILES.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = fred
+fred_SOURCES = \
+   @BLATT@
+END
+
+$AUTOMAKE || exit 1
+
+# In this case we no longer expect to find DEP_FILES.
+grep '^DEP_FILES = *$' Makefile.in && exit 1
+exit 0

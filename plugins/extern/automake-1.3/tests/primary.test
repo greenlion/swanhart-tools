@@ -1,0 +1,12 @@
+#! /bin/sh
+
+# Test to make sure errors in am_install_var work.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = @programs@
+END
+
+$AUTOMAKE && exit 1
+exit 0

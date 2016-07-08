@@ -1,0 +1,14 @@
+#! /bin/sh
+
+# Test to make sure some internal _DEPENDENCIES variables don't cause
+# errors.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+TAGS_DEPENDENCIES = joe
+## Required to avoid error.
+ETAGS_ARGS = joe
+END
+
+$AUTOMAKE

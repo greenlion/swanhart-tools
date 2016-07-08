@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Test for bug reported by Jerome Santini.
+# If I put this line in my configure.in:
+# AC_OUTPUT(Makefile src/Makefile tests/Makefile, echo timestamp > stamp-h)dnl
+# automake is not happy:
+# [ ... ]
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile, [true])
+END
+
+: > Makefile.am
+
+$AUTOMAKE

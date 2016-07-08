@@ -1,0 +1,25 @@
+#! /bin/sh
+
+# Test to make sure LIBOBJS and C++ sources work right.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CXX
+AC_PROG_CC
+AC_REPLACE_FUNCS(strdup)
+END
+
+cat > Makefile.am << 'END'
+sbin_PROGRAMS = anonymous
+anonymous_SOURCES = doe.C jane.C
+anonymous_LDADD = @LIBOBJS@
+END
+
+: > strdup.c
+: > doe.C
+: > jane.C
+
+$AUTOMAKE || exit 1
+
+grep CC Makefile.in

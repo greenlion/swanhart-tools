@@ -3,3 +3,4 @@
 *.log
 *.pid
 *.inc
+.console.hist

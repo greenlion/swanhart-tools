@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Yet another canonicalization test.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = perm-number
+END
+
+: > perm-number.c
+
+$AUTOMAKE || exit 1
+
+grep 'perm_number\.c' Makefile.in && exit 1
+exit 0

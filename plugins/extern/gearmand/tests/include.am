@@ -1,0 +1,200 @@
+# vim:ft=automake
+#
+# Gearman server and library
+# Copyright (C) 2011-2012 Data Differential, http://datadifferential.com/
+# Copyright (C) 2008 Brian Aker, Eric Day
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+
+noinst_HEADERS+= tests/basic.h
+noinst_HEADERS+= tests/burnin.h
+noinst_HEADERS+= tests/context.h
+noinst_HEADERS+= tests/do.h
+noinst_HEADERS+= tests/do_background.h
+noinst_HEADERS+= tests/execute.h
+noinst_HEADERS+= tests/gearman_client_do_job_handle.h
+noinst_HEADERS+= tests/gearman_execute_partition.h
+noinst_HEADERS+= tests/limits.h
+noinst_HEADERS+= tests/protocol.h
+noinst_HEADERS+= tests/regression.h
+noinst_HEADERS+= tests/runner.h
+noinst_HEADERS+= tests/server_options.h
+noinst_HEADERS+= tests/start_worker.h
+noinst_HEADERS+= tests/task.h
+noinst_HEADERS+= tests/unique.h
+
+CLIENT_LDADD=
+CLIENT_LDADD+= libgearman/libgearman.la
+CLIENT_LDADD+= libtest/libtest.la
+CLIENT_LDADD+= tests/libstartworker.la
+
+t_cycle_SOURCES=
+t_cycle_LDADD=
+EXTRA_t_cycle_DEPENDENCIES=
+
+EXTRA_t_cycle_DEPENDENCIES+= gearmand/gearmand
+t_cycle_SOURCES+= tests/cycle.cc
+t_cycle_LDADD+= ${CLIENT_LDADD}
+check_PROGRAMS+=t/cycle
+noinst_PROGRAMS+=t/cycle
+
+t_blobslap_client_SOURCES=
+t_blobslap_client_LDADD=
+
+t_blobslap_client_SOURCES+= tests/blobslap_client.cc
+t_blobslap_client_LDADD+= ${CLIENT_LDADD}
+noinst_PROGRAMS+= t/blobslap_client
+
+# Vector tests
+t_vector_SOURCES=
+t_vector_LDADD=
+
+t_vector_SOURCES+= tests/vector.cc
+t_vector_LDADD+= libtest/libtest.la
+t_vector_LDADD+= libgearman/libgearman-vector.la
+check_PROGRAMS+= t/vector
+noinst_PROGRAMS+= t/vector
+
+test-vector: t/vector
+	@t/vector
+
+valgrind-vector: t/vector
+	@$(VALGRIND_COMMAND) t/vector
+
+# Vector tests
+t_result_SOURCES=
+t_result_LDADD=
+
+t_result_SOURCES+= tests/result.cc
+t_result_LDADD+= libtest/libtest.la
+t_result_LDADD+= libgearman/libgearman-result.la
+check_PROGRAMS+= t/result
+noinst_PROGRAMS+= t/result
+
+test-result: t/result
+	@t/result
+
+valgrind-result: t/result
+	@$(VALGRIND_COMMAND) t/result
+
+
+EXTRA_t_gearmand_DEPENDENCIES=
+t_gearmand_LDADD=
+t_gearmand_SOURCES=
+
+t_gearmand_SOURCES+= tests/gearmand.cc
+t_gearmand_LDADD+= ${CLIENT_LDADD}
+EXTRA_t_gearmand_DEPENDENCIES+= gearmand/gearmand
+check_PROGRAMS+= t/gearmand
+noinst_PROGRAMS+= t/gearmand
+
+include tests/libgearman-1.0/include.am
+include tests/stress.am
+include tests/hostile.am
+include tests/workers/include.am
+include tests/protocol.mk
+
+t_round_robin_SOURCES=
+t_round_robin_LDADD=
+
+t_round_robin_SOURCES+= tests/round_robin.cc
+t_round_robin_LDADD+= ${CLIENT_LDADD}
+t_round_robin_LDADD+= libgearman/libgearmancore.la
+check_PROGRAMS+= t/round_robin
+noinst_PROGRAMS+= t/round_robin
+
+test-round-robin: t/round_robin gearmand/gearmand
+	@t/round_robin
+
+gdb-round-robin: t/round_robin gearmand/gearmand
+	@$(GDB_COMMAND) t/round_robin
+
+valgrind-round-robin: t/round_robin gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/round_robin
+
+helgrind-round-robin: tests/round_robin gearmand/gearmand
+	@$(HELGRIND_COMMAND) t/round_robin
+
+# Test linking with C++ application
+t_cpp_SOURCES=
+t_cpp_LDADD=
+
+t_cpp_SOURCES+= tests/cpp_test.cc
+t_cpp_LDADD+= ${CLIENT_LDADD}
+check_PROGRAMS+=t/cpp
+noinst_PROGRAMS+=t/cpp
+
+valgrind-cpp: t/cpp
+	@$(VALGRIND_COMMAND) t/cpp
+
+# Test linking with C application
+t_c_SOURCES=
+t_c_LDADD=
+
+t_c_SOURCES+= tests/c_test.c
+t_c_LDADD+= ${CLIENT_LDADD}
+check_PROGRAMS+=t/c
+noinst_PROGRAMS+=t/c
+
+valgrind-c: t/c
+	@$(VALGRIND_COMMAND) t/c
+
+gdb-c: t/c
+	@$(GDB_COMMAND) t/c
+
+test-cycle: t/cycle gearmand/gearmand
+	@t/cycle
+
+test-gearmand: t/gearmand gearmand/gearmand
+	@t/gearmand
+
+tests-blobslap_client: t/blobslap_client gearmand/gearmand
+	@t/blobslap_client
+
+check-local:
+
+gdb-blobslap_client: t/blobslap_client gearmand/gearmand
+	@$(GDB_COMMAND) t/blobslap_client
+
+gdb-cycle: t/cycle gearmand/gearmand
+	@$(GDB_COMMAND) t/cycle
+
+gdb-gearmand: t/gearmand gearmand/gearmand
+	@$(GDB_COMMAND) t/gearmand
+
+valgrind-burnin: t/burnin_test gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/burnin_test
+
+valgrind-cycle: t/cycle gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/cycle
+
+valgrind-gearmand: t/gearmand gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/gearmand
+
+helgrind-client: t/client gearmand/gearmand
+	@$(HELGRIND_COMMAND) t/client
+
+helgrind-burnin: t/burnin gearmand/gearmand
+	@$(HELGRIND_COMMAND) t/burnin
+
+helgrind-cycle: t/cycle gearmand/gearmand
+	@$(HELGRIND_COMMAND) t/cycle
+
+drd-cycle: t/cycle gearmand/gearmand
+	@$(DRD_COMMAND) t/cycle
+
+include tests/ephemeral.am
+include tests/libdrizzle.am
+include tests/libmemcached.am
+include tests/postgres.am
+include tests/mysql.am
+include tests/sqlite.am
+include tests/tokyocabinet.am
+include tests/redis.am
+include tests/httpd.am
+include tests/perl/include.am
+
+bogus:
+

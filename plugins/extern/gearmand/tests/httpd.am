@@ -1,0 +1,33 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2011 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+#
+
+t_httpd_SOURCES=
+t_httpd_LDADD=
+
+t_httpd_SOURCES+= tests/httpd_test.cc
+
+t_httpd_LDADD+= $(CLIENT_LDADD)
+
+#check_PROGRAMS+= t/httpd
+noinst_PROGRAMS+= t/httpd
+
+test-httpd: t/httpd gearmand/gearmand
+	@t/httpd
+
+gdb-httpd: t/httpd gearmand/gearmand
+	@$(GDB_COMMAND) tests/httpd
+
+helgrind-httpd: t/httpd gearmand/gearmand
+	@$(HELGRIND_COMMAND) t/httpd
+
+valgrind-httpd: t/httpd gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/httpd

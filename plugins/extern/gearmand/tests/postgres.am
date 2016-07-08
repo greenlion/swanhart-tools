@@ -1,0 +1,32 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2011 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+#
+
+t_postgres_SOURCES=
+t_postgres_CXXFLAGS=
+t_postgres_LDADD=
+
+t_postgres_SOURCES+= tests/basic.cc
+t_postgres_SOURCES+= tests/postgres_test.cc
+
+t_postgres_LDADD+= ${CLIENT_LDADD}
+
+check_PROGRAMS += t/postgres
+noinst_PROGRAMS += t/postgres
+
+test-postgres: t/postgres gearmand/gearmand
+	@t/postgres
+
+gdb-postgres: t/postgres gearmand/gearmand
+	@$(GDB_COMMAND) t/postgres
+
+valgrind-postgres: t/postgres gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/postgres

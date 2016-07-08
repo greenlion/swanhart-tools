@@ -1,0 +1,28 @@
+#! /bin/sh
+
+# Make sure README-alpha is distributed when appropriate.  Report from
+# Jim Meyering.
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AM_INIT_AUTOMAKE(zardoz, 1.5e)
+END
+
+cat > Makefile.am << 'END'
+AUTOMAKE_OPTIONS = gnits
+END
+
+: > README-alpha
+
+# Gnits stuff.
+: > INSTALL
+: > NEWS
+: > README
+: > COPYING
+: > AUTHORS
+: > ChangeLog
+: > THANKS
+
+$AUTOMAKE || exit 1
+
+grep README-alpha Makefile.in

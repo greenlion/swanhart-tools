@@ -1,0 +1,15 @@
+#! /bin/sh
+
+# Test to see if defining INSTALL_DATA causes problems.  From EGCS
+# list.
+
+. $srcdir/defs || exit 1
+
+echo 'AC_SUBST(INSTALL_DATA)' >> configure.in
+
+: > Makefile.am
+
+$AUTOMAKE || exit 1
+
+(grep '^DATA =' Makefile.in | grep INSTALL_DATA) && exit 1
+exit 0

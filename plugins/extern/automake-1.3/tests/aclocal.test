@@ -1,0 +1,8 @@
+#! /bin/sh
+
+# Test to make sure that aclocal --output works.  Report from
+# Alexandre Oliva.
+. $srcdir/defs || exit 1
+
+$ACLOCAL --output=fred || exit 1
+test -f fred

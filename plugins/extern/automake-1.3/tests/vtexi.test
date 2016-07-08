@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Test for bug reported by Jim Meyering:
+# When I ran automake-0.29 on textutils,
+# I noticed that doc/Makefile.in had
+#   textutils.info: textutils.texi
+# instead of
+#   textutils.info: textutils.texi version.texi
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = textutils.texi
+END
+
+cat > textutils.texi << 'END'
+@include version.texi
+@setfilename textutils.info
+END
+
+# Required when using Texinfo.
+: > mdate-sh
+: > texinfo.tex
+
+$AUTOMAKE || exit 1
+
+grep '^textutils\.info: textutils\.texi version\.texi$' Makefile.in

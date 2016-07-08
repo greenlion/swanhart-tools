@@ -1,0 +1,13 @@
+# vim:ft=automake
+
+# Test linking with C application
+libgearman_1_0_t_c_test_SOURCES= libgearman-1.0/t/c_test.c
+libgearman_1_0_t_c_test_LDADD= libgearman/libgearman.la
+check_PROGRAMS+= libgearman-1.0/t/c_test
+noinst_PROGRAMS+= libgearman-1.0/t/c_test
+
+# Test linking with C application
+libgearman_1_0_t_cc_test_SOURCES= libgearman-1.0/t/cc_test.cc
+libgearman_1_0_t_cc_test_LDADD= libgearman/libgearman.la
+check_PROGRAMS+= libgearman-1.0/t/cc_test
+noinst_PROGRAMS+= libgearman-1.0/t/cc_test

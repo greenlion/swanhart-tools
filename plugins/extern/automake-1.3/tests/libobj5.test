@@ -1,0 +1,22 @@
+#! /bin/sh
+
+# Test to make sure AC_REPLACE_FUNCS works across lines.  Report from
+# Jim Meyering.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = joe
+LDADD = @LIBOBJS@
+END
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+AC_REPLACE_FUNCS(\
+   foo)
+END
+
+: > foo.c
+
+$AUTOMAKE || exit 1
+fgrep foo.c Makefile.in

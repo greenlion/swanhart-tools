@@ -11,24 +11,24 @@ fi
 
 #wait for the config file to show up before trying to
 #actually start any workers
-if [ ! -f ../include/config.inc ]; then
+IS_CONFIGURED=$(./check_for_config_file)
+if [ "$IS_CONFIGURED" == "NO" ]; then
   echo "Did not find bootstrap file!  Please configure shard-query before starting workers."
 fi
 
-while [ ! -f ../include/config.inc ]
+while [ "$IS_CONFIGURED" == "NO" ]
 do
   echo "waiting for bootstrap (hit ctrl-c to cancel)..."
   sleep 2
+  IS_CONFIGURED=$(./check_for_config_file)
 done
 
-echo "Launching $workers store workers"
 for i in `seq 1 $workers`
 do
-  echo "Launching store worker #$i"
-  ./run_store_resultset_worker >> ../log/worker.log &
-  echo "Launching loader worker #$i"
-  ./run_loader_worker >> ../log/worker.log &
-  echo "Launching shard query worker #$i"
-  ./run_shard_query_worker >> ../log/worker.log &
+  ./run_worker store_resultset >> ../log/store_resultset.log &
+  ./run_worker new_loader >> ../log/new_loader.log &
+  ./run_worker splitter >> ../log/splitter.log &
+  ./run_worker shard_query_worker >> ../log/shard_query_worker.log &
+  ./run_worker custom_function >> ../log/custom_function.log &
 done
 echo "done.."

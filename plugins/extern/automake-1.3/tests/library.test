@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Test for _DEPENDENCIES with libraries.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_RANLIB
+AM_MAINTAINER_MODE
+AM_EXEEXT
+AC_PROG_CC
+END
+
+cat > Makefile.am << 'END'
+AUTOMAKE_OPTIONS = dejagnu cygnus
+lib_LIBRARIES = libfoo.a
+libfoo_a_DEPENDENCIES = libzot.a
+END
+
+$AUTOMAKE

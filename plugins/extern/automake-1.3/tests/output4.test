@@ -1,0 +1,22 @@
+#! /bin/sh
+
+# It's hard to believe there are so many AC_OUTPUT-related bugs.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_OUTPUT(tests/Makefile tests/defs)
+END
+
+mkdir tests
+: > tests/defs.in
+: > tests/Makefile.am
+
+$AUTOMAKE || exit 1
+
+grep tests/defs.in tests/Makefile.in && exit 1
+exit 0

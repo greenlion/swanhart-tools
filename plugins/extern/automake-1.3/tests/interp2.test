@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# Test to make sure variable interpolation doesn't break other
+# features.  Report from Joel N. Weber, II.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+AC_PATH_X
+AC_PATH_XTRA
+END
+
+cat > Makefile.am << 'END'
+noinst_PROGRAMS = x
+x_SOURCES = x.c
+x_LDADD = $(X_EXTRA_LIBS)
+END
+
+$AUTOMAKE

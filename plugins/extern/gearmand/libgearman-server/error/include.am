@@ -1,0 +1,11 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2011 Data Differential
+
+libgearman_server_libgearman_server_la_SOURCES+= \
+						 libgearman-server/error/strerror.cc
+
+noinst_HEADERS+= \
+		 libgearman-server/error.h \
+		 libgearman-server/error/strerror.h \
+		 libgearman-server/error/type.h

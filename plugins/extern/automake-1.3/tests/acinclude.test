@@ -1,0 +1,12 @@
+#! /bin/sh
+
+# Test to make sure acinclude is actually included.
+# Report from Jim Meyering.
+
+. $srcdir/defs || exit 1
+
+echo moo > acinclude.m4
+
+$ACLOCAL || exit 1
+
+grep moo aclocal.m4

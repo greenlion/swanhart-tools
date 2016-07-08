@@ -1,0 +1,22 @@
+#! /bin/sh
+
+# Test to make sure that lex source generates correct target.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+AM_PROG_LEX
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = zot
+zot_SOURCES = joe.l
+LDADD = @LEXLIB@
+END
+
+: > joe.l
+
+$AUTOMAKE || exit 1
+
+grep '\$(LEX)' Makefile.in

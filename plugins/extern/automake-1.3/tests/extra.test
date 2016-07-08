@@ -1,0 +1,25 @@
+#! /bin/sh
+
+# Test to make sure EXTRA_ targets are generated.  This test used to
+# make sure the targets were *not* generated.  That is wrong; the
+# targets should always be generated.  However, they should not be
+# built by default.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = @foo@
+EXTRA_PROGRAMS = zardoz
+END
+
+$AUTOMAKE || exit 1
+
+grep "^zardoz" Makefile.in || exit 1
+
+# Can't have EXTRA clean rules.
+grep 'clean.*EXTRA' Makefile.in && exit 1
+exit 0

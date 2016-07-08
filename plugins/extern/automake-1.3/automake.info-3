@@ -1,0 +1,197 @@
+This is Info file automake.info, produced by Makeinfo version 1.67 from
+the input file automake.texi.
+
+INFO-DIR-SECTION GNU admin
+START-INFO-DIR-ENTRY
+* automake: (automake).		Making Makefile.in's
+END-INFO-DIR-ENTRY
+
+INFO-DIR-SECTION Individual utilities
+START-INFO-DIR-ENTRY
+* aclocal: (automake)Invoking aclocal.          Generating aclocal.m4
+END-INFO-DIR-ENTRY
+
+   This file documents GNU automake 1.3
+
+   Copyright (C) 1995, 96, 97, 98 Free Software Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided that
+the entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that this permission notice may be stated in a
+translation approved by the Foundation.
+
+
+File: automake.info,  Node: Index,  Prev: Future,  Up: Top
+
+Index
+*****
+
+* Menu:
+
+* _LDADD:                                A Program.
+* _LDFLAGS:                              A Program.
+* _LIBADD:                               A Library.
+* _SOURCES:                              A Program.
+* _TEXINFOS:                             Texinfo.
+* AC_ARG_PROGRAM:                        Requirements.
+* AC_CANONICAL_HOST:                     Optional.
+* AC_CANONICAL_SYSTEM:                   Optional.
+* AC_CHECK_PROG:                         Optional.
+* AC_CHECK_PROGS:                        Optional.
+* AC_CHECK_TOOL:                         Optional.
+* AC_CONFIG_AUX_DIR:                     Optional.
+* AC_CONFIG_HEADER:                      Optional.
+* AC_DECL_YYTEXT:                        Optional.
+* AC_FUNC_ALLOCA:                        Optional.
+* AC_FUNC_FNMATCH:                       Optional.
+* AC_FUNC_GETLOADAVG:                    Optional.
+* AC_FUNC_MEMCMP:                        Optional.
+* AC_OUTPUT:                             Requirements.
+* AC_PATH_PROG:                          Optional.
+* AC_PATH_PROGS:                         Optional.
+* AC_PATH_XTRA:                          Optional.
+* AC_PROG_CXX:                           Optional.
+* AC_PROG_INSTALL:                       Requirements.
+* AC_PROG_LEX:                           Optional.
+* AC_PROG_MAKE_SET:                      Requirements.
+* AC_PROG_RANLIB:                        Optional.
+* AC_PROG_YACC:                          Optional.
+* AC_REPLACE_FUNCS:                      Optional.
+* AC_REPLACE_GNU_GETOPT:                 Optional.
+* AC_STRUCT_ST_BLOCKS:                   Optional.
+* AC_SUBST:                              Optional.
+* all:                                   Extending.
+* ALL_LINGUAS:                           Optional.
+* AM_C_PROTOTYPES <1>:                   ANSI.
+* AM_C_PROTOTYPES <2>:                   Macros.
+* AM_C_PROTOTYPES:                       Optional.
+* AM_CONDITIONAL:                        Conditionals.
+* AM_CONFIG_HEADER:                      Macros.
+* AM_FUNC_ERROR_AT_LINE:                 Macros.
+* AM_FUNC_MKTIME:                        Macros.
+* AM_FUNC_OBSTACK:                       Macros.
+* AM_FUNC_STRTOD <1>:                    Macros.
+* AM_FUNC_STRTOD:                        Optional.
+* AM_GNU_GETTEXT:                        Optional.
+* AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL:  Macros.
+* AM_INIT_AUTOMAKE:                      Requirements.
+* AM_MAINTAINER_MODE:                    Optional.
+* AM_PATH_LISPDIR:                       Macros.
+* AM_PROG_CC_STDC:                       Macros.
+* AM_PROG_INSTALL <1>:                   Macros.
+* AM_PROG_INSTALL:                       Requirements.
+* AM_PROG_LEX:                           Macros.
+* AM_PROG_LIBTOOL:                       Optional.
+* AM_SANITY_CHECK:                       Macros.
+* AM_SYS_POSIX_TERMIOS:                  Macros.
+* AM_TYPE_PTRDIFF_T:                     Macros.
+* AM_WITH_DMALLOC:                       Macros.
+* AM_WITH_REGEX <1>:                     Macros.
+* AM_WITH_REGEX:                         Optional.
+* ansi2knr:                              ANSI.
+* AUTOMAKE_OPTIONS <1>:                  Options.
+* AUTOMAKE_OPTIONS <2>:                  Dependencies.
+* AUTOMAKE_OPTIONS:                      ANSI.
+* build_alias:                           Optional.
+* BUILT_SOURCES:                         Sources.
+* check:                                 Extending.
+* CLEANFILES:                            Clean.
+* CXX:                                   C++.
+* CXXCOMPILE:                            C++.
+* CXXFLAGS:                              C++.
+* CXXLINK:                               C++.
+* DATA <1>:                              Data.
+* DATA:                                  Uniform.
+* dejagnu:                               Tests.
+* DEJATOOL:                              Tests.
+* DESTDIR:                               Install.
+* dist <1>:                              Dist.
+* dist:                                  Dependencies.
+* dist-hook:                             Extending.
+* dist-shar:                             Options.
+* dist-tarZ:                             Options.
+* dist-zip:                              Options.
+* DIST_SUBDIRS:                          Dist.
+* distcheck:                             Dist.
+* DISTCLEANFILES:                        Clean.
+* dvi:                                   Extending.
+* ELCFILES:                              Emacs Lisp.
+* ETAGS_ARGS:                            Tags.
+* EXPECT:                                Tests.
+* EXTRA_DIST:                            Dist.
+* EXTRA_PROGRAMS:                        A Program.
+* HEADERS <1>:                           Headers.
+* HEADERS:                               Uniform.
+* host_alias:                            Optional.
+* host_triplet:                          Optional.
+* id:                                    Tags.
+* info <1>:                              Extending.
+* info:                                  Options.
+* info_TEXINFOS:                         Texinfo.
+* install:                               Install.
+* install-data <1>:                      Extending.
+* install-data:                          Install.
+* install-data-hook:                     Extending.
+* install-data-local:                    Install.
+* install-exec <1>:                      Extending.
+* install-exec:                          Install.
+* install-exec-hook:                     Extending.
+* install-exec-local:                    Install.
+* install-info:                          Options.
+* install-man <1>:                       Options.
+* install-man:                           Man pages.
+* install-strip:                         Install.
+* installdirs:                           Install.
+* LDADD:                                 A Program.
+* LDFLAGS:                               Program variables.
+* LIBADD:                                A Library.
+* LIBOBJS:                               Optional.
+* LIBRARIES:                             Uniform.
+* LISP <1>:                              Emacs Lisp.
+* LISP:                                  Uniform.
+* lisp_LISP:                             Emacs Lisp.
+* MAINTAINERCLEANFILES:                  Clean.
+* man_MANS:                              Man pages.
+* MANS <1>:                              Man pages.
+* MANS:                                  Uniform.
+* MOSTLYCLEANFILES:                      Clean.
+* no-dependencies:                       Dependencies.
+* no-installman:                         Man pages.
+* noinst_LISP:                           Emacs Lisp.
+* OMIT_DEPENDENCIES:                     Dependencies.
+* PACKAGE <1>:                           Dist.
+* PACKAGE <2>:                           Requirements.
+* PACKAGE:                               Uniform.
+* PROGRAMS:                              Uniform.
+* RUNTEST:                               Tests.
+* RUNTESTDEFAULTFLAGS:                   Tests.
+* RUNTESTFLAGS:                          Tests.
+* SCRIPTS <1>:                           Scripts.
+* SCRIPTS:                               Uniform.
+* SOURCES:                               A Program.
+* SUBDIRS <1>:                           Top level.
+* SUBDIRS:                               Depth.
+* SUFFIXES:                              Suffixes.
+* tags:                                  Tags.
+* TAGS_DEPENDENCIES:                     Tags.
+* target_alias:                          Optional.
+* TESTS:                                 Tests.
+* TESTS_ENVIRONMENT:                     Tests.
+* TEXINFOS <1>:                          Texinfo.
+* TEXINFOS:                              Uniform.
+* uninstall <1>:                         Extending.
+* uninstall:                             Install.
+* VERSION <1>:                           Dist.
+* VERSION:                               Requirements.
+* YACC:                                  Optional.
+
+

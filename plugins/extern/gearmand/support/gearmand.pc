@@ -1,0 +1,10 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: gearmand
+Description: Gearman Server and C Library
+Version: 1.1.12
+Libs: -L${libdir} -lgearman
+Cflags: -I${includedir}

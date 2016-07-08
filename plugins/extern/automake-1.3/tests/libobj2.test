@@ -1,0 +1,31 @@
+#! /bin/sh
+
+# Test to make sure LIBOBJS works in subdirs.
+# Bug from Josh MacDonald.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_PROG_CC
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+LIBOBJS="$LIBOBJS fsusage.o"
+AC_OUTPUT(subdir/Makefile)
+END
+
+mkdir subdir
+
+cat > subdir/Makefile.am << 'END'
+noinst_LIBRARIES = libtu.a
+libtu_a_SOURCES =
+libtu_a_LIBADD = @LIBOBJS@
+END
+
+: > subdir/fsusage.c
+
+$AUTOMAKE || exit 1
+
+grep 'fsusage\.c' subdir/Makefile.in

@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Make sure block comments are not double-spaced.
+# Report from François Pinard.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+#START
+#a
+#b
+#c
+#END
+END
+
+$AUTOMAKE || exit 1
+
+(sed -e '/^#START/,/^#END/ !d' Makefile.in | grep -v '^#') && exit 1
+exit 0

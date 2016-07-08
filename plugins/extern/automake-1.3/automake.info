@@ -1,0 +1,100 @@
+This is Info file automake.info, produced by Makeinfo version 1.67 from
+the input file automake.texi.
+
+INFO-DIR-SECTION GNU admin
+START-INFO-DIR-ENTRY
+* automake: (automake).		Making Makefile.in's
+END-INFO-DIR-ENTRY
+
+INFO-DIR-SECTION Individual utilities
+START-INFO-DIR-ENTRY
+* aclocal: (automake)Invoking aclocal.          Generating aclocal.m4
+END-INFO-DIR-ENTRY
+
+   This file documents GNU automake 1.3
+
+   Copyright (C) 1995, 96, 97, 98 Free Software Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided that
+the entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that this permission notice may be stated in a
+translation approved by the Foundation.
+
+
+Indirect:
+automake.info-1: 1133
+automake.info-2: 49431
+automake.info-3: 92513
+
+Tag Table:
+(Indirect)
+Node: Top1133
+Node: Introduction4778
+Node: Generalities6204
+Node: General Operation6714
+Node: Depth9019
+Node: Strictness10021
+Node: Uniform11466
+Node: Canonicalization14710
+Node: Examples15376
+Node: Complete15701
+Node: Hello17651
+Node: etags20233
+Node: Invoking Automake21774
+Node: configure26096
+Node: Requirements27018
+Node: Optional29228
+Node: Invoking aclocal33153
+Node: Macros35093
+Node: Extending aclocal39697
+Node: Top level40527
+Node: Programs42481
+Node: A Program43243
+Node: A Library47682
+Node: LIBOBJS48793
+Node: A Shared Library49431
+Node: Program variables51208
+Node: Yacc and Lex52519
+Node: C++56189
+Node: ANSI57009
+Node: Dependencies58830
+Node: Other objects61269
+Node: Scripts61860
+Node: Headers62719
+Node: Data63382
+Node: Sources63946
+Node: Other GNU Tools64669
+Node: Emacs Lisp65156
+Node: gettext66214
+Node: Guile66859
+Node: Libtool67408
+Node: Java67660
+Node: Documentation68319
+Node: Texinfo68620
+Node: Man pages70801
+Node: Install72007
+Node: Clean73715
+Node: Dist74192
+Node: Tests76503
+Node: Options78497
+Node: Miscellaneous81912
+Node: Tags82249
+Node: Suffixes83552
+Node: Conditionals84177
+Node: Gnits86288
+Node: Cygnus87992
+Node: Extending89393
+Node: Distributing91052
+Node: Future91566
+Node: Index92513
+
+End Tag Table

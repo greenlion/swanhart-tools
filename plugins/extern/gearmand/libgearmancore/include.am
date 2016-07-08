@@ -1,0 +1,40 @@
+# vim:ft=automake
+# Gearman server and library 
+# Copyright (C) 2013 Data Differential, http://datadifferential.com/
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+
+noinst_LTLIBRARIES+= libgearman/libgearmancore.la
+
+libgearman_libgearmancore_la_SOURCES= 
+libgearman_libgearmancore_la_SOURCES+= libgearman/allocator.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/backtrace.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/byteorder.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/check.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/command.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/connection.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/error.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/error_code.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/kill.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/log.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/packet.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/pipe.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/protocol/echo.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/protocol/option.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/protocol/submit.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/protocol/work_exception.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/server_options.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/strerror.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/universal.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/uuid.cc
+libgearman_libgearmancore_la_SOURCES+= libgearman/vector.cc
+
+libgearman_libgearmancore_la_CXXFLAGS= -DBUILDING_LIBGEARMAN
+libgearman_libgearmancore_la_LIBADD=
+libgearman_libgearmancore_la_LIBADD+= @lt_cv_dlopen_libs@
+libgearman_libgearmancore_la_LIBADD+= @LIBUUID_LIB@
+libgearman_libgearmancore_la_LIBADD+= libhashkit/libhashkit.la

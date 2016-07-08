@@ -1,0 +1,106 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2011-2012 Data Differential, http://datadifferential.com/
+# Copyright (C) 2008 Brian Aker, Eric Day
+# Copyright (C) 2009 Brian Aker, Eric Day, Monty Taylor
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+#
+
+libgearman_server_libgearman_server_la_CFLAGS=
+libgearman_server_libgearman_server_la_CXXFLAGS=
+libgearman_server_libgearman_server_la_LDFLAGS=
+libgearman_server_libgearman_server_la_LIBADD=
+libgearman_server_libgearman_server_la_SOURCES=
+
+include libgearman-server/struct/include.am
+include libgearman-server/error/include.am
+include libgearman-server/plugins/include.am
+
+noinst_LTLIBRARIES+= libgearman-server/libgearman-server.la
+
+
+noinst_HEADERS+= libgearman-server/connection.hpp
+noinst_HEADERS+= libgearman-server/queue.h
+noinst_HEADERS+= libgearman-server/queue.hpp
+noinst_HEADERS+= libgearman-server/text.h
+noinst_HEADERS+= \
+		 libgearman-server/byte.h \
+		 libgearman-server/byteorder.h \
+		 libgearman-server/client.h \
+		 libgearman-server/common.h \
+		 libgearman-server/config.h \
+		 libgearman-server/config.hpp \
+		 libgearman-server/connection.h \
+		 libgearman-server/constants.h \
+		 libgearman-server/function.h \
+		 libgearman-server/gearmand.h \
+		 libgearman-server/gearmand_con.h \
+		 libgearman-server/gearmand_thread.h \
+		 libgearman-server/io.h \
+		 libgearman-server/job.h \
+		 libgearman-server/log.h \
+		 libgearman-server/packet.h \
+		 libgearman-server/plugins.h \
+		 libgearman-server/server.h \
+		 libgearman-server/struct/port.h \
+		 libgearman-server/thread.h \
+		 libgearman-server/timer.h \
+		 libgearman-server/verbose.h \
+		 libgearman-server/wakeup.h \
+		 libgearman-server/worker.h
+
+libgearman_server_libgearman_server_la_SOURCES+= libgearman/backtrace.cc
+libgearman_server_libgearman_server_la_SOURCES+= libgearman/pipe.cc
+libgearman_server_libgearman_server_la_SOURCES+= libgearman/vector.cc
+libgearman_server_libgearman_server_la_SOURCES+= libgearman-server/text.cc
+libgearman_server_libgearman_server_la_SOURCES+= libgearman-server/config.cc
+libgearman_server_libgearman_server_la_SOURCES+= \
+						 libgearman-server/byteorder.cc \
+						 libgearman-server/client.cc \
+						 libgearman-server/connection.cc \
+						 libgearman-server/function.cc \
+						 libgearman-server/gearmand.cc \
+						 libgearman-server/gearmand_con.cc \
+						 libgearman-server/gearmand_thread.cc \
+						 libgearman-server/io.cc \
+						 libgearman-server/job.cc \
+						 libgearman-server/log.cc \
+						 libgearman-server/packet.cc \
+						 libgearman-server/plugins.cc \
+						 libgearman-server/queue.cc \
+						 libgearman-server/server.cc \
+						 libgearman-server/thread.cc \
+						 libgearman-server/timer.cc \
+						 libgearman-server/wakeup.cc \
+						 libgearman-server/worker.cc \
+						 libgearman/command.cc \
+						 libgearman/strerror.cc
+
+libgearman_server_libgearman_server_la_CFLAGS+= @PTHREAD_CFLAGS@
+libgearman_server_libgearman_server_la_CFLAGS+= -DBUILDING_LIBGEARMAN
+
+libgearman_server_libgearman_server_la_CXXFLAGS+= @PTHREAD_CFLAGS@
+libgearman_server_libgearman_server_la_CXXFLAGS+= -DBUILDING_LIBGEARMAN
+
+libgearman_server_libgearman_server_la_LIBADD+= @LIBEVENT_LIB@
+libgearman_server_libgearman_server_la_LIBADD+= @PTHREAD_LIBS@
+libgearman_server_libgearman_server_la_LIBADD+= @LIBM@
+libgearman_server_libgearman_server_la_LIBADD+= @lt_cv_dlopen_libs@
+libgearman_server_libgearman_server_la_LIBADD+= @RT_LIB@
+if ENABLE_SSL
+if ENABLE_CYASSL
+libgearman_server_libgearman_server_la_LIBADD+= @CYASSL_LIB@
+libgearman_server_libgearman_server_la_LDFLAGS+= @CYASSL_LDFLAGS@
+else
+if ENABLE_OPENSSL
+libgearman_server_libgearman_server_la_LIBADD+= @OPENSSL_LIBS@
+libgearman_server_libgearman_server_la_LDFLAGS+= @OPENSSL_LDFLAGS@
+endif
+endif
+endif

@@ -1,0 +1,60 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2011-2012 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+
+noinst_HEADERS+= tests/workers/aggregator/cat.h
+
+noinst_HEADERS+= tests/workers/v1/echo_or_react.h
+noinst_HEADERS+= tests/workers/v1/echo_or_react_chunk.h
+noinst_HEADERS+= tests/workers/v1/increment_reset.h
+noinst_HEADERS+= tests/workers/v1/unique.h
+
+noinst_HEADERS+= tests/workers/v2/echo_specific_worker.h
+noinst_HEADERS+= tests/workers/v2/call_exception.h
+noinst_HEADERS+= tests/workers/v2/called.h
+noinst_HEADERS+= tests/workers/v2/check_order.h
+noinst_HEADERS+= tests/workers/v2/client_echo.h
+noinst_HEADERS+= tests/workers/v2/count.h
+noinst_HEADERS+= tests/workers/v2/echo_or_react.h
+noinst_HEADERS+= tests/workers/v2/echo_or_react_chunk.h
+noinst_HEADERS+= tests/workers/v2/increment_reset.h
+noinst_HEADERS+= tests/workers/v2/sleep_return_random.h
+noinst_HEADERS+= tests/workers/v2/split.h
+noinst_HEADERS+= tests/workers/v2/unique.h
+
+check_LTLIBRARIES+= tests/libstartworker.la
+tests_libstartworker_la_CXXFLAGS=
+tests_libstartworker_la_LIBADD=
+tests_libstartworker_la_SOURCES=
+
+tests_libstartworker_la_CXXFLAGS+= @PTHREAD_CFLAGS@
+tests_libstartworker_la_LIBADD+= @PTHREAD_LIBS@
+tests_libstartworker_la_LIBADD+= @RT_LIB@
+tests_libstartworker_la_LIBADD+= libgearman/libgearman.la
+tests_libstartworker_la_LIBADD+= libtest/libtest.la
+tests_libstartworker_la_SOURCES+= tests/start_worker.cc
+tests_libstartworker_la_SOURCES+= util/instance.cc
+tests_libstartworker_la_SOURCES+= util/operation.cc
+tests_libstartworker_la_SOURCES+= tests/workers/aggregator/cat.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v1/echo_or_react.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v1/echo_or_react_chunk.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v1/echo_or_react_chunk_worker.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v1/increment_reset_worker.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v1/unique.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/call_exception.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/called.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/check_order.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/client_echo.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/count.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/echo_or_react.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/echo_or_react_chunk.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/echo_specific_worker.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/increment_reset.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/sleep_return_random.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/split.cc
+tests_libstartworker_la_SOURCES+= tests/workers/v2/unique.cc
+

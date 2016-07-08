@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Test that mdate-sh is required when Texinfo used and version.texi needed.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = textutils.texi
+END
+
+cat > textutils.texi << 'END'
+@include version.texi
+@setfilename textutils.info
+END
+
+# Required when using Texinfo.
+: > texinfo.tex
+
+$AUTOMAKE 2>&1 > /dev/null | grep 'required file.*mdate-sh'

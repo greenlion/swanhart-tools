@@ -1,0 +1,12 @@
+PHPEMBED (Simplified API built on top of PHP SAPI)
+Andrew Bosworth (boz@facebook.com)
+Updated with CMake support by Justin Swanhart (greenlion@gmail.com) for TroySQL.
+
+Source Last  Modified: 2008-Mar-23
+Build System Modified: 2013-Nov-11
+
+Phpembed is distributed under the Phpembed open source software license.
+Please see the included COPYING file.
+
+This version of phpembed is for use in TroySQL and does not include documentation
+or examples.  Please see the upstream repository for this information (see COPYING).  

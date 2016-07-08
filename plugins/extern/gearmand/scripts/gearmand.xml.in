@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+<service_bundle type="manifest" name="gearman">
+    <service name="application/database/gearman" type="service" version="1">
+        <single_instance/>
+
+        <dependency name="multi-user-server" grouping="require_all" restart_on="none" type="service">
+            <service_fmri value="svc:/milestone/multi-user-server" />
+        </dependency>
+
+        
+        <!-- We need to map the name of the authorizations we defined to this service -->
+        <property_group name="general" type="framework">
+            <propval name="action_authorization" type="astring" 
+                     value="solaris.smf.manage.gearman" />
+            <propval name="value_authorization" type="astring" 
+                     value="solaris.smf.value.gearman" />
+        </property_group>
+
+
+        <property_group name="gearman" type="application">
+            <propval name="corepattern" type="astring" value="core.%f.%p" />
+        </property_group>
+
+        <!-- Define the instance and how to start / stop it -->
+        <instance name="gearman" enabled="false">
+            <exec_method type="method" name="start" exec="/lib/svc/method/gearmand start" timeout_seconds="30" >
+                <method_context>
+                    <method_credential user="gearmand" group="gearmand" />
+                </method_context>
+            </exec_method>
+            <exec_method type="method" name="stop" exec="/lib/svc/method/gearmand stop  %{restarter/contract}" timeout_seconds="60" >
+                <method_context>
+                    <method_credential user="gearmand" group="gearmand" />
+                </method_context>
+            </exec_method>
+        </instance>
+        
+
+       <stability value="Unstable" />
+        <template>
+            <common_name>
+                <loctext xml:lang="C">Gearman job server</loctext>
+            </common_name>
+            <documentation>
+                <manpage title="gearman" section="1" manpath="@prefix@/share/man" />
+            </documentation>
+        </template>
+    </service>
+</service_bundle>

@@ -1,0 +1,636 @@
+Sun Apr  5 15:26:42 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* version3.test: Increased version number to ensure failure for a
+	long time to come.
+
+	* library.test: New file.
+
+	* lex2.test: Updated since lex error changed to warning.
+
+Fri Apr  3 13:04:50 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* colon5.test: New file.
+
+	* exdir2.test: New file.
+	* instdata.test: New file.
+
+Wed Mar 25 15:30:39 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* badopt.test: new file.
+	* version3.test: New file.
+
+Mon Mar 23 10:52:36 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* libobj8.test: New file.
+
+Fri Mar 20 00:32:16 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* lex2.test: New file.
+
+	* aclocalii.test: New file.
+
+	* javasubst.test: New file.
+
+Thu Mar 19 14:11:45 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* javaprim.test: New file.
+
+	* sinclude.test: New file.
+
+Wed Mar 18 17:15:22 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* java.test: New file.
+
+Sun Mar  8 15:35:14 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* colon4.test: New file.
+
+Fri Mar  6 21:17:10 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* colon3.test: Refined tests.
+
+Tue Feb 24 12:29:05 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* man.test: Removed.
+
+	* condman2.test: New file.
+
+Mon Feb 23 16:20:49 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* texinfo6.test: New file.
+
+Mon Feb 16 00:08:58 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* aclocali.test: New file.
+
+Fri Feb 13 00:36:38 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* texinfo5.test (info_TEXINFOS): New file.
+
+	* condman.test: New file.
+
+	* Makefile.am (distclean-local): Ignore rm return value.
+
+Thu Feb 12 21:00:34 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* unused.test: New file.
+
+	* whoami.test: New file.
+
+	* alpha.test: New file.
+
+Wed Feb 11 17:28:30 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* aclocal.test: New file.
+
+Thu Feb  5 13:22:17 1998  Tom Tromey  <tromey@cygnus.com>
+
+	* cxxcpp.test: New file.
+
+Mon Dec  1 15:48:16 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* cond3.test: New file.
+
+Sat Nov 29 22:09:27 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* objc.test: New file.
+
+Sat Oct 25 00:04:04 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* libobj7.test: New file.
+
+Tue Oct 21 00:46:24 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* lex2.test: Removed; @LEXLIB@ no longer required.
+
+	* depacl2.test: Use -I, not --acdir.
+
+	* install.test: New file.
+	* ammissing.test: New file.
+
+Sun Sep 28 17:19:52 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* cxxnoc.test: Changed to reflect MKDEP change.
+
+Wed Sep 24 16:01:59 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* output5.test: New file.
+
+	* depend3.test: New file.
+
+Mon Aug 25 17:24:42 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* cygwin32.test: Use AM_EXEEXT, not AM_CYGWIN32.
+
+Tue Aug  5 20:33:33 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* libobj6.test: New file.
+
+Mon May 26 22:47:36 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* depend.test: Fixed test.
+
+Sat May 10 18:28:14 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* depend2.test: Fixed test; added another check.
+
+Sun May  4 15:47:24 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* xsource.test: New file.
+
+Tue Apr 29 19:08:47 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* cond.test, cond2.test: New files from Ian Taylor.
+
+Sun Apr 27 21:07:49 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* confsub.test: Fixed bug.
+
+Fri Apr 25 12:30:22 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* conf2.test: New file.
+
+Tue Apr  8 19:26:07 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* ansi.test, empty.test, exsource.test, insh2.test, man.test,
+	mkinst2.test, texinfo.test, texinfo2.test: Use $MAKE.
+
+	* defs (MAKE): Define.
+
+Mon Apr  7 17:35:49 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* version2.test: New file.
+
+Wed Apr  2 00:12:26 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* ldadd.test: New file.
+
+Fri Mar 28 23:36:04 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* stamph.test: New file.
+
+Thu Mar 27 18:10:47 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* lisp.test: New file.
+
+Sat Mar 22 01:14:03 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* cygwin32.test: New file.
+
+Thu Mar 20 00:34:33 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* exsource.test: Exit if not using GNU make.
+
+Tue Mar 18 22:36:34 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* remake2.test: Changed for `missing' support.
+
+Sun Mar 16 14:29:45 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* seenc.test: New file.
+
+	* checkall.test, noinst.test: Don't use bogus construct when
+	checking.
+
+	* libobj3.test, canon.test, target.test, spell2.test,
+	primary2.test, discover.test, lex2.test: Fixed to test what it
+	claims to test.
+
+Mon Mar 10 23:21:03 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* libobj.test, libobj2.test: Use AC_PROG_CC.
+
+	* confsub.test: Modified for definition of CONFIG_HEADER_FULL.
+
+	* cxxlibobj.test: New file.
+
+Wed Feb 26 13:05:42 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* tagsub.test: New file.
+
+Sun Feb 23 11:58:00 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* texinfo.test, texinfo2.test, texinfo3.test, info.test,
+	mdate.test, vtexi.test, canon2.test, mdate2.test, vtexi2.test:
+	Updated for new texinfo handling.
+
+	* texinfo4.test: New file.
+	* texinfo3.test: New file.
+
+Sat Feb 22 09:48:44 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* yaccpp.test: New file.
+
+Tue Feb 11 09:51:47 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* texinfo2.test: Fixed quoting bug.  From Michael Brantley.
+
+Tue Feb  4 18:41:32 1997  Tom Tromey  <tromey@cygnus.com>
+
+	* confsub.test: Check subdir/Makefile.in to make sure dependency
+	is correct.
+
+	* ansi2.test: ANSI2KNR dependency of all.
+
+Tue Dec 10 00:43:14 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* defun2.test: New file.
+	* subst.test: New file.
+
+Sun Dec  8 12:25:22 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* colneq2.test: New file.
+
+Sat Dec  7 12:52:45 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* output4.test: New file.
+	* output3.test: New file.
+	* remake2.test: New file.
+	* output2.test: New file.
+
+Fri Dec  6 19:00:31 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* output.test: New file.
+
+Thu Dec  5 18:23:17 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* remake.test: New file.
+	* colon3.test: New file.
+	* colon2.test: New file.
+	* cxxo.test: New file.
+
+Wed Dec  4 00:41:44 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* defs: Allow user to set interpreter via PERL environment
+	variable.
+
+	* Makefile.am (distclean-local): New target.
+
+Tue Dec  3 11:55:18 1996  Gordon Matzigkeit  <gord@gnu.ai.mit.edu>
+
+	* dup.test, dup2.test: Modified, now that aclocal allows
+	acinclude.m4 to override any installed macro file.
+
+Mon Dec  2 22:44:16 1996  Gordon Matzigkeit  <gord@gnu.ai.mit.edu>
+
+	* alllib.test: Removed from distribution, since LIBFILES are no
+	longer computed.
+
+Sun Nov 24 14:36:00 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* extra2.test: New file.
+
+Fri Nov 22 00:10:04 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* stdlib.test: New file.
+
+Thu Nov 21 22:51:35 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* confsub.test: Use AM_CONFIG_HEADER.
+
+Tue Nov 19 23:37:32 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* confvar2.test: New file.
+
+Fri Nov 15 00:09:18 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* ansi2.test: New file.
+
+	* libfiles.test: Removed (obsolete).
+
+	* libobj.test, canon4.test, libobj2.test, alllib.test,
+	ranlib.test: Fixed for Gord's changes to library handling.
+
+	* Many files: Use AC_PROG_CC to avoid error.
+
+Thu Oct 24 15:22:53 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* confvar.test: New file.
+	* ranlib.test: New file.
+
+Mon Oct 21 22:57:51 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* version.test: New file.
+
+Fri Oct 11 00:51:04 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* libobj5.test: New file.
+	* libobj4.test: New file.
+	* distdir.test: New file.
+	* lex2.test: New file.
+
+Sun Oct  6 11:00:44 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* acsilent.test: New file.
+	* req.test: New file.
+	* acinclude.test: New file.
+
+Sat Oct  5 11:31:38 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* discover.test: New file.
+
+	* mkinst2.test: Renamed from mkinstall2.test.
+
+	* symlink.test: New file.
+
+Thu Oct  3 19:55:23 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* vpath.test: New file.
+
+Mon Sep 30 08:34:07 1996  Tom Tromey  <tromey@cygnus.com>
+
+	* comment2.test: New file.
+
+Mon Sep 23 00:23:34 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* spell3.test: New file.
+
+Sun Sep 22 14:42:09 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* depend2.test: New file.
+
+Sat Sep 21 14:01:10 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* primary2.test: New file.
+	* primary.test: New file.
+
+Fri Sep 20 09:39:27 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* confsub.test: New file.
+
+Mon Sep 16 00:05:52 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* spell2.test: New file.
+
+	* spell.test: New file.
+
+Thu Sep 12 14:57:49 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* implicit.test: New file.
+
+Wed Sep 11 13:57:10 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* colneq.test: New file.
+
+	* interp2.test: New file.
+
+Sun Sep  8 10:47:07 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* gnits.test: New file.
+
+Thu Sep  5 22:54:26 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* libobj3.test: New file.
+
+Tue Sep  3 20:57:38 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* block.test: New file.
+
+Mon Aug 26 23:04:01 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* alllib.test: New file.
+
+	* interp.test: New file.
+
+Mon Aug 12 13:58:55 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* libobj2.test: New file.
+
+	* order.test: New file.
+
+Sun Aug 11 00:10:42 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* cxxnoc.test: New file.
+
+	* cxxlink.test: Use AC_PROG_CXX.
+
+	* lex.test: Use AC_PROG_LEX, AC_DECL_YYTEXT.
+
+	* yacc.test: Use AC_PROG_YACC in configure.in.
+
+	* cxxlink.test: New file.
+
+	* yacc.test: Fixed test for new yacc code.
+
+Sat Aug 10 10:09:45 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* defun.test: New file.
+
+	* dup.test: New file.
+
+Fri Aug  9 09:18:07 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* canon4.test: New file.
+
+Thu Aug  8 10:47:45 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* exsource.test: New file.
+
+	* subdir2.test: New file.
+
+	* scripts.test: New file.
+
+Tue Aug  6 12:30:41 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* lex.test: New file.
+
+Mon Aug  5 01:03:03 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* obsolete.test: New file.
+
+	* Many files: Use AM_ macros, not fp_ macros.
+
+	* info.test: New file.
+
+Sun Aug  4 12:47:34 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* man.test: New file.
+
+	* acouttbs2.test: New file.
+
+	* libfiles.test: New file.
+
+	* comment.test: New file.
+
+	* tags.test: New file.
+
+	* vtexi2.test: New file.
+
+	* colon.test: New file.
+
+Sun Jul 28 11:43:00 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* defs (ACLOCAL): Added definition.
+
+	* depacl.test, depacl2.test, error.test: New tests for aclocal.
+
+Fri Jul 19 10:09:56 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* ansi.test: New file.
+
+Sun Jun  9 23:20:03 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* texinfo2.test: New file.
+
+Sat Jun  8 10:00:42 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* mkinstall2.test: New file.
+
+Fri Jun  7 18:17:11 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* yacc.test: New file.
+
+Sun Jun  2 09:04:52 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* dejagnu.test: New file.
+
+	* texinfo.test: New file.
+
+Thu May 23 09:58:48 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* fpinst2.test: New file.
+
+	* fpinstall.test: New file.
+
+Wed May 22 09:45:52 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* outdir.test: New file.
+
+Sat May 18 10:51:37 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* insh2.test: New file.
+
+Fri May 17 17:32:35 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* number.test: New file.
+
+	* defs, many .test files: Define PACKAGE and VERSION in
+	configure.in.
+
+	* package.test: New file.
+
+	* backsl.test: New file.
+
+Thu May 16 09:15:57 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* subdir.test: New file.
+
+Tue May 14 10:17:17 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* mdate2.test: New file, from report by Jim Meyering.
+
+	* canon3.test: New file.
+
+	* auxdir.test: New file.
+
+	* mkinstall.test: New file.
+
+	* extra.test: Reversed sense of test.
+
+Fri Apr 26 15:15:01 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* instman.test: New file.
+
+Thu Apr 25 17:12:30 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* noinst.test: New file
+
+	* exdir.test: Quoting change from Gord Matzigkeit.
+
+	* extra.test (EXTRA_PROGRAMS): New file.
+
+Tue Apr  9 22:55:07 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* target.test: New file.
+
+Wed Apr  3 15:10:54 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* canon2.test: New file
+
+	* insh.test: New file.
+
+Wed Mar 27 23:31:51 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* rulepat.test: New file.
+
+Sat Mar 16 08:37:36 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* empty.test: New file.
+
+Fri Mar 15 17:55:13 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* installsh.test: New file.
+
+Tue Mar  5 16:22:46 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* badprog.test: Rewrote.
+
+	* canon.test: New file.
+
+Mon Mar  4 21:08:37 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* exdir.test: New file.
+
+Fri Mar  1 17:23:53 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* depend.test: New file.
+
+	* badprog.test: New file.
+
+	* defs (AUTOMAKE): Pass --foreign.
+
+Thu Feb 29 20:23:42 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	More tests:
+	* prefix.test: New file.
+	* spelling.test: New file
+	* confincl.test: New file.
+	* Makefile.am (TESTS): Updated.
+
+Wed Feb 28 11:57:02 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* acoutqnl.test: New file.
+	* Makefile.am (TESTS): Include it.
+
+Tue Feb 27 10:52:58 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* Makefile.am (DIST_OTHER): Include "defs".
+
+	* defs (AUTOMAKE): Never relative to $srcdir.
+
+Mon Feb 26 23:14:08 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* libobj.test: Put AC_PROG_RANLIB in configure.in
+
+Mon Feb 19 08:22:22 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* proginst.test: New file.
+
+Tue Feb 13 18:54:39 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* libobj.test: New file.
+
+Mon Feb 12 17:05:48 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* acouttbs.test: New file.
+
+	* Makefile.am (DIST_OTHER): New variable.
+
+	* acoutnoq.test: New file.
+
+Sun Feb 11 16:39:14 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* checkall.test: Delay a little.
+
+	* Makefile.am (check-local): Print name of failing test.
+
+Sat Feb 10 17:08:39 1996  Tom Tromey  <tromey@creche.cygnus.com>
+
+	* checkall.test: New file.
+
+	* instexec.test: New file.
+
+	* mdate.test, vtexi.test, acoutput.test: New files.
+
+	* Started.
+

@@ -1,0 +1,59 @@
+# -*- ksh -*-
+# Defines for Automake testing environment.
+# Tom Tromey <tromey@cygnus.com>
+
+# Ensure $srcdir set correctly.
+test -f $srcdir/defs || {
+   echo "defs: installation error" 1>&2
+   exit 1
+}
+
+# If srcdir is relative, we need to modify it.
+case "$srcdir" in
+ /*)
+    ;;
+
+ *)
+    srcdir="../$srcdir"
+    ;;
+esac
+
+rm -rf testSubDir > /dev/null 2>&1
+mkdir testSubDir
+cd testSubDir
+
+# Build appropriate environment in test directory.  Eg create
+# configure.in, touch all necessary files, etc.
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_ARG_PROGRAM
+AM_PROG_INSTALL
+AC_OUTPUT(Makefile)
+END
+
+: > install-sh
+: > mkinstalldirs
+: > missing
+
+# See how redirections should work.  User can set VERBOSE to see all
+# output.
+test -z "$VERBOSE" && {
+   exec > /dev/null 2>&1
+}
+
+# User can set PERL to change the perl interpreter used.
+test -z "$PERL" && PERL=perl
+
+# User can set MAKE to choose which make to use.  Must use GNU make.
+test -z "$MAKE" && MAKE=make
+
+echo "=== Running test $0"
+
+# See how Automake should be run.  We put --foreign as the default
+# strictness to avoid having to create lots and lots of files.  A test
+# can override this by specifying a different strictness.
+AUTOMAKE="$PERL ../../automake --amdir=$srcdir/.. --foreign"
+
+# See how aclocal should be run.
+ACLOCAL="$PERL ../../aclocal --acdir=$srcdir/../m4"

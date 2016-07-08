@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test for a bug where target names and variable names are treated alike.
+# Bug from François Pinard.
+
+. $srcdir/defs || exit 1
+
+echo AC_PROG_CC >> configure.in
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = consud
+## Note next line is target, not variable.
+consud_SOURCES: consud.c
+END
+
+echo > consud.c
+
+$AUTOMAKE && exit 1
+exit 0

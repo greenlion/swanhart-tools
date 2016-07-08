@@ -1,0 +1,14 @@
+#! /bin/sh
+
+# Test to make sure misspellings in _SOURCES variables cause failure.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = zardoz foo
+zardoz_SOURCES = x.c
+boo_SOURCES = y.c
+END
+
+$AUTOMAKE && exit 1
+exit 0

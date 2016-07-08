@@ -1,0 +1,9 @@
+#!/usr/bin/php
+<?php
+require_once('bin_common.php');
+try {
+@require_once('shard-query-config.php');
+echo "YES"; 
+} catch(Exception $e) {
+echo "NO";
+}

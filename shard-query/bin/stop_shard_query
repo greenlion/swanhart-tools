@@ -1,0 +1,3 @@
+#!/bin/bash
+./stop_gearmand
+./stop_workers

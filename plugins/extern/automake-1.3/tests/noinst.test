@@ -1,0 +1,15 @@
+#! /bin/sh
+
+# Check to make sure "make install" will build all in directory with
+# nothing to install.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+all-local:
+	exit 1
+END
+
+$AUTOMAKE || exit 1
+
+grep '^install:.* all' Makefile.in

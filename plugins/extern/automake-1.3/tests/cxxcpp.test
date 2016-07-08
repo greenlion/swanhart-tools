@@ -1,0 +1,16 @@
+#! /bin/sh
+
+# Make sure automake sees AC_PROG_CXXCPP.  From Garth Corral.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CXXCPP
+END
+
+
+: > Makefile.am
+
+$AUTOMAKE || exit 1
+
+grep '^CXXCPP' Makefile.in

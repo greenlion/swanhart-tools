@@ -1,0 +1,14 @@
+#! /bin/sh
+
+# Test to make sure that misspelled prefixes actually cause error.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'EOF'
+bni_PROGRAMS = zot
+EOF
+
+if $AUTOMAKE; then
+   exit 1
+fi
+exit 0

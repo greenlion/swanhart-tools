@@ -1,0 +1,22 @@
+#! /bin/sh
+
+# Test to make sure AC_CONFIG_AUX_DIR works correctly.
+
+. $srcdir/defs || exit 1
+
+# The "./." is here so we don't have to mess with subdirs.
+cat >> configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_CONFIG_AUX_DIR(./.)
+END
+
+cat > Makefile.am << 'END'
+pkgdata_DATA =
+END
+
+# The "././" prefix confuses Automake into thinking it is doing a
+# subdir build.  Yes, this is hacky.
+$AUTOMAKE ././Makefile || exit 1
+
+grep '/\./\./mkinstalldirs' Makefile.in

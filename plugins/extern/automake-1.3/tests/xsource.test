@@ -1,0 +1,23 @@
+#! /bin/sh
+
+# Test to make sure source in another directory works.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = zardoz
+zardoz_SOURCES = z.c x/y.c
+END
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+END
+
+mkdir x
+
+: > z.c
+: > x/y.c
+
+$AUTOMAKE || exit 1
+
+test `fgrep y.c Makefile.in | wc -l` -eq 1

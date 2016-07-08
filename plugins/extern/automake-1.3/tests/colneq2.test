@@ -1,0 +1,16 @@
+#! /bin/sh
+
+# Test that := in var substitutions works.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+t = a b c
+EXTRA_DIST = $(t:=.test)
+END
+
+: > a.test
+: > b.test
+: > c.test
+
+$AUTOMAKE

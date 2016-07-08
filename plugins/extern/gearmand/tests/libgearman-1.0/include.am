@@ -1,0 +1,134 @@
+# vim:ft=automake
+
+noinst_HEADERS+= tests/libgearman-1.0/client_test.h
+noinst_HEADERS+= tests/libgearman-1.0/fork.h
+noinst_HEADERS+= tests/libgearman-1.0/gearman_client_job_status_by_unique.h
+noinst_HEADERS+= tests/libgearman-1.0/multi_client_test.h
+
+LIBGEARMAN_1_0_CLIENT_LDADD:=
+LIBGEARMAN_1_0_CLIENT_LDADD+= libgearman/libgearman.la
+LIBGEARMAN_1_0_CLIENT_LDADD+= libtest/libtest.la
+LIBGEARMAN_1_0_CLIENT_LDADD+= tests/libstartworker.la
+
+t_client_CXXFLAGS=
+t_client_SOURCES=
+t_client_LDADD=
+
+t_client_CXXFLAGS+= @PTHREAD_CFLAGS@
+t_client_SOURCES+= tests/libgearman-1.0/client_test.cc 
+t_client_SOURCES+= tests/libgearman-1.0/do.cc 
+t_client_SOURCES+= tests/libgearman-1.0/do_background.cc 
+t_client_SOURCES+= tests/libgearman-1.0/execute.cc 
+t_client_SOURCES+= tests/libgearman-1.0/fork.cc
+t_client_SOURCES+= tests/libgearman-1.0/gearman_client_do_job_handle.cc 
+t_client_SOURCES+= tests/libgearman-1.0/gearman_client_job_status_by_unique.cc
+t_client_SOURCES+= tests/libgearman-1.0/gearman_execute_partition.cc 
+t_client_SOURCES+= tests/libgearman-1.0/limits.cc 
+t_client_SOURCES+= tests/libgearman-1.0/protocol.cc 
+t_client_SOURCES+= tests/libgearman-1.0/server_options.cc 
+t_client_SOURCES+= tests/libgearman-1.0/task.cc 
+t_client_SOURCES+= tests/libgearman-1.0/unique.cc 
+t_client_SOURCES+= tests/workers/aggregator/cat.cc
+t_client_SOURCES+= tests/workers/v1/echo_or_react.cc
+t_client_SOURCES+= tests/workers/v1/echo_or_react_chunk.cc
+t_client_SOURCES+= tests/workers/v1/unique.cc
+t_client_SOURCES+= tests/workers/v2/call_exception.cc
+t_client_SOURCES+= tests/workers/v2/echo_or_react.cc
+t_client_SOURCES+= tests/workers/v2/echo_or_react_chunk.cc
+t_client_SOURCES+= tests/workers/v2/sleep_return_random.cc
+t_client_SOURCES+= tests/workers/v2/split.cc
+t_client_SOURCES+= tests/workers/v2/unique.cc
+t_client_LDADD+= ${LIBGEARMAN_1_0_CLIENT_LDADD}
+t_client_LDADD+= @PTHREAD_LIBS@
+check_PROGRAMS+=t/client
+noinst_PROGRAMS+=t/client
+
+t_multi_client_CXXFLAGS=
+t_multi_client_SOURCES=
+t_multi_client_LDADD=
+
+t_multi_client_SOURCES+= tests/libgearman-1.0/multi_client_test.cc 
+t_multi_client_LDADD+= ${LIBGEARMAN_1_0_CLIENT_LDADD}
+check_PROGRAMS+= t/multi_client
+noinst_PROGRAMS+= t/multi_client
+
+test-multi-client: t/multi_client gearmand/gearmand
+	@t/multi_client
+
+gdb-multi-client: t/multi_client gearmand/gearmand
+	@$(GDB_COMMAND) t/multi_client
+
+valgrind-multi-client: t/multi_client gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/multi_client
+
+t_internals_SOURCES=
+t_internals_LDADD=
+
+t_internals_SOURCES+= tests/libgearman-1.0/internals.cc
+t_internals_SOURCES+= tests/libgearman-1.0/regression.cc
+t_internals_LDADD+= ${LIBGEARMAN_1_0_CLIENT_LDADD}
+t_internals_LDADD+= libgearman/libgearmancore.la
+check_PROGRAMS+= t/internals
+noinst_PROGRAMS+= t/internals
+
+t_worker_LDADD=
+t_worker_SOURCES=
+
+t_worker_SOURCES+= libgearman/command.cc
+t_worker_SOURCES+= tests/libgearman-1.0/worker_test.cc
+t_worker_SOURCES+= tests/workers/v2/call_exception.cc
+t_worker_SOURCES+= tests/workers/v2/echo_or_react.cc
+t_worker_SOURCES+= tests/workers/v2/echo_or_react_chunk.cc
+t_worker_SOURCES+= tests/workers/v2/echo_specific_worker.cc
+t_worker_LDADD+= ${LIBGEARMAN_1_0_CLIENT_LDADD}
+t_worker_LDADD+= libgearman/libgearmancore.la
+check_PROGRAMS+=t/worker
+noinst_PROGRAMS+=t/worker
+
+test-internals: t/internals gearmand/gearmand
+	@t/internals
+
+gdb-internals: t/internals gearmand/gearmand
+	@$(GDB_COMMAND) t/internals
+
+helgrind-internals: t/internals gearmand/gearmand
+	@$(HELGRIND_COMMAND) t/internals
+
+
+valgrind-internals: t/internals gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/internals
+
+valgrind-worker: t/worker gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/worker
+
+massif-worker: t/worker gearmand/gearmand
+	@$(MASSIF_COMMAND) t/worker
+
+helgrind-worker: t/worker gearmand/gearmand
+	@$(HELGRIND_COMMAND) t/worker
+
+gdb-worker: t/worker gearmand/gearmand
+	@$(GDB_COMMAND) t/worker
+
+ptrdiff-worker: t/worker gearmand/gearmand
+	@$(PTRCHECK_COMMAND) t/worker
+
+test-worker: t/worker gearmand/gearmand
+	@t/worker
+
+test-client: t/client gearmand/gearmand
+	@t/client
+
+gdb-client: t/client gearmand/gearmand
+	@$(GDB_COMMAND) t/client
+
+valgrind-client: t/client gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/client
+
+t_1077917_SOURCES= tests/libgearman-1.0/1077917.c
+t_1077917_LDADD= libgearman/libgearman.la
+check_PROGRAMS+= t/1077917
+noinst_PROGRAMS+= t/1077917
+
+valgrind-1077917: t/1077917
+	@$(VALGRIND_COMMAND) --leak-check=full --show-reachable=yes --track-origins=yes t/1077917

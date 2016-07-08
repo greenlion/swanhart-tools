@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# Test to ensure texinfo.tex included in distribution.  Bug report by
+# Jim Meyering.
+
+. $srcdir/defs || exit 1
+
+cat > Makefile.am << 'END'
+info_TEXINFOS = textutils.texi
+magic:
+	@echo $(DISTFILES)
+END
+
+echo '@setfilename textutils.info' > textutils.texi
+: > texinfo.tex
+
+$AUTOMAKE || exit 1
+
+$MAKE -s -f Makefile.in magic | grep 'texinfo\.tex'

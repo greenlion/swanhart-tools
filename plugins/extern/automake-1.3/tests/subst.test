@@ -1,0 +1,17 @@
+#! /bin/sh
+
+# Test that AC_SUBST($1) does something sensible.  From Ulrich
+# Drepper.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_SUBST($1)
+AC_SUBST([$]$1)  dnl this is the actual invocation that was used
+END
+
+: > Makefile.am
+
+$AUTOMAKE || exit 1
+grep '^\$1' Makefile.in && exit 1
+exit 0

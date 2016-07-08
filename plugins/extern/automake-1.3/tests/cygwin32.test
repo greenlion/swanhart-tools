@@ -1,0 +1,24 @@
+#! /bin/sh
+
+# Test basic Cygwin32 functionality.
+
+. $srcdir/defs || exit 1
+
+cat >> configure.in << 'END'
+AC_PROG_CC
+AM_EXEEXT
+END
+
+cat > Makefile.am << 'END'
+bin_PROGRAMS = www
+www_SOURCES = www.c @extra_stuff@
+EXTRA_www_SOURCES = xtra.c
+END
+
+: > www.c
+: > xtra.c
+
+$AUTOMAKE || exit 1
+
+grep '^CYGWIN' Makefile.in && exit 1
+grep 'EXEEXT' Makefile.in

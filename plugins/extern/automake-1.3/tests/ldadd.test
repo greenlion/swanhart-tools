@@ -1,0 +1,33 @@
+#! /bin/sh
+
+# Check to make sure incorrect LDADD usage is diagnosed.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+PACKAGE=nonesuch
+VERSION=nonesuch
+AC_PROG_CC
+AC_ARG_PROGRAM
+AC_PROG_INSTALL
+AM_PROG_LIBTOOL
+AC_OUTPUT(Makefile)
+LTLIBOBJS="$LTLIBOBJS q.o"
+LIBOBJS="$LIBOBJS q.o"
+AC_SUBST(LTLIBOBJS)
+END
+
+cat > Makefile.am << 'END'
+lib_LTLIBRARIES = libtu.la
+libtu_la_SOURCES = foo.c
+libtu_la_LDADD = @LTLIBOBJS@
+END
+
+: > ltconfig
+: > ltmain.sh
+: > config.guess
+: > config.sub
+: > q.c
+
+$AUTOMAKE && exit 1
+exit 0

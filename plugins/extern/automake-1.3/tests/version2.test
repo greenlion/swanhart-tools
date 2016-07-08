@@ -1,0 +1,24 @@
+#! /bin/sh
+
+# Test to make sure 3rd arg to AM_INIT_AUTOMAKE not picked up in
+# version.  From Joel Weber.
+
+. $srcdir/defs || exit 1
+
+cat > configure.in << 'END'
+AM_INIT_AUTOMAKE([sh-utils], 1.12o, no)
+AC_OUTPUT(Makefile)
+END
+
+: > Makefile.am
+
+# Files required by Gnits.
+: > INSTALL
+: > NEWS
+: > README
+: > COPYING
+: > AUTHORS
+: > ChangeLog
+: > THANKS
+
+$AUTOMAKE --gnits

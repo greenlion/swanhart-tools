@@ -1,0 +1,174 @@
+.\" Man page generated from reStructuredText.
+.
+.TH "GEARMAN_EXECUTE" "3" "February 11, 2014" "1.1.12" "Gearmand"
+.SH NAME
+gearman_execute \- Gearmand Documentation, http://gearman.info/
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.SH SYNOPSIS
+.sp
+#include <libgearman/gearman.h>
+.INDENT 0.0
+.TP
+.B gearman_task_st *gearman_execute(gearman_client_st\fI\ *client\fP, const char\fI\ *function_name\fP, size_t\fI\ function_name_length\fP, const char\fI\ *unique\fP, size_t\fI\ unique_length\fP, gearman_work_t\fI\ *workload\fP, gearman_argument_t\fI\ *arguments\fP, void\fI\ *context\fP)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B gearman_task_st *gearman_execute_by_partition(gearman_client_st\fI\ *client\fP, const char\fI\ *partition_function\fP, const size_t\fI\ partition_function_length\fP, const char\fI\ *function_name\fP, const size_t\fI\ function_name_length\fP, const char\fI\ *unique_str\fP, const size_t\fI\ unique_length\fP, gearman_work_t\fI\ *workload\fP, gearman_argument_t\fI\ *arguments\fP, void\fI\ *context\fP)
+.UNINDENT
+.sp
+Link with \-lgearman
+.SH DESCRIPTION
+.sp
+\fI\%gearman_execute()\fP is used to create a new \fBgearman_task_st\fP that is executed against the function that is found via the function_name argument.
+.sp
+\fBgearman_work_t\fP can be used to describe the work that will be
+executed, it is built with \fBgearman_argument_make()\fP\&.  The argument
+unique_str is optional, but if supplied it is used for coalescence by
+\fBgearmand\fP\&.
+.sp
+\fBgearman_argument_t\fP is the work that the \fIclient\fP will send
+the to the server
+.sp
+If \fI\%gearman_execute()\fP is given a \fBgearman_work_t\fP that has been built with a reducer, it takes the \fBgearman_argument_t\fP and executs it against a \fIfunction\fP as it normally would, but it tells the function to then process the results through a \fIreducer\fP function that the \fBgearman_work_t\fP was created with.
+.sp
+What is happening is that the function is mappping/splitting work up into units, and then sending each of them to the reducer function. Once all work is completed, the \fImapper\fP function will aggregate the work via an aggregator function, \fBgearman_aggregator_fn\fP, and return a result.
+.sp
+If any of the units of work error, the job will be aborted. The resulting value will be stored in the \fBgearman_task_st\fP\&.
+.sp
+The result can be obtained from the task by calling
+\fBgearman_task_result()\fP to gain the \fBgearman_result_st\fP\&.
+.SH RETURN VALUE
+.sp
+\fI\%gearman_execute()\fP returns a c:type:\fIgearman_task_st\fP\&.
+.SH EXAMPLE
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+/*
+  Example code to show how to send a string to a function called "reverse" and print the results.
+*/
+
+/*
+# Gearman server and library
+# Copyright (C) 2012 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in this directory for full text.
+*/
+
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <libgearman/gearman.h>
+
+int main(void)
+{
+  gearman_client_st *client= gearman_client_create(NULL);
+
+  gearman_return_t ret= gearman_client_add_server(client, "localhost", 0);
+  if (gearman_failed(ret))
+  {
+    return EXIT_FAILURE;
+  }
+
+  gearman_argument_t value= gearman_argument_make(0, 0, "Reverse Me", strlen("Reverse Me"));
+
+  gearman_task_st *task= gearman_execute(client, 
+                                         "reverse", strlen("reverse"),  // function
+                                         NULL, 0,  // no unique value provided
+                                         NULL, 
+                                         &value, 0);
+
+  if (task == NULL) // If gearman_execute() can return NULL on error
+  {
+    fprintf(stderr, "Error: %s\en", gearman_client_error(client));
+    gearman_client_free(client);
+    return EXIT_FAILURE;
+  }
+
+  // Make sure the task was run successfully
+  if (gearman_success(gearman_task_return(task)))
+  {
+    // Make use of value
+    gearman_result_st *result= gearman_task_result(task);
+    printf("%.*s\en", (int)gearman_result_size(result), gearman_result_value(result));
+  }
+
+  gearman_client_free(client);
+
+  return EXIT_SUCCESS;
+}
+
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.SH HOME
+.sp
+To find out more information please check:
+\fI\%http://gearman.info/\fP
+.SH SEE ALSO
+.sp
+\fIgearmand(8)\fP \fIlibgearman(3)\fP
+.SH AUTHOR
+Data Differential http://www.datadifferential.com/
+.SH COPYRIGHT
+2011-2013, Data Differential, http://www.datadifferential.com/
+.\" Generated by docutils manpage writer.
+.

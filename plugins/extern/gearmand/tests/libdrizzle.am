@@ -1,0 +1,41 @@
+# vim:ft=automake
+# Gearman server and library
+# Copyright (C) 2011 Data Differential, http://datadifferential.com/
+# All rights reserved.
+#
+# Use and distribution licensed under the BSD license.  See
+# the COPYING file in the parent directory for full text.
+#
+# Included from Top Level Makefile.am
+# All paths should be given relative to the root
+#
+
+t_drizzle_CXXFLAGS=
+t_drizzle_SOURCES=
+t_drizzle_LDADD=
+t_drizzle_LDFLAGS=
+
+t_drizzle_SOURCES+= tests/basic.cc
+t_drizzle_SOURCES+= tests/drizzle_test.cc
+
+t_drizzle_LDADD+= libgearman/libgearman.la
+t_drizzle_LDADD+= libtest/libtest.la
+t_drizzle_LDADD+= tests/libstartworker.la
+
+t_drizzle_LDFLAGS+= @LIBDRIZZLE_LDFLAGS@
+t_drizzle_LDADD+= @LIBDRIZZLE_LIB@
+
+check_PROGRAMS += t/drizzle
+noinst_PROGRAMS += t/drizzle
+
+test-drizzle: t/drizzle gearmand/gearmand
+	@t/drizzle
+
+gdb-drizzle: t/drizzle gearmand/gearmand
+	@$(GDB_COMMAND) t/drizzle
+
+helgrind-drizzle: t/drizzle gearmand/gearmand
+	@$(HELGRIND_COMMAND) t/drizzle
+
+valgrind-drizzle: t/drizzle gearmand/gearmand
+	@$(VALGRIND_COMMAND) t/drizzle

@@ -1,0 +1,18 @@
+#! /bin/sh
+
+# Make sure we get an error if symlink creation fails.
+# Reported by Joerg-Martin Schwarz
+
+. $srcdir/defs || exit 1
+
+rm install-sh
+rm mkinstalldirs
+
+: > Makefile.am
+
+cat >> configure.in << 'END'
+AC_CONFIG_AUX_DIR(aux)
+END
+
+$AUTOMAKE --add-missing && exit 1
+exit 0
