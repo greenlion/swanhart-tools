@@ -14,4 +14,7 @@ Flexviews
   * Flexviews manual: http://greenlion.github.io/swanhart-tools/flexviews/manual.html
   * Flexviews INSTALL guide: https://github.com/greenlion/swanhart-tools/blob/master/flexviews/INSTALL
 
+  * warpsql-plugins are the WarpSQL plugins.  It is currently expected that you will drop the warpsql-plugins
+    directory into the plugins/ directory of the server.
+
 

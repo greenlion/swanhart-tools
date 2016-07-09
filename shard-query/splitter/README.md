@@ -1,0 +1,1 @@
+This is the WarpSQL C++ based shard splitter.  It is used automatically by the loader to split files before they are loaded.  This splitter not only horizontally partitions the input file, but it creates partitions per-shard so that the loader itself doesn't spend any extra CPU or network time, all it does is invoke the MySQL LOAD DATA INFILE command.

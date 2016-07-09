@@ -92,12 +92,12 @@ class ShardQuery {
     
     return $state;
   }
-  
-  function __construct($schema_name = null, $config_file = 'shard-query-config.php') {
+ 
+  function __construct($schema_name = null, $config = 'shard-query-config.php') {
     $this->parser = new PHPSQLParser();
     ShardQueryCustomFunctions::register_all($this->parser);
     $state = ShardQuery::new_state();
-    $this->state = $this->set_schema($schema_name, $state, $config_file);
+    $this->state = $this->set_schema($schema_name, $state, $config);
   }
   
   function set_coordinator($shard_name = null) {

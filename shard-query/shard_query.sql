@@ -2,51 +2,17 @@ set foreign_key_checks=0;
 set storage_engine=MYISAM;
 DROP TABLE IF EXISTS column_sequences;
 DROP TABLE IF EXISTS shard_columns;
-CREATE TABLE `shard_columns` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `schema_id` int(11) NOT NULL,
+DROP VIEW IF EXISTS column_sequences;
+CREATE TABLE `sharded_tables` (
+  `schema_name` varchar(50) NOT NULL,
+  `table_name` varchar(50) NOT NULL,
   `column_name` varchar(50) NOT NULL,
+  `ordinal` tinyint default 1 not null,
   `datatype` enum('string','integer') NOT NULL DEFAULT 'integer',
   is_range tinyint(1) default 0,
-  KEY (`id`),
-  PRIMARY KEY (`schema_id`,`column_name`), 
-  CONSTRAINT `column_sequences_ibfk_1` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`)
-) AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+  PRIMARY KEY (`schema_name`,`table_name`,`column_name`) 
+) AUTO_INCREMENT=1 DEFAULT CHARSET=UTF8;
 
-DROP VIEW IF EXISTS column_sequences;
-CREATE VIEW column_sequences
-as 
-select id, schema_id, 'shard_column' as sequence_type,
-       column_name as sequence_name, 
-       0 as next_value, 
-       datatype, 
-       '0000-00-00 00:00:00' as last_updated,
-       is_range
-  from shard_columns;
-
-DROP TABLE IF EXISTS `gearman_function_names`;
-CREATE TABLE `gearman_function_names` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `function_name` varchar(50) NOT NULL,
-  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `function_name` (`function_name`)
-)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
-DROP TABLE IF EXISTS `gearman_functions`;
-CREATE TABLE `gearman_functions` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `schema_id` int(11) NOT NULL,
-  `worker_count` int(10) unsigned NOT NULL,
-  `enabled` tinyint(1) NOT NULL DEFAULT '1',
-  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `function_name_id` int(11) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `schema_worker_unique` (`schema_id`,`function_name_id`),
-  KEY `fk_gearmand_functions_schema_id_idx` (`schema_id`),
-  KEY `gearman_functions_ibfk_1` (`function_name_id`),
-  CONSTRAINT `fk_gearmand_functions_schema_id` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `gearman_functions_ibfk_1` FOREIGN KEY (`function_name_id`) REFERENCES `gearman_function_names` (`id`)
-)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 DROP TABLE IF EXISTS `gearman_job_servers`;
 CREATE TABLE `gearman_job_servers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -62,17 +28,6 @@ CREATE TABLE `gearman_job_servers` (
   KEY `schema_id` (`schema_id`),
   CONSTRAINT `gearman_job_servers_ibfk_1` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`)
 )  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
-DROP TABLE IF EXISTS `gearman_workers`;
-CREATE TABLE `gearman_workers` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `pid` int(11) NOT NULL,
-  `function_name` varchar(255) NOT NULL,
-  `schema_id` int(11) NOT NULL,
-  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `function_id` (`function_name`,`pid`)
-)  DEFAULT CHARSET=latin1;
-DROP TABLE IF EXISTS `job_worker_status`;
 CREATE TABLE `job_worker_status` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `job_id` bigint(20) NOT NULL,
@@ -101,36 +56,16 @@ CREATE TABLE `jobs` (
   KEY `completion_percent` (`completion_percent`),
   CONSTRAINT `jobs_ibfk_1` FOREIGN KEY (`shard_id`) REFERENCES `shards` (`id`)
 )  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
-DROP TABLE IF EXISTS `schemata`;
-CREATE TABLE `schemata` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `schema_name` varchar(50) NOT NULL,
-  `is_default_schema` tinyint(1) NOT NULL DEFAULT '0',
-  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `enabled` tinyint(1) NOT NULL DEFAULT '1',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `schema_name_UNIQUE` (`schema_name`)
-)  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
-DROP TABLE IF EXISTS `schemata_config`;
-CREATE TABLE `schemata_config` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+
+CREATE TABLE `config` (
   `schema_id` int(11) NOT NULL,
   `var_name` varchar(255) NOT NULL,
   `var_value` text NOT NULL,
   `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `read_only` tinyint(1) default 0,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `schema_id` (`schema_id`,`var_name`),
-  CONSTRAINT `schemata_config_ibfk_1` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`),
-  CONSTRAINT `fk2` FOREIGN KEY (`var_name`) references `schemata_config_items`(`name`)
+   PRIMARY KEY `schema_id` (`schema_id`,`var_name`),
 )  AUTO_INCREMENT=4 DEFAULT CHARSET=latin1;
-DROP TABLE IF EXISTS `schemata_config_items`;
-CREATE TABLE `schemata_config_items` (
-  `name` varchar(255) NOT NULL,
-  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `read_only` tinyint(1) default 1,
-  PRIMARY KEY (`name`)
-)  DEFAULT CHARSET=latin1;
+
 DROP TABLE IF EXISTS shard_map;
 CREATE TABLE `shard_map` (
   `column_id` int(11) NOT NULL,
@@ -148,11 +83,9 @@ CREATE TABLE `shard_map_string` (
   PRIMARY KEY `column_id` (`column_id`,`key_value`)
 ) AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `shard_range_map`;
 DROP TABLE IF EXISTS `shards`;
 CREATE TABLE `shards` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `schema_id` int(11) NOT NULL,
+  `shard_id` int(11) NOT NULL AUTO_INCREMENT,
   `shard_name` varchar(50) NOT NULL,
   `extra_info` text,
   `shard_rdbms` enum('mysql','pdo-pgsql','pdo-mysql') NOT NULL DEFAULT 'mysql',
@@ -169,8 +102,8 @@ CREATE TABLE `shards` (
   UNIQUE KEY `schema_id` (`schema_id`,`shard_name`),
   CONSTRAINT `shards_ibfk_1` FOREIGN KEY (`schema_id`) REFERENCES `schemata` (`id`)
 )  AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
-INSERT INTO `gearman_function_names` VALUES (1,'shard_query_worker',now()),(2,'store_resultset',now()),(3,'custom_function',now()),(4,'loader',now());
-INSERT INTO `schemata_config_items` 
+
+INSERT INTO `config_items` 
 VALUES 
 ('between',now(),0),
 ('inlist',now(),0),
@@ -183,12 +116,7 @@ VALUES
 ('aws_access_key', now(),0),
 ('aws_secret_key', now(),0),
 ('lookup_db',now(),1);
-/*
-('password',now()),
-('port',now()),
-('user',now()),
-('no_expand_partition_columns',now()),
-('gearmand_path', now()),
-*/
+('gearman_servers','127.0.0.1:7001');
+
 
 \. sq_helper.sql
