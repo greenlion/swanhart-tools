@@ -44,7 +44,7 @@ endif()
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/plugin/warpsql-plugins/cmake")
-find_package(LibEvent REQUIRED)
+find_package(libevent REQUIRED)
 
 add_definitions(-std=c++11) 
 set(CMAKE_INSTALL_RPATH "$ORIGIN/")

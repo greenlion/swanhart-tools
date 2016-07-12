@@ -225,7 +225,7 @@
 /* #undef HAVE_MYSQL */
 
 /* Define to 1 if MySQLD binary is available */
-#define HAVE_MYSQLD_BUILD 1
+#define HAVE_MYSQLD_BUILD 0
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #define HAVE_NETDB_H 1
@@ -454,7 +454,7 @@
 /* #undef MEMCACHED_VERSION */
 
 /* Name of the mysqld binary used in make test */
-#define MYSQLD_BINARY "/usr/local/mysql/bin/mysqld"
+#define MYSQLD_BINARY 0
 
 /* Define to 1 to disable assert'ing code. */
 #define NDEBUG 1

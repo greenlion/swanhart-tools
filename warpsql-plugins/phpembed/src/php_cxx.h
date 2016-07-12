@@ -165,7 +165,12 @@ private:
   //
   // In the absence of a user provided function, output is sent to stdout and
   // errors are sent to stderr
+#if PHP_VERSION_ID >= 50400
+  static void message_wrap(char *str TSRMLS_DC);
+#else
   static void message_wrap(char *str);
+#endif
+
   static void error_wrap(int error, const char *fmt, ...);
   static int output_wrap(const char *str, unsigned int strlen TSRMLS_DC);
 

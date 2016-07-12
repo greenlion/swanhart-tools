@@ -18,8 +18,11 @@ void php::set_error_function(void (*_error_function)(const char *)){
 void php::set_output_function(void (*_output_function)(const char *)){
   p.output_function = _output_function;
 }
-
-void php::message_wrap(char * str){
+#if PHP_VERSION_ID >= 50400
+void php::message_wrap(char *str TSRMLS_DC){
+#else
+void php::message_wrap(char *str){
+#endif
   if(p.message_function != NULL)
     p.message_function(str);
   else 
