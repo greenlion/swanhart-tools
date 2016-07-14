@@ -1,1 +1,0 @@
-SELECT *, case when (col1 not like '') then col1 else col2 end as alias1 FROM table1

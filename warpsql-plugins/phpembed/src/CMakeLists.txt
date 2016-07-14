@@ -13,29 +13,7 @@ SET(phpembed_LIB_SRCS
    php_tok.h
 )
 
-IF(NOT EXISTS ${CMAKE_SOURCE_DIR}/plugin/warpsql-plugins/extern/php/libs/libphp5.so)
-
-execute_process(
-COMMAND ./configure --prefix=${CMAKE_SOURCE_DIR}/plugin/warpsql-plugins --enable-embed=shared --enable-bcmath --enable-calendar --with-mysql=mysqlnd --enable-embedded-mysqli --enable-mysqlnd --enable-maintainer-zts --enable-zend-multibyte --with-tsrm-pthreads
-WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/plugin/warpsql-plugins/extern/php/
-RESULT_VARIABLE PHP_CONF_RESULT
-)
-
-if(${PHP_CONF_RESULT} GREATER 0)
-  message( FATAL_ERROR "PHP 5.3.29 could not be configured." )
-endif()
-
-execute_process(
-COMMAND make -j 
-WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/plugin/warpsql-plugins/extern/php/
-RESULT_VARIABLE PHP_MAKE_RESULT
-)
-
-if(${PHP_CONF_RESULT} GREATER 0)
-  message( FATAL_ERROR "PHP 5.3.29 could not be built. ") 
-endif()
-
-ENDIF()
+ADD_DEFINITIONS(-D ZTS)
 
 FIND_LIBRARY(PHP_LOC php5 PATHS ${CMAKE_SOURCE_DIR}/plugin/warpsql-plugins/extern/php/libs ${PLUGINDIR})
 

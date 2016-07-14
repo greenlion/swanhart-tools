@@ -1,1 +1,0 @@
-SELECT (c1 - c2) as c3 FROM t1
