@@ -58,38 +58,4 @@ fi
 
 echo Mounting file system
 mount /dev/md0 /media > /tmp/mount.log
-
-echo "Relocating MySQL files if necessary"
-if [ -d /media/infobright ]; then
-  echo "Infobright moved already"
-else
-  if [ -f /usr/local/infobright ]; then
-    rm /usr/local/infobright
-    mv /usr/local/info* /media/infobright
-    chown -R mysql:mysql /media/infobright
-    ln -s /media/infobright /usr/local
-    ln -s /media/infobright /usr/local/infobright-4.5.0-x86_x64
-    chown mysql:mysql /usr/local/info*
-  else
-    mkdir /media/infobright
-  fi
-fi
-
-
-if [ -d /media/mysql ]; then
-  echo "MySQL moved already"
-else
-  if [ -d /var/lib/mysql  ]; then
-    mv /var/lib/mysql /media
-    chown -R mysql:mysql /media/mysql
-    ln -s /media/mysql /var/lib
-    chown mysql:mysql /var/lib/mysql
-  else
-    mkdir /media/mysql
-  fi
-fi
-
-service mysqld-ib start
-service mysqld start
-
 touch /var/lock/subsys/local.mdadm

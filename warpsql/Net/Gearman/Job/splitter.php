@@ -32,7 +32,7 @@ class Net_Gearman_Job_splitter extends Net_Gearman_Job_Common {
     $load_stats = array_shift($data);
 
     $split_count = count($data);
-    $sql = "UPDATE new_loader set split_count = split_count + $split_count WHERE id = {$arg->job_id}";
+//    $sql = "UPDATE new_loader set split_count = split_count + $split_count WHERE id = {$arg->job_id}";
     $this->SQ->mapper->conn->my_query($sql);
     /* schedule loading jobs for the split files */
     $task_type = Net_Gearman_task::JOB_BACKGROUND;

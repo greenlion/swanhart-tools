@@ -35,7 +35,7 @@ class Net_Gearman_Job_new_loader extends Net_Gearman_Job_Common {
       return false;
     }
 
-    $SQ->mapper->conn->my_query("UPDATE new_loader SET splits_done = splits_done + 1 where id = {$arg->job_id}");
+//    $SQ->mapper->conn->my_query("UPDATE new_loader SET splits_done = splits_done + 1 where id = {$arg->job_id}");
 
     return true;
     

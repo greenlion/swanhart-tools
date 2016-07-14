@@ -32,12 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*It also requires Console_Getopt, but this should be installed by default with pear */
 #require_once 'instrumentation.php'; #new bsd Instrumentation-for-PHP 
 require('const.php');
-require_once 'Console/Getopt.php';
-require_once 'Net/Gearman/Client.php';
-require_once 'DAL/simple-dal.php';
-require_once 'PHP-SQL-Parser/src/PHPSQLParser.php';
 require_once 'shard-key-mapper.php';
-require_once 'custom_functions.php';
 
 function &get_commandline($more_longopts=array()) {
 	$cg = new Console_Getopt();
