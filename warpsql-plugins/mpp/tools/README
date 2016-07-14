@@ -1,6 +1,0 @@
-Shard-Query
------ Misc Tools --------
-
-ssb/ - Star Schema Benchmark related files
-shard-query.conf - goes in /etc/httpd/conf.d (edit appropriately, assumes shard-query is in /usr/share/shard-query)
-

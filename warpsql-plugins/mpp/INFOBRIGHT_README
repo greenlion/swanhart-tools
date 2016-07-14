@@ -1,1 +1,0 @@
-You MUST edit shard_query.sql and change the storage engine from InnoDB to MyISAM.  Otherwise the installer will fail with a "too many key parts" message.
