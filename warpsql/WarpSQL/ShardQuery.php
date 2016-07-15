@@ -1,4 +1,5 @@
 <?php
+namespace WarpSQL;
 /* $Id: */
 /*
 Copyright (c) 2010, Justin Swanhart
@@ -29,13 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ini_set('memory_limit', '-1');
 define('SQ_DEBUG',false);
-
-/*This script requires PEAR Net_Gearman */
-/*It also requires Console_Getopt, but this should be installed by default with pear */
-require_once 'common.php';
-#require_once 'shard-loader.php';
-require_once 'S3.php';
-//$params = get_commandline();
 
 class ShardQuery {
   var $parser = false;

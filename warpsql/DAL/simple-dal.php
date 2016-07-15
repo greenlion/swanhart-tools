@@ -27,7 +27,12 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-interface DAL\SimpleDALinterface {
+define('SQ_RDBMS_MYSQL','mysql');
+define('SQ_RDBMS_PDO_MYSQL','pdo-mysql');
+define('SQ_RDBMS_PDO_PGSQL','pdo-pgsql');
+namespace DAL;
+
+interface SimpleDALinterface {
 
   function __construct($server = null, $connect = true, $force_new = true) ;
   function my_insert_id($conn = null);
@@ -52,7 +57,7 @@ interface DAL\SimpleDALinterface {
 
 }
 
-class DAL\SimpleDAL {
+class SimpleDAL {
   public static function factory($server = null, $connect = true, $force_new = true) {
     if(!isset($server)) throw new Exception('Server required');
 
@@ -77,7 +82,7 @@ class DAL\SimpleDAL {
   }
 }
 
-class DAL\PDODAL implements DAL\SimpleDALinterface {
+class PDODAL implements SimpleDALinterface {
   private $conn = null;
   private $stmt = null;
   private $server = null;
