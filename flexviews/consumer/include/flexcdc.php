@@ -209,11 +209,19 @@ EOREGEX
 		switch($connection_type) {
 			case 'source': 
 				/*TODO: support unix domain sockets */
-				$handle = mysqli_connect($S['host'] , $S['user'], $S['password'], null, $S['port'] ) or die1('Could not connect to MySQL server:' . mysqli_connect_error());
+        if(!empty($S['port']) && trim($S['port']) != "") {
+				  $handle = mysqli_connect($S['host'] , $S['user'], $S['password'], null, $S['port'] ) or die1('Could not connect to MySQL server:' . mysqli_connect_error());
+        } else {
+				  $handle = mysqli_connect($S['host'] , $S['user'], $S['password'], null) or die1('Could not connect to MySQL server:' . mysqli_connect_error());
+        }
 				mysqli_set_charset($handle, 'utf8');
 				return $handle;
 			case 'dest':
-				$handle = mysqli_connect($D['host'] , $D['user'], $D['password'], null, $D['port'] ) or die1('Could not connect to MySQL server:' . mysqli_error($handle));
+        if(!empty($S['port']) && trim($S['port']) != "") {
+				  $handle = mysqli_connect($D['host'] , $D['user'], $D['password'], null, $D['port'] ) or die1('Could not connect to MySQL server:' . mysqli_error($handle));
+        } else {
+				  $handle = mysqli_connect($D['host'] , $D['user'], $D['password'], null) or die1('Could not connect to MySQL server:' . mysqli_error($handle));
+        }
 				mysqli_set_charset($handle, 'utf8');
 				return $handle;
 		}
