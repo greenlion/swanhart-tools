@@ -5,84 +5,84 @@ require_once('plugin_interface.php');
 require_once('vendor/autoload.php');
 
 class mongo implements FlexCDC_Plugin_Interface {
-	static $buffer = array(); // holds records per-schame and per table inside a transaction
-	static $filter = array(); // whitelist of tables to replicate
+  static $buffer = array(); // holds records per-schame and per table inside a transaction
+  static $filter = array(); // whitelist of tables to replicate
   static $client = null; // connection to the mongod instance
   static $stream;
 
   static $user, $password, $host, $db;
 
   // JSON data must be utf8 encoded 
-	static function to_utf8($data) { 
-		if (is_string($data)) return utf8_encode($data); 
-		if (!is_array($data)) return $data; 
-		$ret = array(); 
-		foreach($data as $i=>$d) $ret[$i] = to_utf8($d); 
-		return $ret; 
-	} 
+  static function to_utf8($data) { 
+    if (is_string($data)) return utf8_encode($data); 
+    if (!is_array($data)) return $data; 
+    $ret = array(); 
+    foreach($data as $i=>$d) $ret[$i] = to_utf8($d); 
+    return $ret; 
+  } 
 
-	static function plugin_init($instance, $IAM) {
+  static function plugin_init($instance, $IAM) {
     // The class name will also be the [section] name in the .ini file
     echo "$IAM plugin initialization starting";
 
     // read the user, password, database, and host keys from the .ini file
-		if(isset($instance->settings[$IAM])) {
+    if(isset($instance->settings[$IAM])) {
 
-		  if(!isset($instance->settings[$IAM]['user'])) {
+      if(!isset($instance->settings[$IAM]['user'])) {
         $IAM::$user = "root";
       } else {
         $IAM::$user = $instance->settings[$IAM]['user'];
       }
 
-		  if(!isset($instance->settings[$IAM]['password'])) {
+      if(!isset($instance->settings[$IAM]['password'])) {
         $IAM::$password = "secret";
       } else {
         $IAM::$password = $instance->settings[$IAM]['password'];
       }
 
-		  if(!isset($instance->settings[$IAM]['host'])) {
+      if(!isset($instance->settings[$IAM]['host'])) {
         $IAM::$host = "127.0.0.1";
       } else {
         $IAM::$host = $instance->settings[$IAM]['host'];
       }
 
-		  if(!isset($instance->settings[$IAM]['database'])) {
+      if(!isset($instance->settings[$IAM]['database'])) {
         $IAM::$db = "admin";
       } else {
         $IAM::$db = $instance->settings[$IAM]['database'];
       }
 
-		  if(!isset($instance->settings[$IAM]['port'])) {
+      if(!isset($instance->settings[$IAM]['port'])) {
         $IAM::$port = 27017;
       } else {
         $IAM::$port = $instance->settings[$IAM]['port'];
       }
 
-		  if(isset($instance->settings[$IAM]['filter'])) {
-		  	$tmp = explode(',',$instance->settings['$IAM']['filter']);
-		  	foreach($tmp as $tbl) {
-		  		$t2 = explode('.', $tbl);
-		  		if(count($t2) != 2) {
-		  			echo "$IAM - Invalid schema filter: filter must be schema.table\n";
-		  			exit(4);
-		  		}
-		  		$IAM::$filter[] = $t2;
-		  	} 
-		  }
+      if(isset($instance->settings[$IAM]['filter'])) {
+        $tmp = explode(',',$instance->settings['$IAM']['filter']);
+        foreach($tmp as $tbl) {
+          $t2 = explode('.', $tbl);
+          if(count($t2) != 2) {
+            echo "$IAM - Invalid schema filter: filter must be schema.table\n";
+            exit(4);
+          }
+          $IAM::$filter[] = $t2;
+        } 
+      }
     }
     
     $client = $IAM::connect($IAM);
 
-		if(!empty($IAM::$filter)) {
-			echo "$IAM - Filters:\n" . print_r($IAM::$filter,true);
-		}
+    if(!empty($IAM::$filter)) {
+      echo "$IAM - Filters:\n" . print_r($IAM::$filter,true);
+    }
 
     echo "$IAM plugin initialized.";
 
-	}
+  }
 
   // get the mongodb client connection
-	static function connect($IAM) {
+  static function connect($IAM) {
 
     // make a new connection?
     if($IAM::$client == null) {
@@ -111,28 +111,28 @@ class mongo implements FlexCDC_Plugin_Interface {
 
     }
 
-		$IAM::$stream = array();
+    $IAM::$stream = array();
     $IAM::$seq = 0;
-		return $client;
-	}
+    return $client;
+  }
 
   /* determine if the table is on the table filter blacklist */
-	static function skip_table($schema, $table, $IAM) {
-		foreach($IAM::$filter as $filt) {
-			if($filt[0] == $schema && $filt[1] == $table) {
-				echo "{$IAM} SKIPPING $schema.$table\n";
-				return true;
-			}
-		}
-		return false;
-	}
+  static function skip_table($schema, $table, $IAM) {
+    foreach($IAM::$filter as $filt) {
+      if($filt[0] == $schema && $filt[1] == $table) {
+        echo "{$IAM} SKIPPING $schema.$table\n";
+        return true;
+      }
+    }
+    return false;
+  }
 
-	static function plugin_deinit($instance, $IAM) {
-		echo "{$IAM} SHUTDOWN\n";
-	}
+  static function plugin_deinit($instance, $IAM) {
+    echo "{$IAM} SHUTDOWN\n";
+  }
 
   /* This function just resets the buffer of changes */
-	static function begin_trx($uow_id, $gsn,$instance, $IAM) { 
+  static function begin_trx($uow_id, $gsn,$instance, $IAM) { 
     $IAM::$stream = array();
     $IAM::$seq = 0;
   }
@@ -148,10 +148,10 @@ class mongo implements FlexCDC_Plugin_Interface {
      inconsistent replica. You should avoid transactions that
      change multiple rows if possible.
   */
-	static function commit_trx($uow_id, $gsn,$instance, $IAM) {
+  static function commit_trx($uow_id, $gsn,$instance, $IAM) {
     $client = $IAM::connect();
     // write out all the documents in the transaction
-		if(empty($IAM::$stream)) return;
+    if(empty($IAM::$stream)) return;
     $client = $IAM::connect();
 
     foreach($stream as $e) {
@@ -182,34 +182,34 @@ class mongo implements FlexCDC_Plugin_Interface {
       }
     }
 
-		$IAM::$stream = array();
-	}
+    $IAM::$stream = array();
+  }
 
   /* mongo can't rollback so do nothing */
-	static function rollback_trx($uow_id=false, $instance, $IAM) {
-	}
+  static function rollback_trx($uow_id=false, $instance, $IAM) {
+  }
 
   /* The row change functions just bundle up the changes into a stream.
      The changes are applied in the commit function.
   */
-	static function insert($row, $db, $table, $trx_id, $gsn,$instance, $IAM) {
-		if($IAM::skip_table($db, $table, $IAM)) return;
+  static function insert($row, $db, $table, $trx_id, $gsn,$instance, $IAM) {
+    if($IAM::skip_table($db, $table, $IAM)) return;
     $IAM::$stream[$IAM::$seq++]=array('db'=>$db,'table'=>$table,'type'=>'i','row'=>json_encode($IAM::to_utf8($row)));
-	}
-	
-	static function delete($row, $db, $table, $trx_id, $gsn,$instance, $IAM) {
-		if($IAM::skip_table($db, $table)) return;
+  }
+  
+  static function delete($row, $db, $table, $trx_id, $gsn,$instance, $IAM) {
+    if($IAM::skip_table($db, $table)) return;
     $IAM::$stream[$IAM::$seq++]=array('db'=>$db,'table'=>$table,'type'=>'d','row'=>json_encode($IAM::to_utf8($row)));
-	}
-	
-	static function update_before($row, $db, $table, $trx_id, $gsn,$instance,$IAM) {
-		if($IAM::skip_table($db, $table)) return;
+  }
+  
+  static function update_before($row, $db, $table, $trx_id, $gsn,$instance,$IAM) {
+    if($IAM::skip_table($db, $table)) return;
     $IAM::$stream[$IAM::$seq++]=array('db'=>$db,'table'=>$table,'type'=>'u','before'=>json_encode($IAM::to_utf8($row)));
-	}
+  }
 
-	static function update_after($row, $db, $table, $trx_id, $gsn,$instance,$IAM) {
-		if($IAM::skip_table($db, $table)) return;
+  static function update_after($row, $db, $table, $trx_id, $gsn,$instance,$IAM) {
+    if($IAM::skip_table($db, $table)) return;
     $IAM::$stream[(count($IAM::stream)-1)]['after']=json_encode($IAM::to_utf8($row));
-	}
+  }
 
 }
