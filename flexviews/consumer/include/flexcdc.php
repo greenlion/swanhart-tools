@@ -270,7 +270,7 @@ EOREGEX
 			foreach($plugins as $plugin) {
 				$this->plugin[] = trim($plugin);
 			}
-                }
+    }
 
 		#if a file is provided for loading plugins, but no order is given, then a single
 		#plugin called FlexCDC_Plugin will be used
@@ -280,7 +280,7 @@ EOREGEX
 
 		if(is_array($this->plugin)) {
 			foreach($this->plugin as $plugin) {
-				call_user_func(array($plugin, 'plugin_init'), $this);
+				call_user_func(array($plugin, 'plugin_init'), $this, $plugin);
 			}
 		}
 
@@ -755,7 +755,7 @@ EOREGEX
 		$this->uow_id = $row['id'];
 		if($this->plugin) {
 			foreach($this->plugin as $plugin) {
-				call_user_func(array($plugin, 'begin_trx'), $this->uow_id, $this->gsn_hwm, $this);
+				call_user_func(array($plugin, 'begin_trx'), $this->uow_id, $this->gsn_hwm, $this, $plugin);
 			}
 		}
 
@@ -779,7 +779,7 @@ EOREGEX
 
 		if($this->plugin) {
 			foreach($this->plugin as $plugin) {
-				call_user_func(array($plugin, 'commit_trx'), $this->uow_id, $this->gsn_hwm,$this);
+				call_user_func(array($plugin, 'commit_trx'), $this->uow_id, $this->gsn_hwm,$this,$plugin);
 			}
 		}
 
@@ -795,7 +795,7 @@ EOREGEX
 		my_mysql_query("COMMIT", $this->dest) or die1("COULD NOT COMMIT TRANSACTION LOG POSITION UPDATE;\n" . mysqli_error($this->dest));
 		if($this->plugin) {
 			foreach($this->plugin as $plugin) {
-				call_user_func(array($plugin, 'rollback_trx'), $this->uow_id,$this);
+				call_user_func(array($plugin, 'rollback_trx'), $this->uow_id,$this,$plugin);
 			}
 		}
 		$this->uow_id = null;
@@ -807,12 +807,12 @@ EOREGEX
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
 			foreach($this->plugin as $plugin) {
-				call_user_func(array($plugin,'update_before'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm,$this);
+				call_user_func(array($plugin,'update_before'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm,$this,$plugin);
 			}
                         return;
 		} elseif($this->plugin) {
 			foreach($this->plugin as $plugin) {
-				call_user_func(array($plugin,'delete'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm, $this);
+				call_user_func(array($plugin,'delete'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table,$this->uow_id, $this->gsn_hwm, $this,$plugin);
 			}
 			return;
                 }
@@ -853,12 +853,12 @@ EOREGEX
 		$this->gsn_hwm+=1;
 		if($this->DML == "UPDATE" && $this->plugin) {
 			foreach($this->plugin as $plugin) {
-				call_user_func(array($plugin,'update_after'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm,$this);
+				call_user_func(array($plugin,'update_after'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm,$this,$plugin);
 			}
                         return;
 		} elseif($this->plugin) {
 			foreach($this->plugin as $plugin) {
-				call_user_func(array($plugin,'insert'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm,$this);
+				call_user_func(array($plugin,'insert'), $this->cleanup_row($this->db, $this->base_table, $this->row,true), $this->db, $this->base_table, $this->uow_id, $this->gsn_hwm,$this,$plugin);
 			}
 			return;
                 }
@@ -1483,7 +1483,7 @@ EOREGEX
 	public static function shutdown_plugins($instance) {
 		if($instance->plugin) {
 			foreach($instance->plugin as $plugin) {
-				call_user_func(array($plugin,'plugin_deinit'), $instance);
+				call_user_func(array($plugin,'plugin_deinit'), $instance, $plugin);
 			}
 		}
 	}
