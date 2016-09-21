@@ -43,7 +43,7 @@ function echo1($message) {
 
 }
 
-function my_mysql_query($a, $b=NULL, $debug=false) {
+function my_mysql_query($a, $b=NULL, $debug=false, $ignore_error=false) {
 	if($b === NULL) {
 		die1("You must pass a connection link as the second parameter to my_mysql_query\n");
 	}
@@ -53,14 +53,14 @@ function my_mysql_query($a, $b=NULL, $debug=false) {
 	mysqli_ping($b);
 	$r = mysqli_query($b, $a);
 
-	if(!$r) {
+	if(!$r && !$ignore_error) {
 		echo1("SQL_ERROR IN STATEMENT:\n$a\n");
 		if($debug) {
 			$pr = mysqli_error($b);
 			echo1(print_r(debug_backtrace(),true));
 			echo1($pr);
 		}
-	}
+	} 
 
 	return $r;
 }
@@ -983,7 +983,8 @@ EOREGEX
 				break;
 				
 			case 'SET':
-				my_mysql_query($sql, $this->dest);	
+        $sql = rtrim($sql, '*/;!\\');
+				my_mysql_query($sql, $this->dest, false, true);	
 				break;
 
 			case 'USE':
