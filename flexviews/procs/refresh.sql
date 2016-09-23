@@ -237,8 +237,25 @@ DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
           END IF;
 
           SET @now := UNIX_TIMESTAMP(NOW());
-
+          if @flashback != 1 then
           CALL flexviews.execute_refresh(v_child_mview_id, v_incremental_hwm, v_current_uow_id, 1);
+          end if;
+/*
+          IF @flashback = 1 THEN
+            SELECT CONCAT('`',mview_schema,'`.`',mview_name,'_delta`')
+              INTO @child_view_delta
+              FROM flexviews.mview
+             WHERE mview_id = v_child_mview_id;
+
+            set @update_sql := CONCAT('UPDATE ', @child_view_delta, ' SET dml_type = dml_type * -1, cnt=cnt*-1');
+            select @update_sql;
+            PREPARE stmt from @update_sql;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+          END IF;
+*/
+          set @flashback := 0;
+
           SET @compute_time = UNIX_TIMESTAMP(NOW()) - @now;
 
           UPDATE flexviews.mview_compute_schedule
@@ -269,7 +286,9 @@ DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
         SET @compute_time = UNIX_TIMESTAMP(NOW()) - @now;
 
         IF v_child_mview_id IS NOT NULL THEN
+          if @flashback != 1 then
           CALL flexviews.apply_delta(v_child_mview_id, v_current_uow_id);
+          end if;
 
           UPDATE flexviews.mview
             SET mview_last_refresh = (select commit_time from flexviews.mview_uow where uow_id = v_current_uow_id)
@@ -280,7 +299,7 @@ DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
                 last_apply_elapsed_seconds = @compute_time
             WHERE mview_id = v_mview_id;
 
-	  SELECT CONCAT(mview_schema, '.', mview_name)
+	        SELECT CONCAT(mview_schema, '.', mview_name)
             INTO v_child_mview_name
             FROM flexviews.mview
             WHERE mview_id = v_child_mview_id;
@@ -303,8 +322,10 @@ DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
                            '  JOIN (\n', 
                            'SELECT ', get_child_select(v_mview_id, 'cv'), '\n',
                            '  FROM ', v_child_mview_name, ' as cv\n',
-                           '  JOIN ', v_mview_schema, '.', v_mview_name, '_delta as pv \n '); 
-                   --      '  JOIN ', v_mview_schema, '.', v_mview_name, ' as pv \n '); 
+                   --        '  JOIN ', v_mview_schema, '.', v_mview_name, '_delta as pv \n '); 
+                   --      '  JOIN ', v_mview_schema, '.', v_mview_name, ' as pv \n '
+                   ''); 
+
 
 	  IF v_using_clause != '' THEN 
             SET @v_sql = CONCAT(@v_sql, ' USING (', v_using_clause, ')\n',  
@@ -318,8 +339,6 @@ DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
           END IF;
 
           SET @v_sql = CONCAT(@v_sql,' SET ', v_agg_set , '\n');
-
-          SET @update = @v_sql;
 
           PREPARE update_stmt from @v_sql;
           EXECUTE update_stmt;   
@@ -340,7 +359,7 @@ DECLARE v_mview_refresh_type TEXT CHARACTER SET UTF8;
     CALL flexviews.update_refresh_step_info(v_mview_id, concat('UNSUPPORTED REFRESH METHOD:',v_mode));
     CALL flexviews.signal(' XYZ UNSUPPORTED REFRESH METHOD'); 
   END IF;
-
+  set @flashback := NULL;
   CALL flexviews.update_refresh_step_info(v_mview_id, concat('REFRESH_END: ',v_mode));
 END ;;
 

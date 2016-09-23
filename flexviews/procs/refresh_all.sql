@@ -78,7 +78,7 @@ SELECT mview_id
 DECLARE CONTINUE HANDLER FOR  SQLSTATE '02000'
     SET v_done = TRUE;
 
-SET max_sp_recursion_depth=999;
+SET max_sp_recursion_depth=255;
 IF v_mode IS NULL THEN SET v_mode := 'BOTH'; END IF;
 OPEN cur_views;
 

@@ -69,7 +69,6 @@ BEGIN
   BEGIN END;
 
   SET max_sp_recursion_depth := 255;
-  SET @fv_force := NULL;
 
   START TRANSACTION WITH CONSISTENT SNAPSHOT;
 
@@ -135,11 +134,15 @@ BEGIN
    DEALLOCATE PREPARE drop_stmt;
 
    IF v_parent_mview_id IS NOT NULL THEN
-     SELECT 'The view, the view delta and the child views (if any) have now been removed' as `MESSAGE` from dual;
+     if @fv_silent != 1 THEN
+       SELECT 'The view, the view delta and the child views (if any) have now been removed' as `MESSAGE` from dual;
+     end if;
    END IF;
  
    -- restore SESSION max_sp_recursion_depth
    SET max_sp_recursion_depth := bkp_max_sp_recursion_depth;
+   SET @fv_force := NULL;
+   SET @fv_silent := NULL;
   
 END ;;
 

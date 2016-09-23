@@ -51,6 +51,17 @@ proc: BEGIN
 ******
 */
 
+  SET max_sp_recursion_depth=2;
+  SET @child_mview_id := NULL;
+  SELECT mview_id
+    INTO @child_mview_id
+    FROM flexviews.mview
+   WHERE parent_mview_id = v_mview_id;
+
+  IF @child_mview_id IS NOT NULL THEN
+    CALL flexviews.asof(@child_mview_id, v_when);
+  END IF;
+
   -- where to roll the view to
   SET @to_uowid := flexviews.uow_from_dtime(v_when);
   IF @to_uowid IS NULL THEN
@@ -108,22 +119,20 @@ proc: BEGIN
     UPDATE flexviews.mview 
        SET refreshed_to_uow_id = @to_uowid  ,
            incremental_hwm = @to_uowid
-     WHERE mview_id = v_mview_id;
+     WHERE mview_id = v_mview_id or parent_mview_id = v_mview_id;
 
     -- roll the view forward to the point it was refreshed to
     CALL flexviews.refresh(v_mview_id,'COMPUTE', @cur_uowid);
 
     -- flip the inserts to deletes to make the apply go "backwards"
+    set @flashback := 0;
     IF flexviews.has_aggregates(v_mview_id) THEN
+      set @flashback := 1;
       set @update_sql := CONCAT('UPDATE ', @view_delta, ' SET dml_type = dml_type * -1, cnt=cnt*-1');
       PREPARE stmt from @update_sql;
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
     ELSE
-      set @v_sql := CONCAT('SELECT max(`fv$gsn`) into @max_gsn from ', @view_delta);
-      PREPARE stmt from @v_sql;
-      EXECUTE stmt;
-      DEALLOCATE PREPARE stmt;
       set @cnt := 0;
       set @update_sql := CONCAT('UPDATE ', @view_delta, ' SET dml_type = dml_type * -1, `fv$gsn` = @cnt := @cnt + 1 ORDER BY `fv$gsn` desc');
       PREPARE stmt from @update_sql;
@@ -144,6 +153,7 @@ proc: BEGIN
     COMMIT;
 
   END IF;
+  set @flashback := NULL;
   
 END ;;
 

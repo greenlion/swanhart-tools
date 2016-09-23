@@ -35,7 +35,9 @@ BEGIN
    -- Destroy any existing child materialization
    SET v_new_mview_id := flexviews.get_id(flexviews.get_setting('mvlog_db'), concat('mv$', v_mview_id));
    IF v_new_mview_id is not null and v_new_mview_id != 0 THEN
-     CALL flexviews.disable(v_new_mview_id);
+     set @fv_force := 1;
+     set @fv_silent := 1;
+     CALL flexviews.drop(v_new_mview_id);
      DELETE from flexviews.mview_expression where mview_id = v_new_mview_id;
      DELETE from flexviews.mview_table where mview_id = v_new_mview_id;
      DELETE from flexviews.mview where mview_id = v_new_mview_id;
@@ -83,7 +85,7 @@ BEGIN
        -- CALL flexviews.add_expr(v_new_mview_id, 'UNIQUE', flexviews.get_delta_aliases(v_new_mview_id,'',TRUE), 'UK');
 
        -- Build the new view (this could be recursive...)
-       SET max_sp_recursion_depth=999;
+       SET max_sp_recursion_depth=255;
        SET unique_checks=off;
        CALL flexviews.enable(v_new_mview_id);
        SET unique_checks=on;
