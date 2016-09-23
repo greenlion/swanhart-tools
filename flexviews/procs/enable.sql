@@ -215,7 +215,10 @@ body: BEGIN
       -- A subview will only be created if necessary
       CALL flexviews.create_child_views(v_mview_id);
     END IF;
-    
+
+    UPDATE flexviews.mview SET refresh_state = 'VALID' where mview_id = v_mview_id;
+    COMMIT;
+
     call flexviews.update_refresh_step_info(v_mview_id,'ENABLE_END');
 END ;;
 

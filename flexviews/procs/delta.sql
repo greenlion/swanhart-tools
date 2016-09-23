@@ -658,7 +658,7 @@ SELECT mview_table_name,
 DECLARE CONTINUE HANDLER FOR  SQLSTATE '02000'    
     SET v_done = TRUE;  
 
-SET v_from_clause = '';
+SET v_from_clause := '';
 
 OPEN cur_from;  
 fromLoop: LOOP    
