@@ -116,9 +116,11 @@ IF NOT flexviews.has_aggregates(v_mview_id) THEN
       ELSE
         SET v_sql = CONCAT(' DELETE ', v_mview_fqn, '.*',
                            '   FROM ', v_mview_fqn,
-                           '   NATURAL JOIN ', v_delta_table,
+                           '   JOIN ', v_delta_table,
                            '   WHERE fv$gsn = ', v_gsn,
-                           '     AND uow_id = ', v_uow_id);
+                           '     AND uow_id = ', v_uow_id,
+                           '     AND ', flexviews.get_natural_where_condition(v_mview_schema, v_mview_name, CONCAT(v_mview_name, '_delta'))
+                           );
       END IF;
 
       SET @v_sql = v_sql;
@@ -1310,6 +1312,44 @@ BEGIN
           AND m.mview_expr_type IN ('GROUP', 'COLUMN')
     );
 END ;;
+
+DROP FUNCTION if exists flexviews.get_natural_where_condition;;
+CREATE FUNCTION flexviews.get_natural_where_condition(
+  v_table_schema varchar(64),
+  v_table_name varchar(64),
+  v_table_name_compare varchar(64)
+)  RETURNS TEXT CHARACTER SET UTF8
+READS SQL DATA
+  BEGIN
+    DECLARE v_done BOOLEAN DEFAULT FALSE;
+    DECLARE v_column_name TEXT CHARACTER SET UTF8;
+    DECLARE v_return TEXT CHARACTER SET UTF8 default '';
+
+    DECLARE cursor1 CURSOR FOR SELECT column_name
+                               FROM INFORMATION_SCHEMA.COLUMNS
+                               WHERE table_schema = v_table_schema
+                                     AND table_name IN (v_table_name, v_table_name_compare)
+                               GROUP BY column_name HAVING COUNT(*)>1;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = TRUE;
+
+    OPEN cursor1;
+
+    readLoop: LOOP
+      FETCH cursor1 INTO v_column_name;
+
+      IF v_done THEN
+        LEAVE readLoop;
+      END IF;
+      IF v_return != '' THEN
+        SET v_return = CONCAT(v_return, ' AND');
+      END IF;
+      SET v_return := CONCAT(v_return, ' ', 'IFNULL(', v_table_name, '.' ,v_column_name, ', 1', ') = IFNULL(', v_table_name_compare, '.' ,v_column_name,  ', 1)');
+    END LOOP;
+
+    CLOSE cursor1;
+
+    RETURN v_return;
+  END;;
 
 DELIMITER ;
 
