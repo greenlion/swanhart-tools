@@ -1343,7 +1343,7 @@ READS SQL DATA
       IF v_return != '' THEN
         SET v_return = CONCAT(v_return, ' AND');
       END IF;
-      SET v_return := CONCAT(v_return, ' ', 'IFNULL(', v_table_name, '.' ,v_column_name, ', 1', ') = IFNULL(', v_table_name_compare, '.' ,v_column_name,  ', 1)');
+      SET v_return := CONCAT(v_return, ' ', 'IFNULL(', v_table_name, '.' ,v_column_name, ', "__NULL__VALUE__"', ') = IFNULL(', v_table_name_compare, '.' ,v_column_name,  ', "__NULL__VALUE__")');
     END LOOP;
 
     CLOSE cursor1;
