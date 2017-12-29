@@ -1,5 +1,5 @@
 set foreign_key_checks=0;
-set storage_engine=INNODB;
+set default_storage_engine=INNODB;
 
 DROP TABLE IF EXISTS `column_sequences`;
 CREATE TABLE `column_sequences` (
