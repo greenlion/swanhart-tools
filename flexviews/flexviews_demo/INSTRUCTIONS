@@ -24,7 +24,7 @@ Step 4
 select some sample data from a materialized view
 
 SELECT * from demo.mv_company_sales_total
-WHERE CustomerName like 'Ranch%';
+WHERE CompanyName like 'Ranch%';
 
 Step 5
 change some data, for instance:
