@@ -10,15 +10,14 @@ try {
 
     if(file_exists('../include/config.inc')) {
 	require_once('../include/shard-query-config.php');
-
 	$db = SimpleDal::factory($config_database);
 	$db->my_select_db($config_database['db']);
-	$sql = "select * from gearman_job_servers join schemata on schemata.id = schema_id where schema_name = '" . $config_database['default_virtual_schema'] . "'" ;
+	$sql = "select * from {$config_database['db']}.gearman_job_servers join {$config_database['db']}.schemata on schemata.id = schema_id where schema_name = '" . $config_database['default_virtual_schema'] . "'" ;
 	$stmt = $db->my_query($sql);
 	$gearman_servers = "";
 	while($row = $db->my_fetch_assoc()) {
 		if($gearman_servers) $gearman_servers .= ",";
-		`mysql -uroot -e'select gman_servers_set("{$row['hostname']}:{$row['port']}")'`;
+		#`mysql -uroot -e'select gman_servers_set("{$row['hostname']}:{$row['port']}") {$config_database['db']}'`;
 		$gearman_servers .= $row['hostname'] . ":" . $row['port'];
 	}
 	

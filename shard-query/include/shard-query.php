@@ -2935,10 +2935,10 @@ $sql = str_replace("1=1","1=0",$sql);
             $this->cleanup_tables($state);
             return false;
           }
-          $load_sql = "LOAD DATA LOCAL INFILE '$fname' INTO TABLE `{$shard['db']}`.$sub_table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\\\\'";
+          $load_sql = "LOAD DATA INFILE '$fname' INTO TABLE `{$shard['db']}`.$sub_table FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\\\\'";
           $stmt = $dal->my_query($load_sql);
           if(!$stmt) {
-            $this->errors[] = 'Failed to LOAD DATA LOCAL INFILE to table: $sub_table during intermediate copy' . "(" . $dal->my_error() . ")";
+            $this->errors[] = 'Failed to LOAD DATA INFILE to table: $sub_table during intermediate copy' . "(" . $dal->my_error() . ")";
             $this->cleanup_tables($state);
             return false;
           }

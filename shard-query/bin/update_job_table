@@ -7,7 +7,7 @@ while(1) {
 $SQ = new ShardQuery();
 $SQ->state->mapper->sweep_jobs();
 
-$sql = "select * from jobs where completion_percent < 100.00";
+$sql = "select * from jobs where completion_percent < 100.00 order by id";
 $stmt = $SQ->state->mapper->conn->my_query($sql);
 $no_jobs=true;
 while($row=$SQ->state->mapper->conn->my_fetch_assoc($stmt)) {

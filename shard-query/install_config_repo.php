@@ -90,7 +90,7 @@ $create_user = true;
 if((int)$res['count'] != 0){
 	write_line("A $sq_username user was already found.  Do you want to drop it and recreate it?\nHIT CTRL-C TO ABORT NOW WITHOUT MAKING ANY CHANGES, otherwise (y/n): [n]");
 	$drop_user = read_line();
-	if(strtolower($drop_user[0]) == 'y') {
+	if($drop_user != "" && strtolower($drop_user[0]) == 'y') {
 		write_line("Dropping current user!");
 		$sql = "DROP USER $sq_username@'%'";
 		$dbh->query($sql);

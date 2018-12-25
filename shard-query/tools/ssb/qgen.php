@@ -1,6 +1,6 @@
 #!/usr/bin/php
 <?php
-set_include_path(get_include_path() . ':.:/home/justin.swanhart/benchmark/shard-query/include');
+set_include_path(get_include_path() . ':.:../..//include');
 require_once('shard-query.php');
 class DRV_MYSQL extends StdClass {
 	var $_handle = false;

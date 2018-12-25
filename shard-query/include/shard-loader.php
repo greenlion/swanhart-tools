@@ -278,7 +278,7 @@ class ShardLoader {
       'ignore' => $ignore,
       'replace' => $replace
     );
-    $job_id   = $SQ->state->mapper->register_job(null, 0, 0, $table, "[LOAD DATA LOCAL] FILE:$path", "load", count($info));
+    $job_id   = $SQ->state->mapper->register_job(null, 0, 0, $table, "[LOAD DATA] FILE:$path", "load", count($info));
     echo "Scheduling jobs for file chunks:\n";
     foreach ($info as $segment) {
       echo "  Table: $table\n   File: " . print_r($path,true) . "\nOffsets: from_pos: {$segment['start']}, to_pos: {$segment['end']}\n";
@@ -630,7 +630,7 @@ class ShardLoader {
     if($replace == "") $replace=""; else $replace = "REPLACE";
 
     #note $ignore and replace are mutually exclusive in the SQL grammar - putting them together produces a error if both are used which is good
-    $load = "LOAD DATA LOCAL INFILE \"$path\" {$replace}{$ignore} INTO TABLE `{$shard['db']}`.`$table`";
+    $load = "LOAD DATA INFILE \"$path\" {$replace}{$ignore} INTO TABLE `{$shard['db']}`.`$table`";
     if($this->charset !== "" && $this->charset !== null) $load .= " CHARACTER SET {$this->charset} ";
     $sql  = "";
     
