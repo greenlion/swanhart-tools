@@ -1264,7 +1264,7 @@ $sql = str_replace("1=1","1=0",$sql);
     foreach($select as $pos => $clause) {
 
       $alias = $this->make_alias($clause);
-      $this->state->aliases[] = $alias;
+      $this->state->aliases = array($alias);
       $this->process_select_item($pos, $clause, $shard_query, $coord_query, $push_select, $group_aliases, $error, false, $coord_odku, null, $state, $alias, null, $custom_functions,false,$winfunc_query);
       if($pos + 1 < count($select)) {
         $shard_query = rtrim($shard_query, ", ");
