@@ -23,6 +23,46 @@ create /*M!100300 or replace*/ function bcsqrt returns string soname 'udf_bcmath
 create /*M!100300 or replace*/ function bccomp returns int soname 'udf_bcmath.so';
 
 DELIMITER ;;
+/*
+Takes a exponentially notated value and converts it into a decimal 
+
+MariaDB [bcnum]> select c1, format_as_decimal(c1) from t1;
++-----------------------+----------------------+
+| c1                    | format_as_decimal(c1)         |
++-----------------------+----------------------+
+| 1.8446744073709552e19 | 18446744073709552000 |
+|  9.223372036854776e18 | 9223372036854776000  |
+|  9.223372036854776e18 | 9223372036854776000  |
++-----------------------+----------------------+
+3 rows in set (0.001 sec)
+*/
+CREATE OR REPLACE FUNCTION format_as_decimal(
+  p_num LONGTEXT
+)
+RETURNS LONGTEXT
+BEGIN
+  DECLARE e_pos BIGINT UNSIGNED DEFAULT 0;
+  DECLARE d_pos BIGINT UNSIGNED DEFAULT 0;
+  DECLARE i LONGTEXT DEFAULT '0'; -- integer part
+  DECLARE d LONGTEXT DEFAULT '0'; -- fractional decimal part
+  DECLARE e INTEGER UNSIGNED DEFAULT 0;     -- exponent
+  DECLARE places INTEGER UNSIGNED DEFAULT 0;
+  DECLARE pad BIGINT UNSIGNED DEFAULT 0 ;
+
+  SET e_pos := LOCATE('e', LOWER(p_num));
+
+  IF e_pos > 0 THEN 
+    SET d_pos := LOCATE('.', p_num);
+    SET i := SUBSTR(p_num, 1, d_pos - 1);
+    SET d := SUBSTR(p_num, d_pos+1, e_pos - d_pos-1);
+    SET e := CAST(SUBSTR(p_num, e_pos+1, LENGTH(p_num) - e_pos) AS UNSIGNED);
+    SET places := LENGTH(d);
+    SET pad := e - places;
+    RETURN CONCAT(i, RPAD(d, LENGTH(d) + pad, '0'));
+  END IF;
+
+  RETURN p_num;
+END;;
 
 CREATE OR REPLACE AGGREGATE FUNCTION bc_stddev(
   p_num LONGTEXT
@@ -43,10 +83,15 @@ BEGIN
     set @mean := bcdiv(@bc_scale, v_sum, cast(v_count as char));
     set @mean2 := bcpow(@bc_scale, @mean, '2');
     set v_retval := bcsqrt(@bc_scale, bcsub(@bc_scale, bcdiv(@bc_scale, v_sumsq, cast(v_count as char)), @mean2));
-    set @mean := NULL;
-    set @mean2 := NULL;
+    -- set @mean := NULL;
+    -- set @mean2 := NULL;
+    set @ss := v_sumsq;
+    set @s := v_sum;
+    set @c := v_count;
     return v_retval;
   END;
+
+  SET p_num := format_as_decimal(p_num);
 
   IF @bc_scale IS NULL THEN
     SET @bc_scale := 10;
@@ -89,6 +134,8 @@ BEGIN
   IF @bc_scale IS NULL THEN
     SET @bc_scale := 10;
   END IF;
+
+  SET p_num := format_as_decimal(p_num);
 
   agg_main:
   LOOP
@@ -136,6 +183,8 @@ BEGIN
     SET @bc_scale := 10;
   END IF;
 
+  SET p_num := format_as_decimal(p_num);
+
   agg_main:
   LOOP
     FETCH GROUP NEXT ROW;
@@ -182,6 +231,8 @@ BEGIN
     SET @bc_scale := 10;
   END IF;
 
+  SET p_num := format_as_decimal(p_num);
+
   agg_main:
   LOOP
     FETCH GROUP NEXT ROW;
@@ -214,6 +265,8 @@ BEGIN
   IF @bc_scale IS NULL THEN
     SET @bc_scale := 10;
   END IF;
+
+  SET p_num := format_as_decimal(p_num);
 
   agg_main:
   LOOP
@@ -250,6 +303,8 @@ BEGIN
   IF @bc_scale IS NULL THEN
     SET @bc_scale := 10;
   END IF;
+
+  SET p_num := format_as_decimal(p_num);
 
   agg_main:
   LOOP
