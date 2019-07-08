@@ -5,7 +5,7 @@ This is where you can find most open source tools written and primarily maintain
 
 Shard-Query - MPP scaleout for MySQL with window functions and support for complex SQL (basically open source RedShift)
 
-  * Shard-Query website: http://shardquery.com
+  * Shard-Query website: http://shardquery.wordpress.com
 
 Flexviews 
   * Incrementally refreshable (fast refresh) materialized views (like oracle materialized views or DB2 materialized views).    
