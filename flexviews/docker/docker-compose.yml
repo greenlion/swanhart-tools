@@ -1,0 +1,30 @@
+version: '2.4'
+services:
+  flexviews:
+    image: flexviews
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    container_name: flexviews
+    depends_on:
+      flexviews-mysql:
+        condition: service_healthy
+  flexviews-mysql:
+    image: mysql:5.6
+    container_name: flexviews-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    command: mysqld --default-authentication-plugin=mysql_native_password --log-bin=mysql-bin --binlog_format=ROW --server_id=2
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./flexviews-mysql-initdb:/docker-entrypoint-initdb.d
+      - flexviews-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 15
+
+volumes:
+  flexviews-mysql-data:
+    driver: local
