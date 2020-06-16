@@ -81,6 +81,7 @@ class FlexCDC {
 			if(strtoupper($col) === "NULL") $datatype="NULL";
 			switch(trim($datatype)) {
 				case 'NULL':
+				case 'bit':
 				break;
 
 				case 'int':
