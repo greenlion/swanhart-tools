@@ -1,3 +1,13 @@
+PROJECT DEPRECATION WARNING:
+=================
+Shard-Query has some issues working on MySQL 8 and I do not intend to update it to support MySQL 8.
+Flexviwes has some issues on MariaDB 10.4 and likewise, I do not intend to update it to support MariaDB 10.4+
+
+Consider using vitess for sharding (warning: does not support as much syntax as Shard-Query for scatter-gather queries)
+
+If you would like these tools updated to support newer versions, contact greenlion@gmail.com to discuss *sponsoring* the
+work to update the tools.
+
 swanhart-tools 
 ==============
 
