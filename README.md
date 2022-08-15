@@ -1,3 +1,5 @@
+CHECK OUT HTTP://WWW.LEAPDB.COM - LeapDB provides consulting services and an amazon AMI hosted MySQL distribution with a column store (WarpSQL) and real incrementally refreshable materialized views (replacing Flexviews).
+
 PROJECT DEPRECATION WARNING:
 =================
 Shard-Query has some issues working on MySQL 8 and I do not intend to update it to support MySQL 8.
